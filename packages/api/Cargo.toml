@@ -15,58 +15,53 @@ authors = ["Fluent AI Team"]
 quyc_client = { path = "../client" }
 
 # Async streaming foundation
-ystream = { path = "../../../async-stream" }
+ystream = { git = "https://github.com/cyrup-ai/ystream.git", branch = "main" }
 
 # HTTP foundation
-http = "1.1.0"
+http = "1"
 
 # Serialization
-serde = { version = "1.0.210", features = ["derive"] }
-serde_json = "1.0.128"
-serde_urlencoded = "0.7.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_urlencoded = "0.7"
 
 # Base64 encoding for auth
-base64 = "0.22.1"
+base64 = "0.22"
 
 # Collections
-hashbrown = "0.15.1"
+hashbrown = "0.16"
 
 # Logging
-log = "0.4.27"
-tracing = "0.1.41"
+log = "0.4"
+tracing = "0.1"
 
 # Bytes manipulation
-bytes = "1.10.1"
+bytes = "1"
 
 # URL parsing
-url = "2.5.7"
+url = "2"
 
 # Regex for validation
-regex = "1.11.1"
+regex = "1"
 
 # Async runtime for thread pool integration
-tokio = { version = "1.41.1", features = ["rt"] }
+tokio = { version = "1", features = ["full"] }
 
 # Fluent interface patterns
 cyrup_sugars = { git = "https://github.com/cyrup-ai/cyrup-sugars", branch = "main", package = "cyrup_sugars", features = ["all"] }
 
 [dev-dependencies]
-tokio = { version = "1.41.1", features = ["full"] }
-tokio-test = "0.4.4"
-axum = { version = "0.7.9", features = ["macros"] }
-axum-server = { version = "0.7.2", features = ["tls-rustls"] }
-rustls = { version = "0.23.31", features = ["aws-lc-rs"] }
-chrono = "0.4.38"
-env_logger = "0.11.6"
+tokio = { version = "1", features = ["full"] }
+tokio-test = "0.4"
+axum = { version = "0.8", features = ["macros"] }
+axum-server = { version = "0.7", features = ["tls-rustls"] }
+rustls = { version = "0.23", features = ["aws-lc-rs"] }
+chrono = "0.4"
+env_logger = "0.11"
 
 [[example]]
 name = "fluent_builder"
 path = "../../examples/fluent_builder.rs"
-
-[[example]]
-name = "test_real_endpoints" 
-path = "../../examples/test_real_endpoints.rs"
-
 
 
 [features]

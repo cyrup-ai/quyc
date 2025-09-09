@@ -1,7 +1,0 @@
-before we do that ... let's check in on your ACTUAL assigned task and the OBJECTIVE: 
-
-StreamResponse and all other http response duplicates have all been deleted and ONLY HttpResponse remains as the sole representation and canonical version. ALL CALL  SITES have been updated to use the properties and methods of HttpResponse. 
-
-./src/client contains zero stubs and fully and truly fulfills the streaming of properties available in real time as frames are read 
-
-verify that your assigned task was fully and correctly completed with zero stubs and full production-only code. 
