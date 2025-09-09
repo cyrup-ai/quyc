@@ -1,0 +1,77 @@
+[package]
+name = "quyc"
+version = "0.1.0"
+edition = "2024"
+description = "Zero-allocation HTTP/3 client with fluent builder pattern and streaming-first architecture"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/fluent-ai/fluent-ai"
+documentation = "https://docs.rs/quyc"
+keywords = ["http", "http3", "quic", "streaming", "zero-allocation"]
+categories = ["network-programming", "web-programming::http-client"]
+authors = ["Fluent AI Team"]
+
+[dependencies]
+# Client implementation
+quyc_client = { path = "../client" }
+
+# Async streaming foundation
+ystream = { path = "../../../async-stream" }
+
+# HTTP foundation
+http = "1.1.0"
+
+# Serialization
+serde = { version = "1.0.210", features = ["derive"] }
+serde_json = "1.0.128"
+serde_urlencoded = "0.7.1"
+
+# Base64 encoding for auth
+base64 = "0.22.1"
+
+# Collections
+hashbrown = "0.15.1"
+
+# Logging
+log = "0.4.27"
+tracing = "0.1.41"
+
+# Bytes manipulation
+bytes = "1.10.1"
+
+# URL parsing
+url = "2.5.7"
+
+# Regex for validation
+regex = "1.11.1"
+
+# Async runtime for thread pool integration
+tokio = { version = "1.41.1", features = ["rt"] }
+
+# Fluent interface patterns
+cyrup_sugars = { git = "https://github.com/cyrup-ai/cyrup-sugars", branch = "main", package = "cyrup_sugars", features = ["all"] }
+
+[dev-dependencies]
+tokio = { version = "1.41.1", features = ["full"] }
+tokio-test = "0.4.4"
+axum = { version = "0.7.9", features = ["macros"] }
+axum-server = { version = "0.7.2", features = ["tls-rustls"] }
+rustls = { version = "0.23.31", features = ["aws-lc-rs"] }
+chrono = "0.4.38"
+env_logger = "0.11.6"
+
+[[example]]
+name = "fluent_builder"
+path = "../../examples/fluent_builder.rs"
+
+[[example]]
+name = "test_real_endpoints" 
+path = "../../examples/test_real_endpoints.rs"
+
+
+
+[features]
+default = []
+
+[lib]
+name = "quyc"
+path = "src/lib.rs"

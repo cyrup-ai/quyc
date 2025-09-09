@@ -1,0 +1,14 @@
+[workspace]
+members = ["packages/api", "packages/client"]
+default-members = ["packages/api"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/fluent-ai/fluent-ai"
+authors = ["Fluent AI Team"]
+
+# The main public API is in packages/api
+# packages/client contains the internal implementation
