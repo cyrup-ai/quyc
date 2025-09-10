@@ -4,7 +4,7 @@
 
 use serde_json::Value;
 
-use super::core_evaluator::{CoreJsonPathEvaluator, JsonPathResult};
+use super::engine::{CoreJsonPathEvaluator, JsonPathResult};
 use crate::jsonpath::parser::JsonSelector;
 
 impl CoreJsonPathEvaluator {

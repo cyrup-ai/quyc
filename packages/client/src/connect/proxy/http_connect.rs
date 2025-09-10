@@ -26,7 +26,7 @@ impl HttpConnectConfig {
     /// Add basic authentication
     pub fn with_auth(mut self, username: &str, password: &str) -> Self {
         use base64::Engine;
-        let credentials = format!("{}:{}", username, password);
+        let credentials = format!("{username}:{password}");
         let encoded = base64::engine::general_purpose::STANDARD.encode(credentials.as_bytes());
         self.auth = Some(encoded);
         self

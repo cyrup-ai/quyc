@@ -4,6 +4,7 @@
 //! URL processing, escape utilities, request types, response types, conversions,
 //! and other HTTP protocol-related functionality.
 
+pub mod compression;
 pub mod conversions;
 pub mod escape;
 pub mod headers;

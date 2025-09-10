@@ -29,10 +29,18 @@ pub fn is_truthy(value: &serde_json::Value) -> bool {
 /// Evaluate JSONPath selectors for filter expressions
 pub fn evaluate_jsonpath_selectors(
     context: &serde_json::Value,
-    _selectors: &[crate::jsonpath::ast::JsonSelector],
+    selectors: &[crate::jsonpath::ast::JsonSelector],
 ) -> JsonPathResult<Vec<serde_json::Value>> {
-    // Placeholder implementation - would integrate with main selector evaluation
-    Ok(vec![context.clone()])
+    // Use existing SelectorEngine to apply selectors
+    use crate::jsonpath::core_evaluator::selector_engine::SelectorEngine;
+    match SelectorEngine::apply_selectors(context, selectors) {
+        Ok(results) => Ok(results),
+        Err(e) => Err(deserialization_error(
+            "selector evaluation failed".to_string(),
+            e.to_string(),
+            "JSONPath selectors"
+        ))
+    }
 }
 use crate::jsonpath::functions::FunctionEvaluator;
 use crate::jsonpath::parser::{FilterExpression, FilterValue, LogicalOp};

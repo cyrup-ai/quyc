@@ -36,10 +36,9 @@ impl PropertyAccess {
                             // If this is the final property in the path, return null
                             if index == path.len() - 1 {
                                 return PropertyAccessResult::NullValue;
-                            } else {
-                                // Cannot traverse through null to access deeper properties
-                                return PropertyAccessResult::Missing;
-                            }
+                            } 
+                            // Cannot traverse through null to access deeper properties
+                            return PropertyAccessResult::Missing;
                         }
                         Some(value) => {
                             current = value;
@@ -155,10 +154,9 @@ pub fn access_property_path(root: &JsonValue, path: &[String]) -> PropertyAccess
                         // If this is the final property in the path, return null
                         if index == path.len() - 1 {
                             return PropertyAccessResult::NullValue;
-                        } else {
-                            // Cannot traverse through null to access deeper properties
-                            return PropertyAccessResult::Missing;
-                        }
+                        } 
+                        // Cannot traverse through null to access deeper properties
+                        return PropertyAccessResult::Missing;
                     }
                     Some(value) => {
                         current = value;

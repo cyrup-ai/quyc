@@ -7,7 +7,7 @@ use serde_json::Value;
 use super::super::error::JsonPathError;
 use super::super::parser::{FilterExpression, JsonSelector};
 use super::array_operations::ArrayOperations;
-use super::core_evaluator::CoreJsonPathEvaluator;
+use super::engine::CoreJsonPathEvaluator;
 use super::filter_support::FilterSupport;
 use crate::jsonpath::FilterEvaluator;
 

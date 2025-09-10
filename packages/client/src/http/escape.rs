@@ -33,7 +33,7 @@ pub fn html_escape(input: &str) -> String {
 /// URL decode function for compatibility
 pub fn url_decode(input: &str) -> Result<String, std::fmt::Error> {
     urlencoding::decode(input)
-        .map(|cow| cow.into_owned())
+        .map(std::borrow::Cow::into_owned)
         .map_err(|_| std::fmt::Error)
 }
 

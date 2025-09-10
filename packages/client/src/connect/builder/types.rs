@@ -5,8 +5,7 @@
 use std::time::Duration;
 
 use hyper_util::client::legacy::connect::HttpConnector;
-#[cfg(feature = "default-tls")]
-use native_tls;
+
 #[cfg(feature = "__rustls")]
 use rustls;
 
@@ -20,8 +19,7 @@ pub struct ConnectorBuilder {
     pub(super) nodelay: bool,
     pub(super) enforce_http: bool,
     pub(super) http_connector: Option<HttpConnector>,
-    #[cfg(feature = "default-tls")]
-    pub(super) tls_connector: Option<native_tls::TlsConnector>,
+
     #[cfg(feature = "__rustls")]
     pub(super) rustls_config: Option<rustls::ClientConfig>,
     pub(super) proxies: arrayvec::ArrayVec<crate::proxy::Proxy, 4>,
@@ -42,8 +40,7 @@ impl ConnectorBuilder {
             nodelay: true,
             enforce_http: false,
             http_connector: None,
-            #[cfg(feature = "default-tls")]
-            tls_connector: None,
+
             #[cfg(feature = "__rustls")]
             rustls_config: None,
             proxies: arrayvec::ArrayVec::new(),

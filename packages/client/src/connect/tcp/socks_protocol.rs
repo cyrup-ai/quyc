@@ -49,12 +49,12 @@ pub fn socks4_handshake(
 
     stream
         .write_all(&request)
-        .map_err(|e| format!("Failed to send SOCKS4 request: {}", e))?;
+        .map_err(|e| format!("Failed to send SOCKS4 request: {e}"))?;
 
     let mut response = [0u8; 8];
     stream
         .read_exact(&mut response)
-        .map_err(|e| format!("Failed to read SOCKS4 response: {}", e))?;
+        .map_err(|e| format!("Failed to read SOCKS4 response: {e}"))?;
 
     if response[1] != 0x5A {
         return Err(format!("SOCKS4 connection rejected: {}", response[1]));
@@ -73,12 +73,12 @@ pub fn socks5_handshake(
     let auth_request = [0x05, 0x01, 0x00]; // Version 5, 1 method, no auth
     stream
         .write_all(&auth_request)
-        .map_err(|e| format!("Failed to send SOCKS5 auth request: {}", e))?;
+        .map_err(|e| format!("Failed to send SOCKS5 auth request: {e}"))?;
 
     let mut auth_response = [0u8; 2];
     stream
         .read_exact(&mut auth_response)
-        .map_err(|e| format!("Failed to read SOCKS5 auth response: {}", e))?;
+        .map_err(|e| format!("Failed to read SOCKS5 auth response: {e}"))?;
 
     if auth_response[0] != 0x05 || auth_response[1] != 0x00 {
         return Err("SOCKS5 authentication failed".to_string());
@@ -110,13 +110,13 @@ pub fn socks5_handshake(
 
     stream
         .write_all(&request)
-        .map_err(|e| format!("Failed to send SOCKS5 connect request: {}", e))?;
+        .map_err(|e| format!("Failed to send SOCKS5 connect request: {e}"))?;
 
     // Read response
     let mut response = [0u8; 4];
     stream
         .read_exact(&mut response)
-        .map_err(|e| format!("Failed to read SOCKS5 response header: {}", e))?;
+        .map_err(|e| format!("Failed to read SOCKS5 response header: {e}"))?;
 
     if response[1] != 0x00 {
         return Err(format!("SOCKS5 connection rejected: {}", response[1]));
@@ -129,25 +129,25 @@ pub fn socks5_handshake(
             let mut addr = [0u8; 6]; // 4 bytes IP + 2 bytes port
             stream
                 .read_exact(&mut addr)
-                .map_err(|e| format!("Failed to read IPv4 bound address: {}", e))?;
+                .map_err(|e| format!("Failed to read IPv4 bound address: {e}"))?;
         }
         0x03 => {
             // Domain name
             let mut len = [0u8; 1];
             stream
                 .read_exact(&mut len)
-                .map_err(|e| format!("Failed to read domain length: {}", e))?;
+                .map_err(|e| format!("Failed to read domain length: {e}"))?;
             let mut domain_and_port = vec![0u8; len[0] as usize + 2];
             stream
                 .read_exact(&mut domain_and_port)
-                .map_err(|e| format!("Failed to read domain bound address: {}", e))?;
+                .map_err(|e| format!("Failed to read domain bound address: {e}"))?;
         }
         0x04 => {
             // IPv6
             let mut addr = [0u8; 18]; // 16 bytes IP + 2 bytes port
             stream
                 .read_exact(&mut addr)
-                .map_err(|e| format!("Failed to read IPv6 bound address: {}", e))?;
+                .map_err(|e| format!("Failed to read IPv6 bound address: {e}"))?;
         }
         _ => return Err("Invalid SOCKS5 address type in response".to_string()),
     }

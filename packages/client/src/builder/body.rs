@@ -145,7 +145,7 @@ impl Http3Builder<BodyNotSet> {
             "application/x-www-form-urlencoded" => match serde_urlencoded::to_string(body) {
                 Ok(form_data) => form_data.into_bytes(),
                 Err(e) => {
-                    log::error!("Failed to serialize form data: {}", e);
+                    log::error!("Failed to serialize form data: {e}");
                     Vec::new()
                 }
             },
@@ -154,7 +154,7 @@ impl Http3Builder<BodyNotSet> {
                 match serde_json::to_vec(body) {
                     Ok(json_data) => json_data,
                     Err(e) => {
-                        log::error!("Failed to serialize JSON: {}", e);
+                        log::error!("Failed to serialize JSON: {e}");
                         Vec::new()
                     }
                 }

@@ -11,6 +11,6 @@ mod processing;
 mod state;
 mod state_processors;
 mod state_transitions;
-mod types;
+pub mod types;
 
-pub use types::{DeserializerState, JsonPathDeserializer};
+pub use types::{DeserializerState, JsonPathDeserializer, StreamingJsonPathState, ProcessingStats};

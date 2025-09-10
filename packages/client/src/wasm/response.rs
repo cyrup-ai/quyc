@@ -570,7 +570,11 @@ impl ystream::prelude::MessageChunk for WasmResponse {
             abort_controller: None,
             url: url::Url::parse("https://error.local").unwrap_or_else(|_| {
                 // This should never fail, but provide absolute fallback
-                url::Url::parse("http://localhost/").expect("localhost URL must parse")
+                url::Url::parse("http://localhost/").unwrap_or_else(|parse_error| {
+                    log::error!("All error URL parsing failed: {}", parse_error);
+                    // Absolute last resort - return a synthetic URL
+                    url::Url::parse("data:text/plain,url-error").expect("data URL must parse")
+                })
             }),
             redirected: false,
             response_type: "error".to_string(),

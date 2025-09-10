@@ -87,7 +87,7 @@ impl DownloadBuilder {
             let mut file = match std::fs::File::create(&local_path) {
                 Ok(f) => f,
                 Err(e) => {
-                    let error_msg = format!("Failed to create file {}: {}", local_path, e);
+                    let error_msg = format!("Failed to create file {local_path}: {e}");
                     ystream::emit!(sender, DownloadProgress::bad_chunk(error_msg));
                     return;
                 }
@@ -101,7 +101,7 @@ impl DownloadBuilder {
                             Ok(n) => n,
                             Err(e) => {
                                 let error_msg =
-                                    format!("Failed to write to file {}: {}", local_path, e);
+                                    format!("Failed to write to file {local_path}: {e}");
                                 ystream::emit!(
                                     sender,
                                     DownloadProgress::bad_chunk(error_msg)
@@ -120,13 +120,12 @@ impl DownloadBuilder {
                         break;
                     }
                     crate::http::response::HttpDownloadChunk::Error { message } => {
-                        let error_msg = format!("Download error: {}", message);
+                        let error_msg = format!("Download error: {message}");
                         ystream::emit!(sender, DownloadProgress::bad_chunk(error_msg));
                         return;
                     }
                     crate::http::response::HttpDownloadChunk::Progress { .. } => {
                         // Progress-only updates, no data to write
-                        continue;
                     }
                 }
             }

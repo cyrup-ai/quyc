@@ -68,7 +68,7 @@ impl H3Connection {
         let local_addr = match socket.local_addr() {
             Ok(addr) => addr,
             Err(e) => {
-                let error_chunk = HttpBodyChunk::bad_chunk(format!("Failed to get local address: {}", e));
+                let error_chunk = HttpBodyChunk::bad_chunk(format!("Failed to get local address: {e}"));
                 if let Err(_) = body_tx.send(error_chunk) {
                     // Sender closed, continue with error
                 }
@@ -108,7 +108,7 @@ impl H3Connection {
                     error = %e,
                     "Failed to bind UDP socket for QUIC connection"
                 );
-                let error_chunk = HttpBodyChunk::bad_chunk(format!("Failed to bind UDP socket: {}", e));
+                let error_chunk = HttpBodyChunk::bad_chunk(format!("Failed to bind UDP socket: {e}"));
                 if let Err(_) = body_tx.send(error_chunk) {
                     // Sender closed, continue with error
                 }
@@ -150,7 +150,7 @@ impl H3Connection {
                                 server_addr = %server_addr,
                                 "DNS resolution returned no addresses"
                             );
-                            let error_chunk = HttpBodyChunk::bad_chunk(format!("Failed to resolve address: {}", server_addr));
+                            let error_chunk = HttpBodyChunk::bad_chunk(format!("Failed to resolve address: {server_addr}"));
                             if let Err(_) = body_tx.send(error_chunk) {
                                 // Sender closed, continue with error
                             }

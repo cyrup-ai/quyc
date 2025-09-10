@@ -162,7 +162,7 @@ impl H2FrameParser {
                     }
                     _ => {
                         // Unknown frame type
-                        H2Frame::bad_chunk(format!("Unknown frame type: {}", frame_type))
+                        H2Frame::bad_chunk(format!("Unknown frame type: {frame_type}"))
                     }
                 };
 

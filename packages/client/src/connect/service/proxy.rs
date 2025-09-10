@@ -62,7 +62,7 @@ impl ConnectorService {
                     Err(e) => {
                         emit!(
                             sender,
-                            TcpConnectionChunk::bad_chunk(format!("Proxy connection failed: {}", e))
+                            TcpConnectionChunk::bad_chunk(format!("Proxy connection failed: {e}"))
                         );
                         return;
                     }
@@ -82,8 +82,7 @@ impl ConnectorService {
                                 emit!(
                                     sender,
                                     TcpConnectionChunk::bad_chunk(format!(
-                                        "CONNECT tunnel failed: {}",
-                                        e
+                                        "CONNECT tunnel failed: {e}"
                                     ))
                                 );
                                 return;
@@ -105,8 +104,7 @@ impl ConnectorService {
                                 emit!(
                                     sender,
                                     TcpConnectionChunk::bad_chunk(format!(
-                                        "SOCKS5 handshake failed: {}",
-                                        e
+                                        "SOCKS5 handshake failed: {e}"
                                     ))
                                 );
                                 return;
@@ -117,8 +115,7 @@ impl ConnectorService {
                         emit!(
                             sender,
                             TcpConnectionChunk::bad_chunk(format!(
-                                "Unsupported proxy scheme: {}",
-                                scheme
+                                "Unsupported proxy scheme: {scheme}"
                             ))
                         );
                         return;

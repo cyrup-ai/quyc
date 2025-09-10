@@ -61,10 +61,10 @@ impl ProxyBypass {
         }
 
         // Check IP matches
-        if let Ok(ip) = host.parse::<std::net::IpAddr>() {
-            if self.no_proxy_ips.contains(&ip) {
-                return true;
-            }
+        if let Ok(ip) = host.parse::<std::net::IpAddr>()
+            && self.no_proxy_ips.contains(&ip)
+        {
+            return true;
         }
 
         false

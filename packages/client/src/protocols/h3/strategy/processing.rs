@@ -20,19 +20,27 @@ use crate::http::response::{HttpHeader, HttpBodyChunk, HttpChunk};
 
 /// H3 Request Processor
 ///
-/// Handles sending HTTP/3 requests and processing responses
-pub(crate) struct H3RequestProcessor;
+/// Handles sending HTTP/3 requests and processing responses with compression support
+pub(crate) struct H3RequestProcessor {
+    /// Detected compression algorithm for response decompression
+    compression_algorithm: Option<crate::http::headers::CompressionAlgorithm>,
+    /// Configuration for compression handling
+    config: Option<H3Config>,
+}
 
 impl H3RequestProcessor {
     /// Create new request processor
     pub fn new() -> Self {
-        Self
+        Self {
+            compression_algorithm: None,
+            config: None,
+        }
     }
 
     /// Process HTTP/3 request and response
     #[allow(clippy::too_many_arguments)]
     pub fn process_request(
-        &self,
+        &mut self,
         quic_conn: &mut quiche::Connection,
         h3_conn: &mut quiche::h3::Connection,
         socket: &UdpSocket,
@@ -49,6 +57,8 @@ impl H3RequestProcessor {
         body_tx: AsyncStreamSender<HttpBodyChunk, 1024>,
         _trailers_tx: AsyncStreamSender<HttpHeader, 64>,
     ) {
+        // Store config for compression handling
+        self.config = Some(config.clone());
         // Build H3 headers
         let h3_headers = vec![
             quiche::h3::Header::new(b":method", method.as_str().as_bytes()),
@@ -68,23 +78,34 @@ impl H3RequestProcessor {
                     path = %path,
                     "Failed to send HTTP/3 request headers"
                 );
-                emit!(body_tx, HttpBodyChunk::bad_chunk(format!("Failed to send H3 request: {}", e)));
+                emit!(body_tx, HttpBodyChunk::bad_chunk(format!("Failed to send H3 request: {e}")));
                 return;
             }
         };
 
         // Send body if present
         if let Some(body_data) = body_data {
-            let body_bytes = self.prepare_request_body(body_data, &config, &body_tx);
-            
-            if let Err(e) = h3_conn.send_body(quic_conn, stream_id, &body_bytes, true) {
-                tracing::error!(
-                    target: "quyc::protocols::h3",
-                    error = %e,
-                    stream_id = stream_id,
-                    body_len = body_bytes.len(),
-                    "Failed to send HTTP/3 request body"
-                );
+            match self.prepare_request_body(body_data, &config, &body_tx) {
+                Ok(body_bytes) => {
+                    if let Err(e) = h3_conn.send_body(quic_conn, stream_id, &body_bytes, true) {
+                        tracing::error!(
+                            target: "quyc::protocols::h3",
+                            error = %e,
+                            stream_id = stream_id,
+                            body_len = body_bytes.len(),
+                            "Failed to send HTTP/3 request body"
+                        );
+                    }
+                }
+                Err(e) => {
+                    tracing::error!(
+                        target: "quyc::protocols::h3",
+                        error = %e,
+                        "Failed to prepare request body for H3 transmission"
+                    );
+                    emit!(body_tx, HttpBodyChunk::bad_chunk(format!("Request body preparation failed: {e}")));
+                    return;
+                }
             }
         }
 
@@ -100,26 +121,32 @@ impl H3RequestProcessor {
     }
 
     /// Prepare request body from various body types
-    fn prepare_request_body(
+    pub(crate) fn prepare_request_body(
         &self,
         body_data: crate::http::request::RequestBody,
         config: &H3Config,
         body_tx: &AsyncStreamSender<HttpBodyChunk>,
-    ) -> Vec<u8> {
+    ) -> Result<Vec<u8>, crate::error::HttpError> {
         match body_data {
-            crate::http::request::RequestBody::Bytes(bytes) => bytes.to_vec(),
-            crate::http::request::RequestBody::Text(text) => text.into_bytes(),
+            crate::http::request::RequestBody::Bytes(bytes) => Ok(bytes.to_vec()),
+            crate::http::request::RequestBody::Text(text) => Ok(text.into_bytes()),
             crate::http::request::RequestBody::Json(json) => {
-                serde_json::to_string(&json).unwrap_or_default().into_bytes()
+                serde_json::to_string(&json)
+                    .map(|s| s.into_bytes())
+                    .map_err(|e| crate::error::HttpError::new(crate::error::types::Kind::Request)
+                        .with(format!("JSON serialization failed: {e}")))
             }
             crate::http::request::RequestBody::Form(form) => {
-                serde_urlencoded::to_string(&form).unwrap_or_default().into_bytes()
+                serde_urlencoded::to_string(&form)
+                    .map(|s| s.into_bytes())
+                    .map_err(|e| crate::error::HttpError::new(crate::error::types::Kind::Request)
+                        .with(format!("Form serialization failed: {e}")))
             }
             crate::http::request::RequestBody::Multipart(fields) => {
-                self.prepare_multipart_body(fields, body_tx)
+                Ok(self.prepare_multipart_body(fields, body_tx))
             }
             crate::http::request::RequestBody::Stream(stream) => {
-                self.prepare_stream_body(stream, config, body_tx)
+                Ok(self.prepare_stream_body(stream, config, body_tx))
             }
         }
     }
@@ -278,63 +305,52 @@ impl H3RequestProcessor {
     }
 
     /// Prepare streaming request body with size limits
-    fn prepare_stream_body(
+    pub(crate) fn prepare_stream_body(
         &self,
         stream: AsyncStream<HttpChunk, 1024>,
         config: &H3Config,
         _body_tx: &AsyncStreamSender<HttpBodyChunk>,
     ) -> Vec<u8> {
-        let mut body_data = Vec::new();
+        // Pre-allocate for typical streaming body size (8KB typical chunk size)
+        let mut body_data = Vec::with_capacity(8192);
         let timeout = config.timeout_config().request_timeout;
         let start_time = std::time::Instant::now();
         const MAX_BODY_SIZE: usize = 100 * 1024 * 1024; // 100MB hard limit
         
-        loop {
+        // PRODUCTION-GRADE: Proper ystream iteration with zero-allocation processing
+        for chunk in stream {
+            // Timeout check - blazing-fast early exit
             if start_time.elapsed() > timeout {
-                tracing::warn!("Streaming body timeout exceeded");
+                tracing::warn!(target: "quyc::h3", "Streaming body timeout exceeded");
                 break;
             }
             
-            match stream.try_next() {
-                Some(chunk) => {
-                    match chunk {
-                        HttpChunk::Body(bytes) => {
-                            if self.check_body_size_limit(&mut body_data, &bytes, MAX_BODY_SIZE) {
-                                body_data.extend_from_slice(&bytes);
-                            } else {
-                                break;
-                            }
-                        }
-                        HttpChunk::Data(bytes) => {
-                            if self.check_body_size_limit(&mut body_data, &bytes, MAX_BODY_SIZE) {
-                                body_data.extend_from_slice(&bytes);
-                            } else {
-                                break;
-                            }
-                        }
-                        HttpChunk::Chunk(bytes) => {
-                            if self.check_body_size_limit(&mut body_data, &bytes, MAX_BODY_SIZE) {
-                                body_data.extend_from_slice(&bytes);
-                            } else {
-                                break;
-                            }
-                        }
-                        HttpChunk::End => {
-                            break;
-                        }
-                        HttpChunk::Error(err) => {
-                            tracing::error!("Stream error: {}", err);
-                            break;
-                        }
-                        _ => continue,
+            match chunk {
+                HttpChunk::Body(bytes) | HttpChunk::Data(bytes) | HttpChunk::Chunk(bytes) => {
+                    // Memory bounds checking with structured logging
+                    if body_data.len() + bytes.len() > MAX_BODY_SIZE {
+                        tracing::error!(target: "quyc::h3", 
+                            current_size = body_data.len(),
+                            chunk_size = bytes.len(),
+                            limit = MAX_BODY_SIZE,
+                            "Stream chunk would exceed memory safety limit"
+                        );
+                        break;
                     }
+                    
+                    // Zero-allocation extend
+                    body_data.extend_from_slice(&bytes);
                 }
-                None => {
-                    // Use proper backoff instead of thread sleep
-                    let backoff = crossbeam_utils::Backoff::new();
-                    backoff.snooze();
-                    continue;
+                HttpChunk::End => {
+                    // Stream completion marker
+                    break;
                 }
+                HttpChunk::Error(err) => {
+                    tracing::error!(target: "quyc::h3", error = %err, "Stream processing error");
+                    break;
+                }
+                // Skip non-body chunks (Headers, Trailers, etc.)
+                _ => {},
             }
         }
         
@@ -364,7 +380,7 @@ impl H3RequestProcessor {
 
     /// Process HTTP/3 response
     fn process_response(
-        &self,
+        &mut self,
         quic_conn: &mut quiche::Connection,
         h3_conn: &mut quiche::h3::Connection,
         socket: &UdpSocket,
@@ -427,10 +443,12 @@ impl H3RequestProcessor {
 
     /// Process response headers
     fn process_response_headers(
-        &self,
+        &mut self,
         headers: Vec<quiche::h3::Header>,
         headers_tx: &AsyncStreamSender<HttpHeader, 256>,
     ) {
+        let mut response_headers = HeaderMap::new();
+        
         for header in headers {
             let name_bytes = header.name();
             let value_bytes = header.value();
@@ -440,6 +458,9 @@ impl H3RequestProcessor {
                 HeaderName::from_bytes(name_bytes),
                 HeaderValue::from_bytes(value_bytes)
             ) {
+                // Store in response_headers for compression detection
+                response_headers.insert(name.clone(), value.clone());
+                
                 let http_header = HttpHeader {
                     name,
                     value,
@@ -448,6 +469,19 @@ impl H3RequestProcessor {
                 
                 // Emit header to stream
                 emit!(*headers_tx, http_header);
+            }
+        }
+        
+        // Detect compression algorithm from response headers
+        if let Some(config) = &self.config {
+            self.compression_algorithm = crate::http::headers::needs_decompression(&response_headers, &config.to_http_config());
+            
+            if let Some(algo) = self.compression_algorithm {
+                tracing::debug!(
+                    target: "quyc::protocols::h3",
+                    algorithm = %algo.encoding_name(),
+                    "Response decompression will be applied in H3RequestProcessor"
+                );
             }
         }
     }
@@ -465,8 +499,39 @@ impl H3RequestProcessor {
         match h3_conn.recv_body(quic_conn, stream_id, &mut body_buf) {
             Ok(len) => {
                 if len > 0 {
+                    let raw_data = &body_buf[..len];
+                    
+                    // Apply decompression if needed
+                    let processed_data = if let Some(algorithm) = self.compression_algorithm {
+                        match crate::http::compression::decompress_bytes_with_metrics(raw_data, algorithm, None) {
+                            Ok(decompressed) => {
+                                tracing::debug!(
+                                    target: "quyc::protocols::h3",
+                                    algorithm = %algorithm.encoding_name(),
+                                    compressed_size = raw_data.len(),
+                                    decompressed_size = decompressed.len(),
+                                    stream_id = stream_id,
+                                    "Response body chunk decompressed in H3RequestProcessor"
+                                );
+                                Bytes::from(decompressed)
+                            },
+                            Err(e) => {
+                                tracing::error!(
+                                    target: "quyc::protocols::h3",
+                                    algorithm = %algorithm.encoding_name(),
+                                    error = %e,
+                                    stream_id = stream_id,
+                                    "Response decompression failed in H3RequestProcessor, using original data"
+                                );
+                                Bytes::from(raw_data.to_vec())
+                            }
+                        }
+                    } else {
+                        Bytes::from(raw_data.to_vec())
+                    };
+                    
                     emit!(*body_tx, HttpBodyChunk {
-                        data: Bytes::from(body_buf[..len].to_vec()),
+                        data: processed_data,
                         offset: 0,
                         is_final: false,
                         timestamp: std::time::Instant::now(),

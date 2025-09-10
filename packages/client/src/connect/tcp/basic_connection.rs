@@ -23,7 +23,6 @@ pub fn connect_to_address_list(
                     Err(e) => {
                         // Log error and continue to next address
                         tracing::debug!("Failed to connect to {}: {}", addr, e);
-                        continue;
                     }
                 }
             }
@@ -31,7 +30,6 @@ pub fn connect_to_address_list(
                 Ok(stream) => return Ok(stream),
                 Err(e) => {
                     tracing::debug!("Failed to connect to {}: {}", addr, e);
-                    continue;
                 }
             },
         }

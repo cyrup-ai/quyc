@@ -81,13 +81,12 @@ where
                     // Found complete object, attempt deserialization
                     match self.deserializer.deserialize_current_object() {
                         Ok(Some(obj)) => return Ok(Some(obj)),
-                        Ok(None) => continue, // Continue parsing if no object available
+                        Ok(None) => {}, // Continue parsing if no object available
                         Err(e) => return Err(e), // Return deserialization error to caller
                     }
                 }
                 JsonProcessResult::Continue => {
                     // Continue parsing
-                    continue;
                 }
                 JsonProcessResult::NeedMoreData => {
                     // Need more bytes to complete parsing

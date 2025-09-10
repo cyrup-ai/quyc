@@ -190,7 +190,7 @@ pub fn execute_h3_request(
                                 Err(e) => {
                                     emit!(
                                         sender,
-                                        H3Chunk::bad_chunk(format!("Stream read error: {}", e))
+                                        H3Chunk::bad_chunk(format!("Stream read error: {e}"))
                                     );
                                     return;
                                 }

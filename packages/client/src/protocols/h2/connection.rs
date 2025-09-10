@@ -4,7 +4,7 @@
 //! direct polling primitives integrated with ystream streaming patterns.
 
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::task::{Poll, RawWaker, RawWakerVTable, Waker};
+use std::task::{Poll, Waker};
 use std::time::Instant;
 use std::pin::Pin;
 use std::future::Future;
@@ -26,17 +26,8 @@ use crate::protocols::{
 static CONNECTION_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// Create a thread-safe noop waker for use in AsyncStream contexts
-/// Unlike futures::task::noop_waker(), this waker is Send + Sync
 fn create_thread_safe_noop_waker() -> Waker {
-    unsafe fn noop_clone(_: *const ()) -> RawWaker {
-        RawWaker::new(std::ptr::null(), &NOOP_WAKER_VTABLE)
-    }
-    unsafe fn noop(_: *const ()) {}
-    
-    const NOOP_WAKER_VTABLE: RawWakerVTable = 
-        RawWakerVTable::new(noop_clone, noop, noop, noop);
-    
-    unsafe { Waker::from_raw(RawWaker::new(std::ptr::null(), &NOOP_WAKER_VTABLE)) }
+    futures::task::noop_waker()
 }
 
 /// HTTP/2 connection wrapper using direct polling primitives
@@ -175,7 +166,6 @@ impl H2Connection {
                             }
                             Poll::Pending => {
                                 backoff.snooze(); // Elite backoff pattern
-                                continue;
                             }
                         }
                     }
@@ -241,7 +231,6 @@ impl H2Connection {
                                                             }
                                                             Poll::Pending => {
                                                                 backoff.snooze();
-                                                                continue;
                                                             }
                                                         }
                                                     }
@@ -249,7 +238,6 @@ impl H2Connection {
                                                 }
                                                 Poll::Pending => {
                                                     backoff.snooze();
-                                                    continue;
                                                 }
                                             }
                                         }
@@ -261,7 +249,6 @@ impl H2Connection {
                                     }
                                     Poll::Pending => {
                                         backoff.snooze();
-                                        continue;
                                     }
                                 }
                             }

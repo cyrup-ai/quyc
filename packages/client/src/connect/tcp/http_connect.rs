@@ -20,26 +20,24 @@ pub fn establish_connect_tunnel(
     // Send CONNECT request
     let connect_request = if let Some(auth) = auth {
         format!(
-            "CONNECT {}:{} HTTP/1.1\r\nHost: {}:{}\r\nProxy-Authorization: Basic {}\r\n\r\n",
-            host, port, host, port, auth
+            "CONNECT {host}:{port} HTTP/1.1\r\nHost: {host}:{port}\r\nProxy-Authorization: Basic {auth}\r\n\r\n"
         )
     } else {
         format!(
-            "CONNECT {}:{} HTTP/1.1\r\nHost: {}:{}\r\n\r\n",
-            host, port, host, port
+            "CONNECT {host}:{port} HTTP/1.1\r\nHost: {host}:{port}\r\n\r\n"
         )
     };
 
     proxy_stream
         .write_all(connect_request.as_bytes())
-        .map_err(|e| format!("Failed to send CONNECT request: {}", e))?;
+        .map_err(|e| format!("Failed to send CONNECT request: {e}"))?;
 
     // Read response
     let mut reader = BufReader::new(&proxy_stream);
     let mut response_line = String::new();
     reader
         .read_line(&mut response_line)
-        .map_err(|e| format!("Failed to read CONNECT response: {}", e))?;
+        .map_err(|e| format!("Failed to read CONNECT response: {e}"))?;
 
     if !response_line.contains("200") {
         return Err(format!("CONNECT failed: {}", response_line.trim()));
@@ -51,7 +49,7 @@ pub fn establish_connect_tunnel(
         line.clear();
         reader
             .read_line(&mut line)
-            .map_err(|e| format!("Failed to read CONNECT headers: {}", e))?;
+            .map_err(|e| format!("Failed to read CONNECT headers: {e}"))?;
         if line.trim().is_empty() {
             break;
         }

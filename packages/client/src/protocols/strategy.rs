@@ -163,7 +163,7 @@ impl H2Config {
     pub fn ai_optimized() -> Self {
         Self {
             max_concurrent_streams: 1000,
-            initial_window_size: 1048576, // 1MB
+            initial_window_size: 1_048_576, // 1MB
             max_frame_size: 32768,
             enable_push: false,
             enable_connect_protocol: true,
@@ -183,7 +183,7 @@ impl ProtocolConfig for H2Config {
         if self.initial_window_size < 65535 {
             return Err("initial_window_size must be at least 65535".to_string());
         }
-        if self.max_frame_size < 16384 || self.max_frame_size > 16777215 {
+        if self.max_frame_size < 16_384 || self.max_frame_size > 16_777_215 {
             return Err("max_frame_size must be between 16384 and 16777215".to_string());
         }
         Ok(())
@@ -224,10 +224,10 @@ impl Default for H3Config {
         Self {
             max_idle_timeout: Duration::from_secs(30),
             max_udp_payload_size: 1452,
-            initial_max_data: 10485760,                   // 10MB
-            initial_max_stream_data_bidi_local: 1048576,  // 1MB
-            initial_max_stream_data_bidi_remote: 1048576, // 1MB
-            initial_max_stream_data_uni: 1048576,         // 1MB
+            initial_max_data: 10_485_760,                   // 10MB
+            initial_max_stream_data_bidi_local: 1_048_576,  // 1MB
+            initial_max_stream_data_bidi_remote: 1_048_576, // 1MB
+            initial_max_stream_data_uni: 1_048_576,         // 1MB
             initial_max_streams_bidi: 100,
             initial_max_streams_uni: 100,
             enable_early_data: true,
@@ -242,10 +242,10 @@ impl H3Config {
         Self {
             max_idle_timeout: Duration::from_secs(60),
             max_udp_payload_size: 1452,
-            initial_max_data: 104857600,                   // 100MB
-            initial_max_stream_data_bidi_local: 10485760,  // 10MB
-            initial_max_stream_data_bidi_remote: 10485760, // 10MB
-            initial_max_stream_data_uni: 10485760,         // 10MB
+            initial_max_data: 104_857_600,                   // 100MB
+            initial_max_stream_data_bidi_local: 10_485_760,  // 10MB
+            initial_max_stream_data_bidi_remote: 10_485_760, // 10MB
+            initial_max_stream_data_uni: 10_485_760,         // 10MB
             initial_max_streams_bidi: 1000,
             initial_max_streams_uni: 1000,
             enable_early_data: true,
@@ -258,10 +258,10 @@ impl H3Config {
         Self {
             max_idle_timeout: Duration::from_secs(300),
             max_udp_payload_size: 1452,
-            initial_max_data: 1073741824,                   // 1GB
-            initial_max_stream_data_bidi_local: 104857600,  // 100MB
-            initial_max_stream_data_bidi_remote: 104857600, // 100MB
-            initial_max_stream_data_uni: 104857600,         // 100MB
+            initial_max_data: 1_073_741_824,                   // 1GB
+            initial_max_stream_data_bidi_local: 104_857_600,  // 100MB
+            initial_max_stream_data_bidi_remote: 104_857_600, // 100MB
+            initial_max_stream_data_uni: 104_857_600,         // 100MB
             initial_max_streams_bidi: 10000,
             initial_max_streams_uni: 10000,
             enable_early_data: true,

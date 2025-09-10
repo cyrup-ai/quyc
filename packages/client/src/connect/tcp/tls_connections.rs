@@ -41,11 +41,11 @@ pub fn establish_rustls_connection(
 ) -> Result<rustls::StreamOwned<rustls::ClientConnection, TcpStream>, String> {
     let server_name = match rustls::pki_types::DnsName::try_from(host.clone()) {
         Ok(dns_name) => rustls::pki_types::ServerName::DnsName(dns_name),
-        Err(e) => return Err(format!("Invalid server name {}: {}", host, e)),
+        Err(e) => return Err(format!("Invalid server name {host}: {e}")),
     };
 
     let client = rustls::ClientConnection::new(config, server_name)
-        .map_err(|e| format!("Failed to create TLS connection: {}", e))?;
+        .map_err(|e| format!("Failed to create TLS connection: {e}"))?;
 
     Ok(rustls::StreamOwned::new(client, stream))
 }

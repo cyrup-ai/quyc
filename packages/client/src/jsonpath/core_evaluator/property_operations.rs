@@ -4,7 +4,7 @@
 
 use serde_json::Value;
 
-use super::core_evaluator::{CoreJsonPathEvaluator, JsonPathResult};
+use super::engine::{CoreJsonPathEvaluator, JsonPathResult};
 
 impl CoreJsonPathEvaluator {
     /// Evaluate a property path on a JSON value (for nested property access)

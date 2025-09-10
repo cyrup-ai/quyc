@@ -32,19 +32,19 @@ impl<S> AuthMethod for Http3Builder<S> {
 
     #[inline]
     fn bearer_auth(self, token: &str) -> Self {
-        let auth_value = format!("Bearer {}", token);
+        let auth_value = format!("Bearer {token}");
         self.header("Authorization", &auth_value)
     }
 
     #[inline]
     fn basic_auth(self, username: &str, password: Option<&str>) -> Self {
         let credentials = match password {
-            Some(pwd) => format!("{}:{}", username, pwd),
-            None => format!("{}:", username),
+            Some(pwd) => format!("{username}:{pwd}"),
+            None => format!("{username}:"),
         };
 
         let encoded = STANDARD.encode(credentials.as_bytes());
-        let auth_value = format!("Basic {}", encoded);
+        let auth_value = format!("Basic {encoded}");
         self.header("Authorization", &auth_value)
     }
 }
@@ -93,7 +93,7 @@ impl<S> Http3Builder<S> {
     /// ```
     #[inline]
     pub fn bearer_auth(self, token: &str) -> Self {
-        let auth_value = format!("Bearer {}", token);
+        let auth_value = format!("Bearer {token}");
         self.header("Authorization", &auth_value)
     }
 
@@ -120,12 +120,12 @@ impl<S> Http3Builder<S> {
     #[inline]
     pub fn basic_auth(self, username: &str, password: Option<&str>) -> Self {
         let credentials = match password {
-            Some(pwd) => format!("{}:{}", username, pwd),
-            None => format!("{}:", username),
+            Some(pwd) => format!("{username}:{pwd}"),
+            None => format!("{username}:"),
         };
 
         let encoded = STANDARD.encode(credentials.as_bytes());
-        let auth_value = format!("Basic {}", encoded);
+        let auth_value = format!("Basic {encoded}");
         self.header("Authorization", &auth_value)
     }
 }

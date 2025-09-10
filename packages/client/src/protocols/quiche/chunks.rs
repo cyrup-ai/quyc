@@ -57,7 +57,7 @@ impl QuicheConnectionEvent {
         let connection_id = QUICHE_COUNTER.fetch_add(1, Ordering::Relaxed);
         Self::ConnectionClosing {
             connection_id,
-            reason: format!("Connection closing with error: {}", err),
+            reason: format!("Connection closing with error: {err}"),
         }
     }
 

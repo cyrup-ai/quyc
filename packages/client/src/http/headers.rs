@@ -195,6 +195,77 @@ pub fn is_compressed(headers: &HeaderMap) -> bool {
         .unwrap_or(false)
 }
 
+/// Compression algorithms supported by the client
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CompressionAlgorithm {
+    Gzip,
+    Brotli,
+    Deflate,
+    Identity,
+}
+
+impl CompressionAlgorithm {
+    /// Get the HTTP encoding name for this algorithm
+    #[inline]
+    pub fn encoding_name(&self) -> &'static str {
+        match self {
+            CompressionAlgorithm::Gzip => "gzip",
+            CompressionAlgorithm::Brotli => "br",
+            CompressionAlgorithm::Deflate => "deflate", 
+            CompressionAlgorithm::Identity => "identity",
+        }
+    }
+
+    /// Parse compression algorithm from encoding string
+    #[inline]
+    pub fn from_encoding(encoding: &str) -> Option<Self> {
+        match encoding.to_lowercase().as_str() {
+            "gzip" | "x-gzip" => Some(CompressionAlgorithm::Gzip),
+            "br" => Some(CompressionAlgorithm::Brotli),
+            "deflate" => Some(CompressionAlgorithm::Deflate),
+            "identity" | "" => Some(CompressionAlgorithm::Identity),
+            _ => None,
+        }
+    }
+
+    /// Check if client supports decompression for this algorithm
+    #[inline]
+    pub fn is_supported(&self, config: &crate::config::HttpConfig) -> bool {
+        match self {
+            CompressionAlgorithm::Gzip => config.gzip_enabled,
+            CompressionAlgorithm::Brotli => config.brotli_enabled,
+            CompressionAlgorithm::Deflate => config.deflate,
+            CompressionAlgorithm::Identity => true,
+        }
+    }
+}
+
+/// Detect compression algorithm from response headers
+#[inline]
+pub fn detect_compression_algorithm(headers: &HeaderMap) -> Option<CompressionAlgorithm> {
+    headers
+        .get("content-encoding")
+        .and_then(|v| v.to_str().ok())
+        .and_then(CompressionAlgorithm::from_encoding)
+}
+
+/// Check if response needs decompression based on headers and config
+#[inline]
+pub fn needs_decompression(headers: &HeaderMap, config: &crate::config::HttpConfig) -> Option<CompressionAlgorithm> {
+    if !config.response_compression {
+        return None;
+    }
+
+    let algorithm = detect_compression_algorithm(headers)?;
+    
+    // Only decompress if we support it and it's not identity
+    if algorithm != CompressionAlgorithm::Identity && algorithm.is_supported(config) {
+        Some(algorithm)
+    } else {
+        None
+    }
+}
+
 /// Get content length from headers
 #[inline]
 pub fn get_content_length(headers: &HeaderMap) -> Option<u64> {
@@ -209,4 +280,43 @@ pub fn get_content_length(headers: &HeaderMap) -> Option<u64> {
 pub fn replace_headers(headers: &mut HeaderMap, new_headers: HeaderMap) {
     headers.clear();
     headers.extend(new_headers);
+}
+
+/// Build Accept-Encoding header value based on compression configuration
+#[inline] 
+pub fn build_accept_encoding_header(config: &crate::config::HttpConfig) -> Option<HeaderValue> {
+    let mut encodings = Vec::new();
+    
+    if config.gzip_enabled {
+        encodings.push("gzip");
+    }
+    
+    if config.brotli_enabled {
+        encodings.push("br");
+    }
+    
+    if config.deflate {
+        encodings.push("deflate");
+    }
+    
+    // Always include identity as fallback
+    encodings.push("identity");
+    
+    if encodings.is_empty() {
+        None
+    } else {
+        let encoding_str = encodings.join(", ");
+        HeaderValue::from_str(&encoding_str).ok()
+    }
+}
+
+/// Add compression headers to request based on configuration
+#[inline]
+pub fn add_compression_headers(headers: &mut HeaderMap, config: &crate::config::HttpConfig) {
+    // Only add Accept-Encoding if response compression is enabled
+    if config.response_compression {
+        if let Some(accept_encoding) = build_accept_encoding_header(config) {
+            headers.insert(http::header::ACCEPT_ENCODING, accept_encoding);
+        }
+    }
 }

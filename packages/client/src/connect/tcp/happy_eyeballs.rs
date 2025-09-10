@@ -31,7 +31,7 @@ pub fn happy_eyeballs_connect(
                 let _ = tx_v6.send(Ok(stream));
             }
             Err(e) => {
-                let _ = tx_v6.send(Err(format!("IPv6: {}", e)));
+                let _ = tx_v6.send(Err(format!("IPv6: {e}")));
             }
         },
     );
@@ -47,7 +47,7 @@ pub fn happy_eyeballs_connect(
                 let _ = tx_v4.send(Ok(stream));
             }
             Err(e) => {
-                let _ = tx_v4.send(Err(format!("IPv4: {}", e)));
+                let _ = tx_v4.send(Err(format!("IPv4: {e}")));
             }
         }
     });
@@ -60,10 +60,10 @@ pub fn happy_eyeballs_connect(
         match rx.recv_timeout(Duration::from_millis(100)) {
             Ok(Ok(stream)) => return Ok(stream),
             Ok(Err(e)) => errors.push(e),
-            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => continue,
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {},
             Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => break,
         }
     }
 
-    Err(format!("Happy Eyeballs failed: {:?}", errors))
+    Err(format!("Happy Eyeballs failed: {errors:?}"))
 }

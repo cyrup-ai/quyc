@@ -19,10 +19,10 @@ impl std::fmt::Display for HttpDateParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             HttpDateParseError::UnrecognizedFormat(date) => {
-                write!(f, "Unrecognized HTTP date format: {}", date)
+                write!(f, "Unrecognized HTTP date format: {date}")
             }
             HttpDateParseError::InvalidTimestamp(date) => {
-                write!(f, "Invalid timestamp in HTTP date: {}", date)
+                write!(f, "Invalid timestamp in HTTP date: {date}")
             }
         }
     }

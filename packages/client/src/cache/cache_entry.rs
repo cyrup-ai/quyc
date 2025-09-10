@@ -48,7 +48,7 @@ impl CacheEntry {
         let etag = headers
             .get("etag")
             .and_then(|v| v.to_str().ok())
-            .map(|s| s.to_string());
+            .map(std::string::ToString::to_string);
 
         let last_modified = headers
             .get("last-modified")
@@ -84,26 +84,24 @@ impl CacheEntry {
     /// Parse expiration time from response headers
     fn parse_expires(headers: &http::HeaderMap) -> Option<Instant> {
         // Check Cache-Control max-age first
-        if let Some(cache_control) = headers.get("cache-control") {
-            if let Some(cache_control_str) = cache_control.to_str().ok() {
-                if let Some(max_age) = Self::parse_max_age(cache_control_str) {
-                    return Some(Instant::now() + Duration::from_secs(max_age));
-                }
-            }
+        if let Some(cache_control) = headers.get("cache-control")
+            && let Some(cache_control_str) = cache_control.to_str().ok()
+            && let Some(max_age) = Self::parse_max_age(cache_control_str)
+        {
+            return Some(Instant::now() + Duration::from_secs(max_age));
         }
 
         // Fall back to Expires header
-        if let Some(expires) = headers.get("expires") {
-            if let Some(expires_str) = expires.to_str().ok() {
-                if let Ok(expires_time) = httpdate::parse_http_date(expires_str) {
-                    let duration_since_unix = expires_time.duration_since(UNIX_EPOCH).ok()?;
-                    let now_since_unix = SystemTime::now().duration_since(UNIX_EPOCH).ok()?;
+        if let Some(expires) = headers.get("expires")
+            && let Some(expires_str) = expires.to_str().ok()
+            && let Ok(expires_time) = httpdate::parse_http_date(expires_str)
+        {
+            let duration_since_unix = expires_time.duration_since(UNIX_EPOCH).ok()?;
+            let now_since_unix = SystemTime::now().duration_since(UNIX_EPOCH).ok()?;
 
-                    if duration_since_unix > now_since_unix {
-                        let ttl = duration_since_unix - now_since_unix;
-                        return Some(Instant::now() + ttl);
-                    }
-                }
+            if duration_since_unix > now_since_unix {
+                let ttl = duration_since_unix - now_since_unix;
+                return Some(Instant::now() + ttl);
             }
         }
 

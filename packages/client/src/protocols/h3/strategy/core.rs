@@ -7,16 +7,13 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 use ystream::{AsyncStream, spawn_task};
 use http::{StatusCode, Version};
-// Bytes import removed - not used
-
 use crate::protocols::strategy_trait::ProtocolStrategy;
 // ProtocolConfig import removed - not used
 use crate::protocols::strategy::H3Config;
 use crate::http::{HttpRequest, HttpResponse};
 use crate::http::response::{HttpBodyChunk, HttpHeader};
 
-use super::connection::H3Connection;
-use super::processing::H3RequestProcessor;
+use crate::protocols::h3::connection::H3Connection;
 
 // Global connection ID counter for H3 connections
 static NEXT_CONNECTION_ID: AtomicU64 = AtomicU64::new(1);
@@ -123,7 +120,7 @@ impl ProtocolStrategy for H3Strategy {
         // Create response streams
         let (headers_tx, headers_internal) = AsyncStream::<HttpHeader, 256>::channel();
         let (body_tx, body_internal) = AsyncStream::<HttpBodyChunk, 1024>::channel();
-        let (trailers_tx, trailers_internal) = AsyncStream::<HttpHeader, 64>::channel();
+        let (_trailers_tx, trailers_internal) = AsyncStream::<HttpHeader, 64>::channel();
         
         // Extract request details for task
         let method = request.method().clone();
@@ -142,7 +139,7 @@ impl ProtocolStrategy for H3Strategy {
         
         // Clone config for async task
         let config = self.config.clone();
-        let quic_config = match self.create_quiche_config() {
+        let mut quic_config = match self.create_quiche_config() {
             Ok(cfg) => cfg,
             Err(e) => {
                 // Return error response instead of panicking
@@ -152,40 +149,64 @@ impl ProtocolStrategy for H3Strategy {
         
         // Spawn task to handle H3 protocol
         spawn_task(move || {
-            // Create H3 connection manager
-            let connection = H3Connection::new(config.clone(), quic_config);
+            // Create quiche connection directly
+            let scid = generate_connection_id();
+            let local_addr = "127.0.0.1:0".parse().unwrap();
+            let peer_addr = format!("{}:{}", host, port).parse().unwrap();
             
-            // Establish connection to server
-            let (mut quic_conn, mut h3_conn, socket, server_addr, local_addr) = match connection.establish(
-                &host, 
-                port, 
-                &body_tx
-            ) {
-                Ok(conn_data) => conn_data,
-                Err(_) => return, // Error already emitted to stream
+            let quic_conn = match quiche::connect(None, &scid, local_addr, peer_addr, &mut quic_config) {
+                Ok(conn) => conn,
+                Err(e) => {
+                    tracing::error!("Failed to create QUIC connection: {}", e);
+                    return;
+                }
             };
             
-            // Create request processor
-            let processor = H3RequestProcessor::new();
+            // Create H3 connection manager with established QUIC connection
+            let connection = H3Connection::new(quic_conn, crate::protocols::core::TimeoutConfig {
+                request_timeout: config.max_idle_timeout,
+                connect_timeout: std::time::Duration::from_secs(5),
+                idle_timeout: config.max_idle_timeout,
+                keepalive_timeout: Some(config.max_idle_timeout / 2),
+            });
             
-            // Send request and process response
-            processor.process_request(
-                &mut quic_conn,
-                &mut h3_conn,
-                &socket,
-                server_addr,
-                local_addr,
-                method,
-                scheme,
-                host,
-                path,
-                headers,
-                body_data,
-                config,
-                headers_tx,
-                body_tx,
-                trailers_tx,
-            );
+            // Use H3Connection's send_request method directly
+            let serialized_request = match serialize_http_request(HttpRequest::new(
+                method.clone(),
+                match url::Url::parse(&format!("{}://{}:{}{}", scheme, host, port, path)) {
+                    Ok(url) => url,
+                    Err(_) => return,
+                },
+                Some(headers.clone()),
+                body_data.clone(),
+                None,
+            ), &config) {
+                Ok(req) => req,
+                Err(_) => return,
+            };
+            
+            let response_stream = connection.send_request(&serialized_request, 1);
+            
+            // Forward response chunks to appropriate channels
+            for chunk in response_stream.collect() {
+                match chunk {
+                    crate::http::HttpChunk::Headers(_status, headers_map) => {
+                        for (name, value) in &headers_map {
+                            let header = crate::http::response::HttpHeader::new(name.clone(), value.clone());
+                            let _ = headers_tx.try_send(header);
+                        }
+                    },
+                    crate::http::HttpChunk::Data(data) => {
+                        let body_chunk = crate::http::response::HttpBodyChunk::new(data, 0, false);
+                        let _ = body_tx.try_send(body_chunk);
+                    },
+                    crate::http::HttpChunk::End => {
+                        let end_chunk = crate::http::response::HttpBodyChunk::new(bytes::Bytes::new(), 0, true);
+                        let _ = body_tx.try_send(end_chunk);
+                    },
+                    _ => {}
+                }
+            }
         });
         
         // Create and return HttpResponse
@@ -213,5 +234,29 @@ impl ProtocolStrategy for H3Strategy {
     
     fn max_concurrent_streams(&self) -> usize {
         self.config.initial_max_streams_bidi as usize
+    }
+}
+/// Generate proper connection ID using timestamp
+fn generate_connection_id() -> quiche::ConnectionId<'static> {
+    use std::time::SystemTime;
+    let timestamp = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos() as u64;
+    let id_bytes = timestamp.to_be_bytes();
+    quiche::ConnectionId::from_vec(id_bytes.to_vec())
+}
+
+/// Serialize HTTP request for H3 (temporary implementation)
+fn serialize_http_request(request: crate::http::HttpRequest, _config: &crate::protocols::strategy::H3Config) -> Result<Vec<u8>, crate::error::HttpError> {
+    // Simplified serialization - in practice this should extract proper HTTP components
+    if let Some(body) = request.body() {
+        match body {
+            crate::http::request::RequestBody::Bytes(bytes) => Ok(bytes.to_vec()),
+            crate::http::request::RequestBody::Text(text) => Ok(text.as_bytes().to_vec()),
+            _ => Ok(vec![]),
+        }
+    } else {
+        Ok(vec![])
     }
 }

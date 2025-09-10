@@ -1,6 +1,6 @@
-//! Core Http3Builder with pure AsyncStream architecture - NO Futures
+//! Core `Http3Builder` with pure `AsyncStream` architecture - NO Futures
 //!
-//! ALL methods return AsyncStream<T, CAP> directly from ystream
+//! ALL methods return `AsyncStream<T, CAP>` directly from ystream
 //! NO middleware, NO abstractions - pure streaming protocols
 
 use std::marker::PhantomData;
@@ -92,7 +92,12 @@ impl Http3Builder<BodyNotSet> {
                                                         tracing::error!("URL parsing completely broken - using placeholder");
                                                         url::Url::parse("http://placeholder").unwrap_or_else(|_| {
                                                             // Last resort: try the simplest possible URL
-                                                            url::Url::parse("file:///").unwrap()
+                                                            url::Url::parse("file:///").unwrap_or_else(|parse_error| {
+                                                                // Critical error: all URL parsing failed
+                                                                tracing::error!("Critical URL parsing failure: {}", parse_error);
+                                                                // Return a synthetic URL as absolute fallback
+                                                                url::Url::parse("data:text/plain,url-error").expect("data URL must parse")
+                                                            })
                                                         })
                                                     }
                                                 }

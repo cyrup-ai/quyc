@@ -73,8 +73,47 @@ impl HttpClientBuilder {
         self
     }
 
-    pub fn deflate(self, _enable: bool) -> Self {
-        // Deflate compression configuration
+    pub fn deflate(mut self, enable: bool) -> Self {
+        self.config.deflate = enable;
+        self
+    }
+
+    /// Set gzip compression level
+    ///
+    /// # Arguments
+    /// * `level` - Compression level from 1 (fastest) to 9 (best compression)
+    ///
+    /// # Panics
+    /// * If level is 0 or greater than 9
+    pub fn gzip_level(mut self, level: u32) -> Self {
+        assert!(level >= 1 && level <= 9, "Gzip compression level must be between 1 and 9");
+        self.config.gzip_level = Some(level);
+        self
+    }
+
+    /// Set brotli compression level
+    ///
+    /// # Arguments
+    /// * `level` - Compression level from 0 (fastest) to 11 (best compression)
+    ///
+    /// # Panics
+    /// * If level is greater than 11
+    pub fn brotli_level(mut self, level: u32) -> Self {
+        assert!(level <= 11, "Brotli compression level must be between 0 and 11");
+        self.config.brotli_level = Some(level);
+        self
+    }
+
+    /// Set deflate compression level
+    ///
+    /// # Arguments
+    /// * `level` - Compression level from 1 (fastest) to 9 (best compression)
+    ///
+    /// # Panics
+    /// * If level is 0 or greater than 9
+    pub fn deflate_level(mut self, level: u32) -> Self {
+        assert!(level >= 1 && level <= 9, "Deflate compression level must be between 1 and 9");
+        self.config.deflate_level = Some(level);
         self
     }
 

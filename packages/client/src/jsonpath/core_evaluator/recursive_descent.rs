@@ -85,11 +85,11 @@ impl RecursiveDescentEvaluator {
 
     /// Try to match selectors at current level
     fn try_match_selectors(
-        _value: &Value,
-        _selectors: &[crate::jsonpath::ast::JsonSelector],
+        value: &Value,
+        selectors: &[crate::jsonpath::ast::JsonSelector],
     ) -> JsonPathResult<Vec<Value>> {
-        // This would integrate with the main selector evaluation logic
-        // For now, return empty results as a placeholder
-        Ok(Vec::new())
+        // Use existing SelectorEngine to apply selectors at current level
+        use crate::jsonpath::core_evaluator::selector_engine::SelectorEngine;
+        SelectorEngine::apply_selectors(value, selectors)
     }
 }

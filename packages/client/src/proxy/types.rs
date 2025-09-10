@@ -19,6 +19,7 @@ pub struct ProxyUrl {
 }
 
 impl ProxyUrl {
+    #[must_use]
     pub fn new(url: crate::Url) -> Self {
         Self {
             url,
@@ -67,7 +68,12 @@ impl MessageChunk for ProxyUrl {
                                     // If even data URLs fail, try file URL
                                     crate::Url::parse("file:///proxy-error").unwrap_or_else(|_| {
                                         // Last resort - this should never fail
-                                        crate::Url::parse("http://proxy-error").unwrap()
+                                        crate::Url::parse("http://proxy-error").unwrap_or_else(|parse_error| {
+                                            // Critical: all URL parsing failed
+                                            log::error!("All proxy URL parsing failed: {}", parse_error);
+                                            // Return synthetic URL as absolute fallback
+                                            crate::Url::parse("data:text/plain,proxy-error").expect("data URL must parse")
+                                        })
                                     })
                                 }
                             }
@@ -107,6 +113,7 @@ pub struct Intercept {
 }
 
 impl Intercept {
+    #[must_use]
     pub fn new(proxy_uri: crate::Url, via: Via) -> Self {
         Self { proxy_uri, via }
     }
@@ -139,6 +146,7 @@ pub struct Extra {
 }
 
 impl Extra {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             auth: None,

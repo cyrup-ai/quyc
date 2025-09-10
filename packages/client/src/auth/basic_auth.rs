@@ -37,7 +37,7 @@ where
 
 /// Encode basic authentication credentials for compatibility
 pub fn encode_basic_auth(username: &str, password: &str) -> String {
-    let credentials = format!("{}:{}", username, password);
+    let credentials = format!("{username}:{password}");
     BASE64_STANDARD.encode(credentials.as_bytes())
 }
 
@@ -68,6 +68,7 @@ pub struct BasicAuth {
 }
 
 impl BasicAuth {
+    #[must_use]
     pub fn new(username: String, password: Option<String>) -> Self {
         Self { username, password }
     }

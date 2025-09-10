@@ -45,8 +45,8 @@ impl HttpConfig {
     /// assert!(config.gzip && config.brotli && config.deflate);
     /// ```
     pub fn with_compression(mut self, enabled: bool) -> Self {
-        self.gzip = enabled;
-        self.brotli = enabled;
+        self.gzip_enabled = enabled;
+        self.brotli_enabled = enabled;
         self.deflate = enabled;
         self
     }

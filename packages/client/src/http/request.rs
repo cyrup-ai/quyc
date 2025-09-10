@@ -264,8 +264,14 @@ impl HttpRequestBuilder {
         let url = match self.uri {
             Some(uri_str) => uri_str
                 .parse()
-                .unwrap_or_else(|_| FALLBACK_URL.parse().expect("fallback URL must be valid")),
-            None => FALLBACK_URL.parse().expect("fallback URL must be valid"),
+                .unwrap_or_else(|_| FALLBACK_URL.parse().unwrap_or_else(|parse_error| {
+                    log::error!("Fallback URL failed to parse: {}", parse_error);
+                    url::Url::parse("http://localhost/").expect("localhost URL must parse")
+                })),
+            None => FALLBACK_URL.parse().unwrap_or_else(|parse_error| {
+                log::error!("Fallback URL failed to parse: {}", parse_error);
+                url::Url::parse("http://localhost/").expect("localhost URL must parse")
+            }),
         };
 
         let method = match self.method {
@@ -342,7 +348,10 @@ impl HttpRequest {
             Err(_) => {
                 // Create a request with error state - use safe dummy URL
                 const INVALID_URL: &str = "http://invalid.localhost/";
-                let dummy_url = INVALID_URL.parse().expect("dummy URL must be valid");
+                let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
+                    log::error!("GET dummy URL parsing failed: {}", parse_error);
+                    url::Url::parse("http://localhost/").expect("localhost URL must parse")
+                });
                 let mut request = Self::new(Method::GET, dummy_url, None, None, None);
                 request.error = Some("Invalid URL provided".to_string());
                 request
@@ -357,7 +366,10 @@ impl HttpRequest {
             Ok(parsed_url) => Self::new(Method::POST, parsed_url, None, None, None),
             Err(_) => {
                 const INVALID_URL: &str = "http://invalid.localhost/";
-                let dummy_url = INVALID_URL.parse().expect("dummy URL must be valid");
+                let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
+                    log::error!("POST dummy URL parsing failed: {}", parse_error);
+                    url::Url::parse("http://localhost/").expect("localhost URL must parse")
+                });
                 let mut request = Self::new(Method::POST, dummy_url, None, None, None);
                 request.error = Some("Invalid URL provided".to_string());
                 request
@@ -372,7 +384,10 @@ impl HttpRequest {
             Ok(parsed_url) => Self::new(Method::PUT, parsed_url, None, None, None),
             Err(_) => {
                 const INVALID_URL: &str = "http://invalid.localhost/";
-                let dummy_url = INVALID_URL.parse().expect("dummy URL must be valid");
+                let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
+                    log::error!("PUT dummy URL parsing failed: {}", parse_error);
+                    url::Url::parse("http://localhost/").expect("localhost URL must parse")
+                });
                 let mut request = Self::new(Method::PUT, dummy_url, None, None, None);
                 request.error = Some("Invalid URL provided".to_string());
                 request
@@ -387,7 +402,10 @@ impl HttpRequest {
             Ok(parsed_url) => Self::new(Method::DELETE, parsed_url, None, None, None),
             Err(_) => {
                 const INVALID_URL: &str = "http://invalid.localhost/";
-                let dummy_url = INVALID_URL.parse().expect("dummy URL must be valid");
+                let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
+                    log::error!("DELETE dummy URL parsing failed: {}", parse_error);
+                    url::Url::parse("http://localhost/").expect("localhost URL must parse")
+                });
                 let mut request = Self::new(Method::DELETE, dummy_url, None, None, None);
                 request.error = Some("Invalid URL provided".to_string());
                 request
@@ -402,7 +420,10 @@ impl HttpRequest {
             Ok(parsed_url) => Self::new(Method::PATCH, parsed_url, None, None, None),
             Err(_) => {
                 const INVALID_URL: &str = "http://invalid.localhost/";
-                let dummy_url = INVALID_URL.parse().expect("dummy URL must be valid");
+                let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
+                    log::error!("PATCH dummy URL parsing failed: {}", parse_error);
+                    url::Url::parse("http://localhost/").expect("localhost URL must parse")
+                });
                 let mut request = Self::new(Method::PATCH, dummy_url, None, None, None);
                 request.error = Some("Invalid URL provided".to_string());
                 request
@@ -417,7 +438,10 @@ impl HttpRequest {
             Ok(parsed_url) => Self::new(Method::HEAD, parsed_url, None, None, None),
             Err(_) => {
                 const INVALID_URL: &str = "http://invalid.localhost/";
-                let dummy_url = INVALID_URL.parse().expect("dummy URL must be valid");
+                let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
+                    log::error!("HEAD dummy URL parsing failed: {}", parse_error);
+                    url::Url::parse("http://localhost/").expect("localhost URL must parse")
+                });
                 let mut request = Self::new(Method::HEAD, dummy_url, None, None, None);
                 request.error = Some("Invalid URL provided".to_string());
                 request
@@ -432,7 +456,10 @@ impl HttpRequest {
             Ok(parsed_url) => Self::new(Method::OPTIONS, parsed_url, None, None, None),
             Err(_) => {
                 const INVALID_URL: &str = "http://invalid.localhost/";
-                let dummy_url = INVALID_URL.parse().expect("dummy URL must be valid");
+                let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
+                    log::error!("OPTIONS dummy URL parsing failed: {}", parse_error);
+                    url::Url::parse("http://localhost/").expect("localhost URL must parse")
+                });
                 let mut request = Self::new(Method::OPTIONS, dummy_url, None, None, None);
                 request.error = Some("Invalid URL provided".to_string());
                 request

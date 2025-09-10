@@ -67,7 +67,10 @@ impl Matcher {
                                         .unwrap_or_else(|_| {
                                             // Final fallback - this should never fail
                                             crate::Url::parse("http://0.0.0.0:8080")
-                                                .expect("hardcoded localhost URL must be valid")
+                                                .unwrap_or_else(|parse_error| {
+                                                    log::error!("All proxy matcher URL parsing failed: {}", parse_error);
+                                                    crate::Url::parse("data:text/plain,proxy-matcher-error").expect("data URL must parse")
+                                                })
                                         })
                                 })
                         }

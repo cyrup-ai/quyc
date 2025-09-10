@@ -1,6 +1,6 @@
 use serde::de::DeserializeOwned;
 
-use super::types::{DeserializerState, JsonPathDeserializer};
+use super::types::{DeserializerState, JsonPathDeserializer, StreamingJsonPathState};
 use crate::jsonpath::{buffer::StreamBuffer, parser::JsonPathExpression};
 
 impl<'a, T> JsonPathDeserializer<'a, T>
@@ -40,11 +40,9 @@ where
             current_depth: 0,
             in_target_array: false,
             object_nesting: 0,
-            object_buffer: Vec::with_capacity(1024), // Pre-allocate 1KB
-            current_selector_index: 0,
-            in_recursive_descent: false,
-            recursive_descent_stack: Vec::with_capacity(initial_capacity),
-            path_breadcrumbs: Vec::with_capacity(initial_capacity),
+            object_buffer: Vec::with_capacity(initial_capacity * 4), // Adaptive capacity based on complexity
+            // Initialize streaming state with compiled expression
+            streaming_state: StreamingJsonPathState::new(path_expression),
             current_array_index: 0,
             array_index_stack: Vec::with_capacity(16), // Support up to 16 nested arrays
             buffer_position: 0,

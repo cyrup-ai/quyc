@@ -44,8 +44,6 @@ pub struct SafeParsingContext {
     /// Start time for timeout tracking
     start_time: Instant,
     /// Whether strict UTF-8 validation is enabled
-    /// TODO: Implement UTF-8 validation logic in parsing functions
-    #[allow(dead_code)]
     strict_utf8: bool,
     /// Maximum allowed complexity for expressions
     max_complexity: u32,
@@ -172,6 +170,77 @@ impl SafeParsingContext {
     #[inline]
     pub fn allocated_memory(&self) -> usize {
         self.allocated_memory
+    }
+
+    /// Validate UTF-8 chunk with basic checks
+    pub fn validate_utf8_basic(&self, chunk: &[u8]) -> JsonPathResult<()> {
+        if !self.strict_utf8 {
+            return Ok(());
+        }
+        
+        // Use standard library UTF-8 validation
+        std::str::from_utf8(chunk)
+            .map_err(|e| self.utf8_error("Basic UTF-8 validation failed", e.valid_up_to(), None))?;
+            
+        Ok(())
+    }
+    
+    /// Validate UTF-8 chunk with strict security checks  
+    pub fn validate_utf8_strict(&self, chunk: &[u8]) -> JsonPathResult<()> {
+        if !self.strict_utf8 {
+            return Ok(());
+        }
+        
+        // First do basic validation
+        self.validate_utf8_basic(chunk)?;
+        
+        // Then check for security issues using the validation from http::conversions
+        crate::http::conversions::validate_strict_utf8(chunk)
+            .map_err(|e| invalid_expression_error("", &e.to_string(), None))
+    }
+    
+    /// Validate UTF-8 chunk with paranoid security checks
+    pub fn validate_utf8_paranoid(&self, chunk: &[u8]) -> JsonPathResult<()> {
+        if !self.strict_utf8 {
+            return Ok(());
+        }
+        
+        // Do strict validation first
+        self.validate_utf8_strict(chunk)?;
+        
+        // Convert to string for advanced checks (safe after strict validation)
+        let text = std::str::from_utf8(chunk)
+            .map_err(|e| invalid_expression_error("", &format!("UTF-8 conversion failed: {}", e), None))?;
+        
+        // Unicode normalization validation - text must be in NFC form
+        if !unicode_normalization::is_nfc(text) {
+            return Err(invalid_expression_error(
+                "", 
+                "Text contains non-normalized Unicode sequences (not NFC)", 
+                None
+            ));
+        }
+        
+        // Bidirectional attack detection  
+        crate::http::conversions::detect_bidirectional_attacks(text)
+            .map_err(|e| invalid_expression_error("", &e.to_string(), None))?;
+        
+        // Multi-pattern security scanning
+        crate::http::conversions::scan_for_malicious_patterns(chunk)
+            .map_err(|e| invalid_expression_error("", &e.to_string(), None))?;
+            
+        Ok(())
+    }
+    
+    /// Create UTF-8 validation error with context
+    fn utf8_error(&self, message: &str, position: usize, error_len: Option<usize>) -> crate::jsonpath::error::JsonPathError {
+        let error_detail = if let Some(len) = error_len {
+            format!("{} at byte position {} (error length: {} bytes)", message, position, len)
+        } else {
+            format!("{} at byte position {}", message, position)
+        };
+        
+        invalid_expression_error("", &error_detail, Some(position))
     }
 }
 

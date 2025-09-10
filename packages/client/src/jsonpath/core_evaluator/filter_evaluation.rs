@@ -4,7 +4,7 @@
 
 use serde_json::Value;
 
-use super::core_evaluator::{CoreJsonPathEvaluator, JsonPathResult};
+use super::engine::{CoreJsonPathEvaluator, JsonPathResult};
 
 impl CoreJsonPathEvaluator {
     /// Apply filter expression to a value
@@ -77,14 +77,24 @@ impl CoreJsonPathEvaluator {
         Ok(false)
     }
 
-    /// Evaluate filter expression on object item
+    /// Evaluate filter expression on object item  
     fn evaluate_filter_on_object_item(
         &self,
         item: &Value,
         filter_expr: &str,
-        _key: &str,
+        key: &str,
     ) -> JsonPathResult<bool> {
-        // Similar to array item evaluation but with key context
-        self.evaluate_filter_on_item(item, filter_expr, 0) // Use 0 as placeholder index
+        // Object filter evaluation with proper key context
+        if filter_expr.contains("@.") {
+            let property_name = filter_expr.trim_start_matches("@.").trim();
+            if property_name == key {
+                return Ok(true);
+            }
+            if let Value::Object(obj) = item {
+                return Ok(obj.contains_key(property_name));
+            }
+        }
+        // Fallback to item evaluation for other expressions
+        self.evaluate_filter_on_item(item, filter_expr, 0)
     }
 }

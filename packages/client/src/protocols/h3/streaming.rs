@@ -52,7 +52,7 @@ where
                     Poll::Ready(Err(e)) => {
                         emit!(
                             sender,
-                            H3ConnectionChunk::bad_chunk(format!("Accept error: {}", e))
+                            H3ConnectionChunk::bad_chunk(format!("Accept error: {e}"))
                         );
                         break;
                     }
@@ -84,7 +84,7 @@ where
                     Poll::Ready(Err(e)) => {
                         emit!(
                             sender,
-                            H3BiStreamChunk::bad_chunk(format!("Accept bidi error: {}", e))
+                            H3BiStreamChunk::bad_chunk(format!("Accept bidi error: {e}"))
                         );
                         break;
                     }
@@ -125,7 +125,7 @@ impl H3RecvStreamHandler {
                         break;
                     }
                     Poll::Ready(Err(e)) => {
-                        emit!(sender, H3DataChunk::bad_chunk(format!("Data error: {}", e)));
+                        emit!(sender, H3DataChunk::bad_chunk(format!("Data error: {e}")));
                         break;
                     }
                     Poll::Pending => break, // AsyncStream elite polling loop handles this
@@ -163,7 +163,7 @@ impl H3SendStreamHandler {
                         Err(e) => {
                             emit!(
                                 sender,
-                                H3SendResult::bad_chunk(format!("Send error: {}", e))
+                                H3SendResult::bad_chunk(format!("Send error: {e}"))
                             );
                             return;
                         }
@@ -171,7 +171,7 @@ impl H3SendStreamHandler {
                     Poll::Ready(Err(e)) => {
                         emit!(
                             sender,
-                            H3SendResult::bad_chunk(format!("Ready error: {}", e))
+                            H3SendResult::bad_chunk(format!("Ready error: {e}"))
                         );
                         return;
                     }
@@ -184,7 +184,7 @@ impl H3SendStreamHandler {
                 Poll::Ready(Ok(())) => emit!(sender, H3SendResult::send_complete()),
                 Poll::Ready(Err(e)) => emit!(
                     sender,
-                    H3SendResult::bad_chunk(format!("Finish error: {}", e))
+                    H3SendResult::bad_chunk(format!("Finish error: {e}"))
                 ),
                 Poll::Pending => {} // AsyncStream elite polling loop handles this
             }
@@ -209,7 +209,7 @@ impl H3SendStreamHandler {
                 Poll::Ready(Err(e)) => {
                     emit!(
                         sender,
-                        H3SendResult::bad_chunk(format!("Poll ready error: {}", e))
+                        H3SendResult::bad_chunk(format!("Poll ready error: {e}"))
                     );
                 }
                 Poll::Pending => {} // AsyncStream elite polling loop handles this

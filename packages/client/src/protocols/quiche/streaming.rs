@@ -362,7 +362,6 @@ pub fn open_bidirectional_stream(
                 Err(quiche::Error::InvalidStreamState(_)) => {
                     // Stream already exists or invalid, try next
                     stream_id += 4;
-                    continue;
                 }
                 Err(e) => {
                     // Other error
@@ -426,7 +425,6 @@ pub fn open_unidirectional_stream(
                 Err(quiche::Error::InvalidStreamState(_)) => {
                     // Stream already exists or invalid, try next
                     stream_id += 4;
-                    continue;
                 }
                 Err(e) => {
                     // Other error

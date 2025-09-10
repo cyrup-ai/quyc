@@ -90,7 +90,7 @@ impl Part {
         let single = self
             .value
             .as_single()
-            .expect("A part's body can't be multipart itself");
+            .ok_or_else(|| wasm_bindgen::JsValue::from_str("A part's body can't be multipart itself"))?;
 
         let mut mime_type = self.metadata().mime.as_ref();
 
@@ -127,7 +127,7 @@ impl Part {
         let js_value = self
             .value
             .as_single()
-            .expect("A part's body can't be set to a multipart body")
+            .ok_or_else(|| wasm_bindgen::JsValue::from_str("A part's body can't be set to a multipart body"))?
             .to_js_value();
 
         let body_array = js_sys::Array::new();

@@ -123,8 +123,14 @@ impl TransportManager {
         AsyncStream::with_channel(move |sender| {
             // Determine appropriate local address for binding
             let local_addr = match remote_addr.is_ipv4() {
-                true => "0.0.0.0:0".parse().unwrap(),
-                false => "[::]:0".parse().unwrap(),
+                true => "0.0.0.0:0".parse().map_err(|e| {
+                    log::error!("Failed to parse IPv4 local address: {}", e);
+                    e
+                }).unwrap_or_else(|_| std::net::SocketAddr::new(std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED), 0)),
+                false => "[::]:0".parse().map_err(|e| {
+                    log::error!("Failed to parse IPv6 local address: {}", e);
+                    e
+                }).unwrap_or_else(|_| std::net::SocketAddr::new(std::net::IpAddr::V6(std::net::Ipv6Addr::UNSPECIFIED), 0)),
             };
             
             // Step 1: Attempt QUIC/H3 connection using existing working method

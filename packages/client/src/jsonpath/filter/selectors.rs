@@ -36,9 +36,8 @@ impl SelectorEvaluator {
                     // For wildcard, return the array itself converted to a suitable representation
                     if current.is_array() {
                         return Ok(PropertyResolver::json_value_to_filter_value(current));
-                    } else {
-                        return Ok(FilterValue::Missing);
-                    }
+                    } 
+                    return Ok(FilterValue::Missing);
                 }
                 JsonSelector::Index { index, from_end } => {
                     if let Some(arr) = current.as_array() {

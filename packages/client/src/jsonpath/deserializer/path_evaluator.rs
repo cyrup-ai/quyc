@@ -27,9 +27,11 @@ where
     pub(super) fn matches_root_array_path(&self) -> bool {
         matches!(
             self.deserializer.path_expression.root_selector(),
-            Some(crate::jsonpath::parser::JsonSelector::Wildcard)
-                | Some(crate::jsonpath::parser::JsonSelector::Index { .. })
-                | Some(crate::jsonpath::parser::JsonSelector::Slice { .. })
+            Some(
+                crate::jsonpath::parser::JsonSelector::Wildcard
+                | crate::jsonpath::parser::JsonSelector::Index { .. }
+                | crate::jsonpath::parser::JsonSelector::Slice { .. }
+            )
         )
     }
 
@@ -42,7 +44,7 @@ where
     /// Evaluate JSONPath expression at current parsing position
     #[inline]
     pub(super) fn evaluate_jsonpath_at_current_position(&self) -> bool {
-        if self.deserializer.in_recursive_descent {
+        if self.deserializer.streaming_state.in_recursive_descent {
             // Evaluate recursive descent match using the implemented logic
             self.evaluate_recursive_descent_match()
         } else {
@@ -64,7 +66,7 @@ where
         let selectors = self.deserializer.path_expression.selectors();
         let selector_index = self
             .deserializer
-            .current_selector_index
+            .streaming_state.current_selector_index
             .min(selectors.len().saturating_sub(1));
 
         if selector_index >= selectors.len() {

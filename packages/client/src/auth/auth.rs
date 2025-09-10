@@ -21,6 +21,7 @@ pub struct BearerToken {
 
 impl BearerToken {
     /// Create new bearer token auth
+    #[must_use]
     #[inline(always)]
     pub fn new(token: String) -> Self {
         Self { token }
@@ -37,8 +38,7 @@ impl AuthProvider for BearerToken {
                     Ok(())
                 }
                 Err(e) => Err(crate::error::configuration(format!(
-                    "Invalid bearer token: {}",
-                    e
+                    "Invalid bearer token: {e}"
                 ))),
             }
         } else {
@@ -68,6 +68,7 @@ pub enum ApiKeyPlacement {
 
 impl ApiKey {
     /// Create new API key auth
+    #[must_use]
     #[inline(always)]
     pub fn new(key: String, placement: ApiKeyPlacement) -> Self {
         Self { key, placement }
@@ -85,13 +86,11 @@ impl AuthProvider for ApiKey {
                             Ok(())
                         }
                         Err(e) => Err(crate::error::configuration(format!(
-                            "Invalid API key value: {}",
-                            e
+                            "Invalid API key value: {e}"
                         ))),
                     },
                     Err(e) => Err(crate::error::configuration(format!(
-                        "Invalid header name: {}",
-                        e
+                        "Invalid header name: {e}"
                     ))),
                 }
             } else {
@@ -116,6 +115,7 @@ pub struct BasicAuth {
 
 impl BasicAuth {
     /// Create new basic auth
+    #[must_use]
     #[inline(always)]
     pub fn new(username: String, password: Option<String>) -> Self {
         Self { username, password }
@@ -131,15 +131,14 @@ impl AuthProvider for BasicAuth {
                 self.password.as_deref().unwrap_or_default()
             );
             let encoded = general_purpose::STANDARD.encode(credentials.as_bytes());
-            let auth_header = format!("Basic {}", encoded);
+            let auth_header = format!("Basic {encoded}");
             match HeaderValue::from_str(&auth_header) {
                 Ok(header_value) => {
                     headers.insert(http::header::AUTHORIZATION, header_value);
                     Ok(())
                 }
                 Err(e) => Err(crate::error::configuration(format!(
-                    "Invalid basic auth header: {}",
-                    e
+                    "Invalid basic auth header: {e}"
                 ))),
             }
         } else {

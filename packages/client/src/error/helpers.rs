@@ -93,7 +93,7 @@ pub fn decode<E: std::fmt::Debug>(decode_error: E) -> Error {
 pub fn status_code(status: u16) -> Error {
     Error::new(Kind::Request).with(std::io::Error::new(
         std::io::ErrorKind::Other,
-        format!("HTTP status code error: {}", status),
+        format!("HTTP status code error: {status}"),
     ))
 }
 

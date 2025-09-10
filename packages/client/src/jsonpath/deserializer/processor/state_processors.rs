@@ -52,7 +52,7 @@ where
         byte: u8,
     ) -> JsonPathResult<JsonProcessResult> {
         // Check for recursive descent mode entry before processing
-        if !self.deserializer.in_recursive_descent && self.should_enter_recursive_descent() {
+        if !self.deserializer.streaming_state.in_recursive_descent && self.should_enter_recursive_descent() {
             self.enter_recursive_descent_mode();
         }
 
@@ -64,7 +64,7 @@ where
                 self.deserializer.transition_to_processing_object();
 
                 // Update breadcrumbs for recursive descent tracking
-                if self.deserializer.in_recursive_descent {
+                if self.deserializer.streaming_state.in_recursive_descent {
                     self.update_breadcrumbs(None); // Object entry
                 }
 
@@ -81,7 +81,7 @@ where
                 self.deserializer.transition_to_processing_array();
 
                 // Update breadcrumbs for recursive descent tracking
-                if self.deserializer.in_recursive_descent {
+                if self.deserializer.streaming_state.in_recursive_descent {
                     self.update_breadcrumbs(None); // Array entry
                 }
 
@@ -223,7 +223,7 @@ where
                     self.deserializer.object_nesting.saturating_sub(1);
                 if self.deserializer.object_nesting == 0 {
                     // Complete object found - check if we need to exit recursive descent
-                    if self.deserializer.in_recursive_descent {
+                    if self.deserializer.streaming_state.in_recursive_descent {
                         // Evaluate if we should continue or exit recursive descent
                         if !self.evaluate_recursive_descent_match() {
                             self.exit_recursive_descent_mode();

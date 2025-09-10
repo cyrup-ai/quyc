@@ -80,7 +80,7 @@ impl CertificateValidatorWithInput {
     /// Validate certificate for multiple domains
     pub fn domains(self, domains: &[&str]) -> Self {
         Self {
-            domains: Some(domains.iter().map(|d| d.to_string()).collect()),
+            domains: Some(domains.iter().map(std::string::ToString::to_string).collect()),
             ..self
         }
     }

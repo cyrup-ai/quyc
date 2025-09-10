@@ -69,7 +69,7 @@ impl<'a> Cookie<'a> {
             .and_then(cookie::Cookie::parse)
         {
             Ok(cookie) => Cookie(cookie),
-            Err(e) => Cookie::bad_chunk(format!("Cookie parse error: {}", e)),
+            Err(e) => Cookie::bad_chunk(format!("Cookie parse error: {e}")),
         }
     }
 

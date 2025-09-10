@@ -105,6 +105,8 @@ pub struct StateStats {
     pub max_depth: usize,
     /// Current processing depth
     pub current_depth: usize,
+    /// Start offset of current object being processed
+    pub object_start_offset: Option<usize>,
 }
 
 /// Main streaming state machine

@@ -1,14 +1,14 @@
-//! AuthMethod - Legacy compatibility wrapper for authentication
+//! `AuthMethod` - Legacy compatibility wrapper for authentication
 //!
-//! This module provides a simplified AuthMethod interface that wraps the
-//! more comprehensive AuthProvider trait system for backward compatibility.
+//! This module provides a simplified `AuthMethod` interface that wraps the
+//! more comprehensive `AuthProvider` trait system for backward compatibility.
 
 use http::HeaderMap;
 
 use crate::auth::auth::BasicAuth;
 use crate::auth::{ApiKey, ApiKeyPlacement, AuthProvider, BearerToken};
 
-/// Legacy-compatible AuthMethod wrapper
+/// Legacy-compatible `AuthMethod` wrapper
 pub enum AuthMethod {
     /// Bearer token authentication
     Bearer(BearerToken),

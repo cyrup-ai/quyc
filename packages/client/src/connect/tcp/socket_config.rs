@@ -17,7 +17,7 @@ pub fn configure_tcp_socket(
     if nodelay {
         stream
             .set_nodelay(true)
-            .map_err(|e| format!("Failed to set TCP_NODELAY: {}", e))?;
+            .map_err(|e| format!("Failed to set TCP_NODELAY: {e}"))?;
     }
 
     if let Some(_duration) = keepalive {
@@ -36,7 +36,7 @@ pub fn configure_tcp_socket_inline(stream: &TcpStream, nodelay: bool) -> Result<
     if nodelay {
         stream
             .set_nodelay(true)
-            .map_err(|e| format!("Failed to set TCP_NODELAY: {}", e))?;
+            .map_err(|e| format!("Failed to set TCP_NODELAY: {e}"))?;
     }
     Ok(())
 }

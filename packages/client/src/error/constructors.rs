@@ -126,3 +126,13 @@ pub fn chunk_processing_error<E: Into<BoxError>>(e: E) -> Error {
 pub fn generic<E: Into<BoxError>>(e: E) -> Error {
     Error::new(Kind::Request).with(e.into())
 }
+
+/// Creates an `Error` for security validation failures.
+pub fn security_error<E: Into<BoxError>>(e: E) -> Error {
+    Error::new(Kind::Request).with(e.into())
+}
+
+/// Creates an `Error` for connection/connector creation failures.
+pub fn connector_error<E: Into<BoxError>>(e: E) -> Error {
+    Error::new(Kind::Connect).with(e.into())
+}

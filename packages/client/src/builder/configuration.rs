@@ -85,7 +85,7 @@ impl<S> Http3Builder<S> {
     #[inline]
     pub fn timeout(self, seconds: u64) -> Self {
         if self.debug_enabled {
-            log::debug!("HTTP3 Builder: Set timeout to {} seconds", seconds);
+            log::debug!("HTTP3 Builder: Set timeout to {seconds} seconds");
         }
         // Note: Timeout implementation would be handled by the client
         self
@@ -102,7 +102,7 @@ impl<S> Http3Builder<S> {
     #[inline]
     pub fn retry_attempts(self, attempts: u32) -> Self {
         if self.debug_enabled {
-            log::debug!("HTTP3 Builder: Set retry attempts to {}", attempts);
+            log::debug!("HTTP3 Builder: Set retry attempts to {attempts}");
         }
         // Note: Retry implementation would be handled by the client
         self

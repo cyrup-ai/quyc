@@ -94,10 +94,9 @@ impl<S> fmt::Debug for Http3Builder<S> {
     }
 }
 
-impl<S> Default for Http3Builder<S> {
+impl Default for Http3Builder<BodyNotSet> {
     fn default() -> Self {
-        let _client = crate::HttpClient::default();
-        unsafe { std::mem::transmute(crate::Http3Builder::json()) }
+        Self::json()
     }
 }
 

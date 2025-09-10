@@ -137,7 +137,11 @@ impl RetryPolicy {
             }
             crate::error::types::Kind::Body => false,        // Body errors usually not retryable
             crate::error::types::Kind::Decode => false,      // Decode errors usually not retryable
-            crate::error::types::Kind::Upgrade => false,     // Upgrade errors usually not retryable
+            crate::error::types::Kind::Upgrade => false,
+            crate::error::types::Kind::Connect => true, // Connection failures are retryable
+            crate::error::types::Kind::Timeout => true, // Timeout errors are retryable
+            crate::error::types::Kind::PayloadTooLarge => false, // Payload size errors are not retryable
+            crate::error::types::Kind::Stream => true, // Stream errors may be retryable     // Upgrade errors usually not retryable
         }
     }
 

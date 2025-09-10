@@ -38,6 +38,14 @@ pub enum Kind {
     Body,
     Decode,
     Upgrade,
+    /// Connection/connector creation failures
+    Connect,
+    /// Request or response timeout
+    Timeout,
+    /// Payload exceeds maximum size limit
+    PayloadTooLarge,
+    /// Stream processing error
+    Stream,
 }
 
 impl Error {
@@ -98,6 +106,10 @@ impl fmt::Display for Error {
             Kind::Decode => f.write_str("error decoding response body"),
             Kind::Redirect => f.write_str("error following redirect"),
             Kind::Upgrade => f.write_str("error upgrading connection"),
+            Kind::Connect => f.write_str("connection/connector creation error"),
+            Kind::Timeout => f.write_str("request timeout"),
+            Kind::PayloadTooLarge => f.write_str("payload too large"),
+            Kind::Stream => f.write_str("stream processing error"),
             #[cfg(target_arch = "wasm32")]
             Kind::Status(ref code) => {
                 let prefix = if code.is_client_error() {

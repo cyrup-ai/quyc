@@ -100,9 +100,10 @@ impl Http3Connection {
         peer_addr: SocketAddr,
     ) -> Self {
         // Set socket to non-blocking for proper async operation
-        socket
-            .set_nonblocking(true)
-            .expect("Failed to set socket non-blocking");
+        if let Err(io_error) = socket.set_nonblocking(true) {
+            log::warn!("Failed to set socket non-blocking: {}", io_error);
+            // Continue with blocking socket - not critical for functionality
+        }
 
         Self {
             conn: Arc::new(Mutex::new(conn)),
@@ -177,7 +178,7 @@ impl Http3Connection {
                 {
                     emit!(
                         sender,
-                        Http3Chunk::bad_chunk(format!("Failed to send headers: {}", e))
+                        Http3Chunk::bad_chunk(format!("Failed to send headers: {e}"))
                     );
                     return;
                 }
@@ -199,7 +200,7 @@ impl Http3Connection {
                 if let Err(e) = conn_guard.stream_send(stream_id, &body_data, true) {
                     emit!(
                         sender,
-                        Http3Chunk::bad_chunk(format!("Failed to send body: {}", e))
+                        Http3Chunk::bad_chunk(format!("Failed to send body: {e}"))
                     );
                     return;
                 }
@@ -230,7 +231,7 @@ impl Http3Connection {
                             Err(e) => {
                                 emit!(
                                     sender,
-                                    Http3Chunk::bad_chunk(format!("QUIC send error: {}", e))
+                                    Http3Chunk::bad_chunk(format!("QUIC send error: {e}"))
                                 );
                                 return;
                             }

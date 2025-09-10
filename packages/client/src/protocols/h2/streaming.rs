@@ -82,7 +82,6 @@ impl H2ConnectionManager {
                             match Future::poll(pinned_conn, &mut cx) {
                                 Poll::Ready(Ok(())) => {
                                     // Connection healthy, continue monitoring
-                                    continue;
                                 }
                                 Poll::Ready(Err(e)) => {
                                     // Connection lost

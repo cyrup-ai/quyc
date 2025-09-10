@@ -19,7 +19,7 @@ pub(crate) fn add_cookie_header(
 pub fn format_cookie(cookies: &HashMap<String, String>) -> String {
     cookies
         .iter()
-        .map(|(key, value)| format!("{}={}", key, value))
+        .map(|(key, value)| format!("{key}={value}"))
         .collect::<Vec<_>>()
         .join("; ")
 }
@@ -50,14 +50,14 @@ pub fn validate_cookie(name: &str, value: &str) -> Result<(), String> {
     // Cookie name cannot contain control characters or separators
     for ch in name.chars() {
         if ch.is_control() || "(),/<>@[\\]{}".contains(ch) {
-            return Err(format!("Invalid character '{}' in cookie name", ch));
+            return Err(format!("Invalid character '{ch}' in cookie name"));
         }
     }
 
     // Cookie value cannot contain control characters (except tab)
     for ch in value.chars() {
         if ch.is_control() && ch != '\t' {
-            return Err(format!("Invalid character '{}' in cookie value", ch));
+            return Err(format!("Invalid character '{ch}' in cookie value"));
         }
     }
 

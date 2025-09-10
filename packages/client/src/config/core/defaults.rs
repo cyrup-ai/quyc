@@ -7,6 +7,7 @@ use std::time::Duration;
 
 use super::retry::{ConnectionReuse, RetryPolicy};
 use super::types::HttpConfig;
+use crate::http::conversions::SecurityMode;
 
 impl Default for HttpConfig {
     fn default() -> Self {
@@ -23,8 +24,6 @@ impl Default for HttpConfig {
             http2_max_frame_size: Some(1 << 20), // 1MB
             use_native_certs: true,
             https_only: false,
-            gzip: true,
-            brotli: true,
             deflate: true,
             user_agent: "fluent-ai-http3/0.1.0 (QUIC/HTTP3+rustls)".to_string(),
             http3_enabled: true,
@@ -51,6 +50,9 @@ impl Default for HttpConfig {
             tracing_enabled: false,
             connection_reuse: ConnectionReuse::Aggressive,
             retry_policy: RetryPolicy::default(),
+            
+            // UTF-8 validation security - strict by default for production safety
+            utf8_validation_mode: SecurityMode::Strict,
 
             // HTTP/3 (QUIC) defaults - conservative but optimized values
             quic_max_idle_timeout: Some(Duration::from_secs(30)),
@@ -61,6 +63,11 @@ impl Default for HttpConfig {
             tls_early_data: false,                        // Disabled by default for security
             h3_max_field_section_size: Some(16 * 1024),   // 16KB header limit
             h3_enable_grease: true,                       // Enable grease for protocol evolution
+
+            // Compression level defaults - None uses library optimal defaults
+            gzip_level: None,     // Use flate2 default (level 6)
+            brotli_level: None,   // Use brotli default (level 6)
+            deflate_level: None,  // Use flate2 default (level 6)
         }
     }
 }

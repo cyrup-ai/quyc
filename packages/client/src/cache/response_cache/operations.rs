@@ -202,14 +202,14 @@ impl ResponseCache {
         }
         
         // Check for Pragma: no-cache (HTTP/1.0 legacy)
-        if let Some(pragma) = response.header("pragma") {
-            if pragma.to_str().unwrap_or("").to_lowercase().contains("no-cache") {
-                tracing::debug!(
-                    target: "quyc::cache::response_cache",
-                    "Response has Pragma: no-cache, not caching"
-                );
-                return false;
-            }
+        if let Some(pragma) = response.header("pragma")
+            && pragma.to_str().unwrap_or("").to_lowercase().contains("no-cache")
+        {
+            tracing::debug!(
+                target: "quyc::cache::response_cache",
+                "Response has Pragma: no-cache, not caching"
+            );
+            return false;
         }
         
         // Default to allowing caching for success responses

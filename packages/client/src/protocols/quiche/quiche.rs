@@ -46,7 +46,7 @@ pub fn connect_quiche(addr: SocketAddr, server_name: &str) -> AsyncStream<Quiche
                 Err(e) => {
                     emit!(
                         sender,
-                        QuicheChunk::bad_chunk(format!("Config creation failed: {}", e))
+                        QuicheChunk::bad_chunk(format!("Config creation failed: {e}"))
                     );
                     return;
                 }
@@ -56,7 +56,7 @@ pub fn connect_quiche(addr: SocketAddr, server_name: &str) -> AsyncStream<Quiche
             if let Err(e) = config.set_application_protos(&[b"h3"]) {
                 emit!(
                     sender,
-                    QuicheChunk::bad_chunk(format!("Failed to set protocols: {}", e))
+                    QuicheChunk::bad_chunk(format!("Failed to set protocols: {e}"))
                 );
                 return;
             }
@@ -99,7 +99,7 @@ pub fn connect_quiche(addr: SocketAddr, server_name: &str) -> AsyncStream<Quiche
                                 Err(e) => {
                                     emit!(
                                         sender,
-                                        QuicheChunk::bad_chunk(format!("Stream read error: {}", e))
+                                        QuicheChunk::bad_chunk(format!("Stream read error: {e}"))
                                     );
                                     break;
                                 }
@@ -115,7 +115,7 @@ pub fn connect_quiche(addr: SocketAddr, server_name: &str) -> AsyncStream<Quiche
                 Err(e) => {
                     emit!(
                         sender,
-                        QuicheChunk::bad_chunk(format!("Connection failed: {}", e))
+                        QuicheChunk::bad_chunk(format!("Connection failed: {e}"))
                     );
                 }
             }
@@ -142,7 +142,7 @@ pub fn send_quiche_data(
             Err(e) => {
                 emit!(
                     sender,
-                    QuicheChunk::bad_chunk(format!("Send failed: {}", e))
+                    QuicheChunk::bad_chunk(format!("Send failed: {e}"))
                 );
             }
         }

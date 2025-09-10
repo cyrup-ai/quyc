@@ -1,6 +1,6 @@
-//! Http3Builder module with decomposed components
+//! `Http3Builder` module with decomposed components
 //!
-//! Provides the main Http3Builder struct and related types for constructing
+//! Provides the main `Http3Builder` struct and related types for constructing
 //! HTTP requests with zero allocation and elegant fluent interface.
 
 pub mod body;

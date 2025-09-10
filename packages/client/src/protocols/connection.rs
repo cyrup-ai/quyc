@@ -66,7 +66,7 @@ impl Connection {
                     error = %e,
                     "Failed to create QUIC configuration"
                 );
-                return Connection::Error(format!("QUIC config creation failed: {}", e));
+                return Connection::Error(format!("QUIC config creation failed: {e}"));
             }
         };
         
@@ -76,7 +76,7 @@ impl Connection {
                 error = %e,
                 "Failed to set H3 application protocols"
             );
-            return Connection::Error(format!("H3 protocol setup failed: {}", e));
+            return Connection::Error(format!("H3 protocol setup failed: {e}"));
         }
         
         config.set_max_idle_timeout(30000);
@@ -101,7 +101,7 @@ impl Connection {
                     remote_addr = %remote_addr,
                     "Failed to establish QUIC connection"
                 );
-                return Connection::Error(format!("QUIC connection failed: {}", e));
+                return Connection::Error(format!("QUIC connection failed: {e}"));
             }
         };
         

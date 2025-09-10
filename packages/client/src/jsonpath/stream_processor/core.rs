@@ -86,9 +86,7 @@ where
                             handle_error!(recovery_error, "HTTP chunk error with recovery");
                         }
                     }
-                    _ => {
-                        continue;
-                    }
+                    _ => {}
                 }
             }
         })
@@ -131,9 +129,8 @@ where
                             if let Err(e) = self.process_body_chunk(&sender, data.clone()) {
                                 self.stats.record_processing_error();
                                 handle_error!(e, "Body chunk processing failed");
-                            } else {
-                                self.record_success();
-                            }
+                            } 
+                            self.record_success();
                         }
                         // Handle trailers and other frame types as needed
                         // Check if this is the last frame by checking if data is empty and this is a data frame
@@ -162,7 +159,6 @@ where
                     Poll::Pending => {
                         // No data available right now, yield and try again
                         std::thread::yield_now();
-                        continue;
                     }
                 }
             }

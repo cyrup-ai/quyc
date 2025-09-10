@@ -481,15 +481,15 @@ pub fn extract_key_info_from_cert(cert: &X509CertCert) -> Option<(String, Option
         "DSA".to_string()
     } else if algorithm_oid_str == DH_OID {
         "DH".to_string()
-    } else if *algorithm_oid == ID_EC_PUBLIC_KEY {
+    } else if algorithm_oid_str == ID_EC_PUBLIC_KEY.to_string() {
         "ECDSA".to_string()
-    } else if *algorithm_oid == ID_X_25519 {
+    } else if algorithm_oid_str == ID_X_25519.to_string() {
         "X25519".to_string()
-    } else if *algorithm_oid == ID_X_448 {
+    } else if algorithm_oid_str == ID_X_448.to_string() {
         "X448".to_string()
-    } else if *algorithm_oid == ID_ED_25519 {
+    } else if algorithm_oid_str == ID_ED_25519.to_string() {
         "Ed25519".to_string()
-    } else if *algorithm_oid == ID_ED_448 {
+    } else if algorithm_oid_str == ID_ED_448.to_string() {
         "Ed448".to_string()
     } else {
         "Unknown".to_string()
@@ -529,15 +529,15 @@ fn extract_key_size_from_algorithm_and_key(
         extract_dh_like_key_size(algorithm.parameters.as_ref())
     } else if oid_str == DH_OID {
         extract_dh_like_key_size(algorithm.parameters.as_ref())
-    } else if algorithm.oid == ID_EC_PUBLIC_KEY {
+    } else if oid_str == ID_EC_PUBLIC_KEY.to_string() {
         extract_ec_key_size(algorithm.parameters.as_ref())
-    } else if algorithm.oid == ID_X_25519 {
+    } else if oid_str == ID_X_25519.to_string() {
         Some(256)
-    } else if algorithm.oid == ID_X_448 {
+    } else if oid_str == ID_X_448.to_string() {
         Some(448)
-    } else if algorithm.oid == ID_ED_25519 {
+    } else if oid_str == ID_ED_25519.to_string() {
         Some(256)
-    } else if algorithm.oid == ID_ED_448 {
+    } else if oid_str == ID_ED_448.to_string() {
         Some(448)
     } else {
         None

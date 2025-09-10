@@ -45,8 +45,7 @@ impl HttpConfig {
             http2_max_frame_size: Some(2 << 20), // 2MB for large responses
             use_native_certs: true,
             https_only: true,
-            gzip: true,
-            brotli: true,
+
             deflate: true,
             gzip_enabled: true,
             brotli_enabled: true,
@@ -89,6 +88,9 @@ impl HttpConfig {
                     RetryableError::Tls,
                 ],
             },
+            
+            // UTF-8 validation security - strict by default for AI providers
+            utf8_validation_mode: crate::http::conversions::SecurityMode::Strict,
 
             // AI-optimized HTTP/3 (QUIC) settings for maximum performance
             quic_max_idle_timeout: Some(Duration::from_secs(120)), // Longer idle for AI workloads
@@ -99,6 +101,11 @@ impl HttpConfig {
             tls_early_data: true,                       // Enable 0-RTT for repeat connections
             h3_max_field_section_size: Some(64 * 1024), // 64KB for large AI headers
             h3_enable_grease: true,                     // Enable grease for future compatibility
+            
+            // Compression level configuration
+            gzip_level: Some(6),     // Balanced compression/speed for AI workloads
+            brotli_level: Some(4),   // Faster brotli for real-time AI responses  
+            deflate_level: Some(6),  // Balanced deflate compression
         }
     }
 

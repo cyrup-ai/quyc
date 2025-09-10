@@ -21,10 +21,9 @@
 
 #![feature(impl_trait_in_assoc_type)]
 #![feature(impl_trait_in_fn_trait_return)]
-#[deny(unsafe_code)]
-#[warn(clippy::all)]
-#[warn(clippy::pedantic)]
-
+#![deny(unsafe_code)]
+#![warn(clippy::all)]
+#![warn(clippy::pedantic)]
 // Removed orphan rule violation - MessageChunk implementations moved to appropriate modules
 // ### Basic HTTP Requests
 //

@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::Value;
 
-use super::core_evaluator::{CoreJsonPathEvaluator, JsonPathResult};
+use super::engine::{CoreJsonPathEvaluator, JsonPathResult};
 use crate::jsonpath::parser::{JsonPathParser, JsonSelector};
 
 impl CoreJsonPathEvaluator {

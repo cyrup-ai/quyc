@@ -22,7 +22,7 @@ impl Utf8Handler {
     ) -> JsonPathResult<String> {
         match strategy {
             Utf8RecoveryStrategy::Strict => std::str::from_utf8(input)
-                .map(|s| s.to_string())
+                .map(std::string::ToString::to_string)
                 .map_err(|e| {
                     invalid_expression_error(
                         "",

@@ -119,7 +119,7 @@ impl<'a> JsonByteProcessor for SharedByteProcessor<'a> {
     fn skip_whitespace(&mut self) -> JsonPathResult<()> {
         while let Some(byte) = self.read_next_byte()? {
             match byte {
-                b' ' | b'\t' | b'\n' | b'\r' => continue,
+                b' ' | b'\t' | b'\n' | b'\r' => {},
                 _ => {
                     // Put back non-whitespace byte
                     self.position -= 1;
@@ -193,7 +193,7 @@ impl<'a> SharedByteProcessor<'a> {
     fn expect_bytes(&mut self, expected: &[u8]) -> JsonPathResult<()> {
         for &expected_byte in expected {
             match self.read_next_byte()? {
-                Some(byte) if byte == expected_byte => continue,
+                Some(byte) if byte == expected_byte => {},
                 Some(byte) => return Err(JsonPathError::unexpected_byte(byte as char)),
                 None => return Err(JsonPathError::unexpected_end_of_input()),
             }

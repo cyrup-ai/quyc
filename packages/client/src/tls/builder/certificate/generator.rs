@@ -32,7 +32,7 @@ impl CertificateGenerator {
     /// Generate certificate for multiple domains
     pub fn domains(self, domains: &[&str]) -> CertificateGeneratorWithDomain {
         CertificateGeneratorWithDomain {
-            domains: domains.iter().map(|d| d.to_string()).collect(),
+            domains: domains.iter().map(std::string::ToString::to_string).collect(),
             is_wildcard: false,
             authority: None,
             self_signed: false,

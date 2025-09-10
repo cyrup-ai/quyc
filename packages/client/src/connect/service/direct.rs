@@ -19,13 +19,13 @@ pub(super) fn emit_stream_connection(
     sender: &ystream::AsyncStreamSender<TcpConnectionChunk>,
 ) -> Result<(), String> {
     let local_addr = stream.local_addr()
-        .map_err(|e| format!("Failed to get local address: {}", e))?;
+        .map_err(|e| format!("Failed to get local address: {e}"))?;
     let remote_addr = stream.peer_addr()
-        .map_err(|e| format!("Failed to get remote address: {}", e))?;
+        .map_err(|e| format!("Failed to get remote address: {e}"))?;
     
     // Set stream to non-blocking mode before converting to Tokio stream
     stream.set_nonblocking(true)
-        .map_err(|e| format!("Failed to set stream to non-blocking: {}", e))?;
+        .map_err(|e| format!("Failed to set stream to non-blocking: {e}"))?;
     
     // Convert std::net::TcpStream to tokio::net::TcpStream and wrap in ConnectionTrait
     // We need to do this within a Tokio runtime context
@@ -34,14 +34,14 @@ pub(super) fn emit_stream_connection(
         if let Ok(handle) = tokio::runtime::Handle::try_current() {
             handle.block_on(async {
                 tokio::net::TcpStream::from_std(stream)
-                    .map_err(|e| format!("Failed to convert TcpStream: {}", e))
+                    .map_err(|e| format!("Failed to convert TcpStream: {e}"))
             })
         } else {
             // If no runtime exists, create a temporary one just for this operation
-            let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Failed to create runtime: {}", e))?;
+            let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Failed to create runtime: {e}"))?;
             rt.block_on(async {
                 tokio::net::TcpStream::from_std(stream)
-                    .map_err(|e| format!("Failed to convert TcpStream: {}", e))
+                    .map_err(|e| format!("Failed to convert TcpStream: {e}"))
             })
         }
     })?;
@@ -93,7 +93,7 @@ impl ConnectorService {
                     Err(e) => {
                         let _ = emit!(
                             sender,
-                            TcpConnectionChunk::bad_chunk(format!("DNS resolution failed: {}", e))
+                            TcpConnectionChunk::bad_chunk(format!("DNS resolution failed: {e}"))
                         );
                         return;
                     }
@@ -125,10 +125,10 @@ impl ConnectorService {
                                     }
                                     return;
                                 }
-                                Err(_) => continue,
+                                Err(_) => {},
                             }
                         }
-                        None => match TcpStream::connect(&addr) {
+                        None => match TcpStream::connect(addr) {
                             Ok(stream) => {
                                 if connector_service.nodelay {
                                     let _ = stream.set_nodelay(true);
@@ -141,7 +141,7 @@ impl ConnectorService {
                                 }
                                 return;
                             }
-                            Err(_) => continue,
+                            Err(_) => {},
                         },
                     }
                 }

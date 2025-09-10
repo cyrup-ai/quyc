@@ -111,19 +111,19 @@ impl<S> Http3Builder<S> {
     #[inline]
     pub fn header(mut self, name: &str, value: &str) -> Self {
         let header_name = HeaderName::from_bytes(name.as_bytes()).unwrap_or_else(|_| {
-            log::error!("Invalid header name: {}", name);
+            log::error!("Invalid header name: {name}");
             HeaderName::from_static("x-invalid")
         });
 
         let header_value = HeaderValue::from_str(value).unwrap_or_else(|_| {
-            log::error!("Invalid header value: {}", value);
+            log::error!("Invalid header value: {value}");
             HeaderValue::from_static("")
         });
 
         self.request.headers_mut().insert(header_name, header_value);
 
         if self.debug_enabled {
-            log::debug!("HTTP3 Builder: Set header {} = {}", name, value);
+            log::debug!("HTTP3 Builder: Set header {name} = {value}");
         }
 
         self
@@ -190,19 +190,19 @@ impl<S> Http3Builder<S> {
     #[inline]
     fn set_header(mut self, name: &str, value: &str) -> Self {
         let header_name = HeaderName::from_bytes(name.as_bytes()).unwrap_or_else(|_| {
-            log::error!("Invalid header name: {}", name);
+            log::error!("Invalid header name: {name}");
             HeaderName::from_static("x-invalid")
         });
 
         let header_value = HeaderValue::from_str(value).unwrap_or_else(|_| {
-            log::error!("Invalid header value: {}", value);
+            log::error!("Invalid header value: {value}");
             HeaderValue::from_static("")
         });
 
         self.request.headers_mut().insert(header_name, header_value);
 
         if self.debug_enabled {
-            log::debug!("HTTP3 Builder: Set header {} = {}", name, value);
+            log::debug!("HTTP3 Builder: Set header {name} = {value}");
         }
 
         self

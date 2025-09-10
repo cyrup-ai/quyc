@@ -95,17 +95,10 @@ impl H2FrameProcessor {
     }
 }
 
-/// Create a no-op waker for synchronous polling
+/// Create a no-op waker for synchronous polling using safe futures API
 fn noop_waker() -> &'static Waker {
-    use std::task::{RawWaker, RawWakerVTable};
-
-    const VTABLE: RawWakerVTable = RawWakerVTable::new(
-        |_| RawWaker::new(std::ptr::null(), &VTABLE),
-        |_| {},
-        |_| {},
-        |_| {},
-    );
-
+    use futures::task::noop_waker;
+    
     static WAKER: std::sync::OnceLock<Waker> = std::sync::OnceLock::new();
-    WAKER.get_or_init(|| unsafe { Waker::from_raw(RawWaker::new(std::ptr::null(), &VTABLE)) })
+    WAKER.get_or_init(|| noop_waker())
 }

@@ -14,7 +14,7 @@ impl<'a> FilterParser<'a> {
     /// Parse property access after @ token
     pub(super) fn parse_property_access(&mut self) -> JsonPathResult<FilterExpression> {
         // Check for just @ (current node)
-        if !matches!(self.peek_token(), Some(Token::Dot) | Some(Token::DoubleDot)) {
+        if !matches!(self.peek_token(), Some(Token::Dot | Token::DoubleDot)) {
             return Ok(FilterExpression::Current);
         }
 

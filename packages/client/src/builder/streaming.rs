@@ -122,12 +122,12 @@ where
                     }
 
                     // Try to parse final accumulated JSON
-                    if !buffer.is_empty() {
-                        if let Ok(json_value) = serde_json::from_slice::<serde_json::Value>(&buffer) {
-                            // Apply JSONPath expression (simplified implementation)
-                            if let Ok(item) = serde_json::from_value::<T>(json_value) {
-                                ystream::emit!(sender, item);
-                            }
+                    if !buffer.is_empty()
+                        && let Ok(json_value) = serde_json::from_slice::<serde_json::Value>(&buffer)
+                    {
+                        // Apply JSONPath expression (simplified implementation)
+                        if let Ok(item) = serde_json::from_value::<T>(json_value) {
+                            ystream::emit!(sender, item);
                         }
                     }
                 });

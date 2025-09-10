@@ -14,8 +14,6 @@ impl ConnectorBuilder {
     pub fn build(self) -> Result<Connector, BoxError> {
         let service = ConnectorService::new(
             self.http_connector.unwrap_or_else(|| HttpConnector::new()),
-            #[cfg(feature = "default-tls")]
-            self.tls_connector,
             #[cfg(feature = "__rustls")]
             self.rustls_config,
             self.proxies,

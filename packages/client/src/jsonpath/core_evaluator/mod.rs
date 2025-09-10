@@ -6,7 +6,7 @@
 pub mod array_operations;
 pub mod array_ops;
 pub mod core;
-pub mod core_evaluator;
+pub mod engine;
 pub mod descendant_operations;
 pub mod evaluator;
 pub mod filter_evaluation;
@@ -20,4 +20,4 @@ pub mod timeout_evaluation;
 pub mod timeout_protection;
 
 // Re-export the main types and functions
-pub use core_evaluator::{CoreJsonPathEvaluator, JsonPathResult};
+pub use engine::{CoreJsonPathEvaluator, JsonPathResult};

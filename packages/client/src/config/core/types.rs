@@ -49,13 +49,7 @@ pub struct HttpConfig {
     /// Require HTTPS
     pub https_only: bool,
 
-    /// Enable gzip compression
-    pub gzip: bool,
-
-    /// Enable brotli compression
-    pub brotli: bool,
-
-    /// Enable deflate compression
+    /// Enable deflate compression  
     pub deflate: bool,
 
     /// User agent string
@@ -132,6 +126,9 @@ pub struct HttpConfig {
 
     /// Retry policy
     pub retry_policy: RetryPolicy,
+    
+    /// UTF-8 validation security mode
+    pub utf8_validation_mode: crate::http::conversions::SecurityMode,
 
     // ===== HTTP/3 (QUIC) Configuration =====
     /// QUIC connection maximum idle timeout before closing
@@ -165,4 +162,17 @@ pub struct HttpConfig {
     /// Enable HTTP/3 protocol grease
     /// Sends random grease values to ensure protocol extensibility
     pub h3_enable_grease: bool,
+
+    // ===== Compression Level Configuration =====
+    /// Gzip compression level (1-9, None for default)
+    /// Higher levels provide better compression at the cost of CPU usage
+    pub gzip_level: Option<u32>,
+
+    /// Brotli compression level (0-11, None for default)
+    /// Higher levels provide better compression at the cost of CPU usage
+    pub brotli_level: Option<u32>,
+
+    /// Deflate compression level (1-9, None for default)
+    /// Higher levels provide better compression at the cost of CPU usage
+    pub deflate_level: Option<u32>,
 }

@@ -12,12 +12,12 @@ use axum::{
     response::{Json as ResponseJson, Response},
     routing::{get, post, put},
 };
-use axum_server::tls_rustls::RustlsConfig;
+
 use cyrup_sugars::prelude::*;
 use ystream::prelude::MessageChunk;
 use quyc::{Http3, ContentType, HttpChunk, BadChunk};
 use serde::{Deserialize, Serialize};
-use std::{path::PathBuf, net::SocketAddr};
+use std::net::SocketAddr;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct SerdeRequestType {
@@ -405,26 +405,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Use thread-based runtime for server infrastructure  
     let rt = tokio::runtime::Runtime::new()?;
     let (local_addr, server_handle) = rt.block_on(async {
-        // Configure TLS for HTTP/2
-        let config = RustlsConfig::from_pem_file(
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../examples/self_signed_certs")
-                .join("cert.pem"),
-            PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                .join("../../examples/self_signed_certs")
-                .join("key.pem"),
-        )
-        .await?;
-
-        // Use a fixed port for HTTPS with HTTP/2
+        // Use a fixed port for HTTP
         let addr = SocketAddr::from(([127, 0, 0, 1], 3030));
         
-        println!("🌍 Test server starting on https://{} (HTTP/2 enabled with Alt-Svc headers)", addr);
+        println!("🌍 Test server starting on http://{}", addr);
 
-        // Spawn HTTP/2 + TLS server in background thread
+        // Spawn HTTP server in background thread
+        let listener = tokio::net::TcpListener::bind(addr).await?;
         let server_handle = tokio::spawn(async move {
-            axum_server::bind_rustls(addr, config)
-                .serve(app.into_make_service())
+            axum::serve(listener, app)
                 .await
                 .unwrap();
         });
@@ -444,7 +433,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         data: vec!["test".to_string(), "data".to_string()],
     };
 
-    let server_url = format!("https://{}/test", local_addr);
+    let server_url = format!("http://{}/test", local_addr);
 
     println!("📡 Testing Http3 builder with local server...");
     println!("📝 Sending request payload: {:#?}", request);
@@ -516,7 +505,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("📥 Error response: {:?}", error_response);
 
     // Download file example with proper URL
-    let csv_url = format!("https://{}/download/file.csv", local_addr);
+    let csv_url = format!("http://{}/download/file.csv", local_addr);
     let download_result = Http3::json()
         .headers([("x-api-key", "abc123")])
         .download_file(&csv_url)
@@ -541,7 +530,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     };
 
-    let json_url = format!("https://{}/put/json", local_addr);
+    let json_url = format!("http://{}/put/json", local_addr);
     let json_response: JsonResponse = Http3::json()
         .debug()
         .body(&json_request)
@@ -557,7 +546,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ("category".to_string(), "electronics".to_string()),
     ]);
 
-    let form_url = format!("https://{}/put/form", local_addr);
+    let form_url = format!("http://{}/put/form", local_addr);
     let form_response: FormResponse = Http3::json()
         .debug()
         .body(&form_params)
@@ -573,7 +562,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         mime_type: "application/pdf".to_string(),
     };
 
-    let binary_url = format!("https://{}/put/binary", local_addr);
+    let binary_url = format!("http://{}/put/binary", local_addr);
     let binary_response: BinaryResponse = Http3::json()
         .debug()
         .body(&binary_request)
@@ -583,6 +572,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Give the server a moment to process all requests
     std::thread::sleep(std::time::Duration::from_millis(500));
+
+    // Properly shut down the server
+    server_handle.abort();
+    println!("🛑 Server shutdown initiated");
 
     println!("\n✅ All PUT endpoint tests completed successfully!");
     println!("🎯 HTTP3 builder example completed!");
