@@ -30,6 +30,12 @@ impl Intercepted {
     }
 
     /// Create intercepted configuration from proxy list
+    ///
+    /// # Errors
+    ///
+    /// Currently this function does not return errors, but the `Result` return type
+    /// is used for API consistency and future extensibility. May return errors in
+    /// future versions if proxy configuration validation is added.
     pub fn from_proxies(
         proxies: arrayvec::ArrayVec<crate::proxy::Proxy, 4>,
     ) -> Result<Self, BoxError> {
