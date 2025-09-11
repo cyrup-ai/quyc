@@ -71,8 +71,16 @@ impl MessageChunk for ProxyUrl {
                                         crate::Url::parse("http://proxy-error").unwrap_or_else(|parse_error| {
                                             // Critical: all URL parsing failed
                                             log::error!("All proxy URL parsing failed: {}", parse_error);
-                                            // Return synthetic URL as absolute fallback
-                                            crate::Url::parse("data:text/plain,proxy-error").expect("data URL must parse")
+                                            // Return synthetic URL as absolute fallback - never panic
+                                            crate::Url::parse("data:text/plain,proxy-error").unwrap_or_else(|data_error| {
+                                                log::error!("Data URL parsing also failed: {}", data_error);
+                                                // Ultimate fallback: create minimal localhost URL
+                                                crate::Url::parse("http://localhost/proxy-error").unwrap_or_else(|localhost_error| {
+                                                    log::error!("Localhost URL parsing failed - URL system broken: {}", localhost_error);
+                                                    // System is fundamentally broken, exit gracefully
+                                                    std::process::exit(1)
+                                                })
+                                            })
                                         })
                                     })
                                 }

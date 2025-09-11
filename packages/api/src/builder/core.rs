@@ -14,6 +14,9 @@ use url::Url;
 // Re-export types from the client package
 pub use quyc_client::{HttpChunk, HttpClient, HttpError, HttpRequest};
 
+/// Type alias for HTTP chunk handler to reduce complexity
+pub type HttpChunkHandler = Arc<dyn Fn(Result<HttpChunk, HttpError>) -> HttpChunk + Send + Sync + 'static>;
+
 /// Content type enumeration for elegant API
 #[derive(Debug, Clone, Copy)]
 pub enum ContentType {
@@ -95,8 +98,7 @@ pub struct Http3Builder<S = BodyNotSet> {
     /// Debug logging enabled flag
     pub(crate) debug_enabled: bool,
     /// Chunk handler for error handling in streaming
-    pub(crate) chunk_handler:
-        Option<Arc<dyn Fn(Result<HttpChunk, HttpError>) -> HttpChunk + Send + Sync + 'static>>,
+    pub(crate) chunk_handler: Option<HttpChunkHandler>,
 }
 
 impl Http3Builder<BodyNotSet> {

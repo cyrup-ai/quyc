@@ -156,7 +156,6 @@ where
                 // Property separator - next value could be our target array
                 Ok(super::super::processor::JsonProcessResult::Continue)
             }
-            b',' => Ok(super::super::processor::JsonProcessResult::Continue),
             _ => Ok(super::super::processor::JsonProcessResult::Continue),
         }
     }

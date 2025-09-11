@@ -573,7 +573,22 @@ impl ystream::prelude::MessageChunk for WasmResponse {
                 url::Url::parse("http://localhost/").unwrap_or_else(|parse_error| {
                     log::error!("All error URL parsing failed: {}", parse_error);
                     // Absolute last resort - return a synthetic URL
-                    url::Url::parse("data:text/plain,url-error").expect("data URL must parse")
+                    url::Url::parse("data:text/plain,url-error").unwrap_or_else(|data_error| {
+                        log::error!("WASM response data URL failed: {}", data_error);
+                        url::Url::parse("http://127.0.0.1/url-error").unwrap_or_else(|final_error| {
+                            log::error!("All WASM response URL parsing failed: {}", final_error);
+                            // Return a working URL that will fail gracefully during connection
+                            url::Url::parse("http://localhost/").unwrap_or_else(|_| {
+                                // If even basic localhost fails, the URL system is completely broken
+                                // Create a file URL as final fallback
+                                url::Url::from_file_path("/url-error").unwrap_or_else(|()| {
+                                    // Complete system failure - log and exit gracefully
+                                    log::error!("Critical: URL parsing system completely broken");
+                                    std::process::exit(1)
+                                })
+                            })
+                        })
+                    })
                 })
             }),
             redirected: false,

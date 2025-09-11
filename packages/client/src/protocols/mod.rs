@@ -21,8 +21,6 @@ pub mod wire;
 // Re-export protocol types
 pub use core::{HttpVersion, TimeoutConfig};
 
-// Protocol adapters removed - using direct protocol methods instead
-
 // Re-export intelligence cache
 pub use intelligence::{ProtocolIntelligence, DomainCapabilities, IntelligenceConfig};
 

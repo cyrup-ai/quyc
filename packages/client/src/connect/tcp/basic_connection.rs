@@ -7,6 +7,13 @@ use std::net::{SocketAddr, TcpStream};
 use std::time::Duration;
 
 /// Connect to first available address with timeout support.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - No addresses are provided in the address list
+/// - All connection attempts fail (network unreachable, connection refused, timeout, etc.)
+/// - Connection timeout is exceeded for all addresses when timeout is specified
 pub fn connect_to_address_list(
     addrs: &[SocketAddr],
     timeout: Option<Duration>,

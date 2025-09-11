@@ -1,11 +1,10 @@
 //! Timeout protection for `JSONPath` evaluation
 //!
-//! Provides thread-based timeout handling to prevent excessive processing time
+//! Provides cooperative cancellation-based timeout handling to prevent excessive processing time
 //! on pathological `JSONPath` expressions or deeply nested JSON structures.
 
-use std::sync::mpsc;
-use std::thread;
 use std::time::{Duration, Instant};
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 
 use serde_json::Value;
 
@@ -33,7 +32,7 @@ impl Default for TimeoutConfig {
 pub struct TimeoutHandler;
 
 impl TimeoutHandler {
-    /// Evaluate `JSONPath` expression with timeout protection
+    /// Evaluate `JSONPath` expression with timeout protection using cooperative cancellation
     pub fn evaluate_with_timeout(
         evaluator: &CoreJsonPathEvaluator,
         json: &Value,
@@ -42,25 +41,71 @@ impl TimeoutHandler {
         let config = config.unwrap_or_default();
         let start_time = Instant::now();
 
-        let (tx, rx) = mpsc::channel();
         let expression = evaluator.expression().to_string();
         let json_clone = json.clone();
 
-        // Spawn evaluation in separate thread
-        let handle = thread::spawn(move || {
-            if config.log_timeouts {
-                log::debug!("Starting JSONPath evaluation in timeout thread");
-            }
-            let result = Self::evaluate_internal(&expression, &json_clone);
-            if config.log_timeouts {
-                log::debug!("JSONPath evaluation completed in thread");
-            }
-            let _ = tx.send(result); // Ignore send errors if receiver dropped
+        // Create cancellation flag for cooperative cancellation
+        let cancel_flag = Arc::new(AtomicBool::new(false));
+        let cancel_clone = cancel_flag.clone();
+
+        // Clone expression before moving into async context
+        let expression_clone = expression.clone();
+
+        // Use existing tokio runtime or create one
+        let runtime_result = if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            handle.block_on(Self::evaluate_with_timeout_async(
+                expression_clone,
+                json_clone,
+                config,
+                start_time,
+                cancel_flag,
+                cancel_clone,
+            ))
+        } else {
+            // Create minimal runtime only if needed
+            let rt = tokio::runtime::Runtime::new()
+                .map_err(|e| crate::jsonpath::error::invalid_expression_error(
+                    evaluator.expression(),
+                    &format!("Failed to create async runtime for timeout handling: {e}"),
+                    None,
+                ))?;
+            rt.block_on(Self::evaluate_with_timeout_async(
+                expression.clone(),
+                json_clone,
+                config,
+                start_time,
+                cancel_flag,
+                cancel_clone,
+            ))
+        };
+
+        runtime_result
+    }
+
+    /// Async implementation of timeout evaluation with proper cancellation
+    async fn evaluate_with_timeout_async(
+        expression: String,
+        json_clone: Value,
+        config: TimeoutConfig,
+        start_time: Instant,
+        cancel_flag: Arc<AtomicBool>,
+        cancel_clone: Arc<AtomicBool>,
+    ) -> JsonPathResult<Vec<Value>> {
+        if config.log_timeouts {
+            log::debug!("Starting JSONPath evaluation with cooperative cancellation");
+        }
+
+        // Clone expression before moving into spawn_blocking
+        let expression_for_task = expression.clone();
+
+        // Spawn blocking task for CPU-intensive JSONPath evaluation
+        let evaluation_task = tokio::task::spawn_blocking(move || {
+            Self::evaluate_internal_with_cancellation(&expression_for_task, &json_clone, cancel_clone)
         });
 
-        // Wait for completion or timeout
-        match rx.recv_timeout(config.timeout_duration) {
-            Ok(result) => {
+        // Race between timeout and evaluation completion
+        match tokio::time::timeout(config.timeout_duration, evaluation_task).await {
+            Ok(Ok(result)) => {
                 let elapsed = start_time.elapsed();
                 if config.log_timeouts {
                     log::debug!(
@@ -69,46 +114,72 @@ impl TimeoutHandler {
                 }
                 result
             }
-            Err(mpsc::RecvTimeoutError::Timeout) => {
+            Ok(Err(join_error)) => {
+                let elapsed = start_time.elapsed();
+                if config.log_timeouts {
+                    log::error!(
+                        "JSONPath evaluation task panicked after {elapsed:?}: {join_error}"
+                    );
+                }
+                Err(crate::jsonpath::error::invalid_expression_error(
+                    &expression,
+                    &format!("evaluation task panicked: {join_error}"),
+                    None,
+                ))
+            }
+            Err(_timeout_error) => {
                 let elapsed = start_time.elapsed();
                 if config.log_timeouts {
                     log::warn!(
-                        "JSONPath evaluation timed out after {elapsed:?} - likely deep nesting issue"
+                        "JSONPath evaluation timed out after {elapsed:?} - cancelling cooperatively"
                     );
                 }
 
-                // Clean up thread - it will continue running but we ignore result
-                drop(handle);
+                // Signal cancellation to the evaluation task
+                cancel_flag.store(true, Ordering::SeqCst);
 
                 // Return empty results for timeout - prevents hanging
                 Ok(Vec::new())
             }
-            Err(mpsc::RecvTimeoutError::Disconnected) => {
-                let elapsed = start_time.elapsed();
-                if config.log_timeouts {
-                    log::error!(
-                        "JSONPath evaluation thread disconnected after {elapsed:?}"
-                    );
-                }
-                Err(crate::jsonpath::error::invalid_expression_error(
-                    evaluator.expression(),
-                    "evaluation thread disconnected unexpectedly",
-                    None,
-                ))
-            }
         }
     }
 
-    /// Internal evaluation method (static to avoid self reference in thread)
-    fn evaluate_internal(expression: &str, json: &Value) -> JsonPathResult<Vec<Value>> {
+    /// Internal evaluation method with cooperative cancellation support
+    fn evaluate_internal_with_cancellation(
+        expression: &str, 
+        json: &Value, 
+        cancel_flag: Arc<AtomicBool>
+    ) -> JsonPathResult<Vec<Value>> {
         use super::evaluation_engine::EvaluationEngine;
+
+        // Check for cancellation before starting
+        if cancel_flag.load(Ordering::SeqCst) {
+            return Ok(Vec::new());
+        }
 
         // Create temporary evaluator instance for method calls
         let temp_evaluator = CoreJsonPathEvaluator::create_temp_evaluator(expression)?;
 
-        // Delegate to evaluation engine
-        EvaluationEngine::evaluate_expression(&temp_evaluator, json)
+        // Check for cancellation after evaluator creation
+        if cancel_flag.load(Ordering::SeqCst) {
+            return Ok(Vec::new());
+        }
+
+        // Delegate to evaluation engine with cancellation checking
+        // Note: For full cooperative cancellation, the evaluation engine would need
+        // to be modified to accept and check the cancellation flag during deep traversal.
+        // For now, we check before and after the main evaluation.
+        let result = EvaluationEngine::evaluate_expression(&temp_evaluator, json);
+
+        // Final cancellation check
+        if cancel_flag.load(Ordering::SeqCst) {
+            return Ok(Vec::new());
+        }
+
+        result
     }
+
+
 
     /// Check if an expression is likely to cause timeout
     #[must_use] 
@@ -124,14 +195,30 @@ impl TimeoutHandler {
     /// Estimate evaluation complexity
     #[must_use] 
     pub fn estimate_complexity(expression: &str) -> u32 {
-        let mut complexity = 1;
+        let mut complexity: u32 = 1;
 
-        // Add complexity for expensive operations
-        complexity += expression.matches("..").count() as u32 * 50; // Recursive descent
-        complexity += expression.matches('*').count() as u32 * 10; // Wildcard
-        complexity += expression.matches("[?").count() as u32 * 20; // Filters
-        complexity += expression.matches("[:").count() as u32 * 5; // Slices
-        complexity += expression.matches('[').count() as u32 * 2; // Array access
+        // Add complexity for expensive operations with overflow protection
+        use std::convert::TryFrom;
+        
+        // Recursive descent - cap at reasonable maximum to prevent overflow
+        let recursive_count = u32::try_from(expression.matches("..").count()).unwrap_or(1000);
+        complexity = complexity.saturating_add(recursive_count.saturating_mul(50));
+        
+        // Wildcard operations
+        let wildcard_count = u32::try_from(expression.matches('*').count()).unwrap_or(1000);
+        complexity = complexity.saturating_add(wildcard_count.saturating_mul(10));
+        
+        // Filter operations
+        let filter_count = u32::try_from(expression.matches("[?").count()).unwrap_or(1000);
+        complexity = complexity.saturating_add(filter_count.saturating_mul(20));
+        
+        // Slice operations
+        let slice_count = u32::try_from(expression.matches("[:").count()).unwrap_or(1000);
+        complexity = complexity.saturating_add(slice_count.saturating_mul(5));
+        
+        // Array access operations
+        let array_count = u32::try_from(expression.matches('[').count()).unwrap_or(1000);
+        complexity = complexity.saturating_add(array_count.saturating_mul(2));
 
         complexity
     }

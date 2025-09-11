@@ -4,6 +4,7 @@
 //! and protocol-specific configuration management.
 
 use std::time::Duration;
+use std::net::SocketAddr;
 // task imports removed - not used
 
 // prelude import removed - not used
@@ -69,6 +70,8 @@ impl HttpProtocolStrategy {
                     enable_early_data: config.enable_early_data,
                     enable_0rtt: config.enable_early_data,
                     congestion_control: config.congestion_control,
+                    local_bind_address: None,
+                    preferred_ip_version: IpVersion::Dual,
                 }))
             },
             Self::Auto { prefer, fallback_chain: _, configs } => {
@@ -214,6 +217,10 @@ pub struct H3Config {
     pub enable_early_data: bool,
     pub enable_0rtt: bool,
     pub congestion_control: CongestionControl,
+    /// Local address to bind UDP socket to (None = dynamic resolution)
+    pub local_bind_address: Option<SocketAddr>,
+    /// IP version preference for connection establishment
+    pub preferred_ip_version: IpVersion,
 }
 
 impl Default for H3Config {
@@ -230,6 +237,8 @@ impl Default for H3Config {
             enable_early_data: true,
             enable_0rtt: true,
             congestion_control: CongestionControl::Cubic,
+            local_bind_address: None,
+            preferred_ip_version: IpVersion::Dual,
         }
     }
 }
@@ -249,6 +258,8 @@ impl H3Config {
             enable_early_data: true,
             enable_0rtt: true,
             congestion_control: CongestionControl::Bbr,
+            local_bind_address: None,
+            preferred_ip_version: IpVersion::Dual,
         }
     }
 
@@ -266,6 +277,8 @@ impl H3Config {
             enable_early_data: true,
             enable_0rtt: true,
             congestion_control: CongestionControl::Bbr,
+            local_bind_address: None,
+            preferred_ip_version: IpVersion::Dual,
         }
     }
 
@@ -406,6 +419,23 @@ impl ProtocolConfig for QuicheConfig {
     }
 }
 
+/// IP version preference for network connections
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IpVersion {
+    /// IPv4 only
+    V4,
+    /// IPv6 only  
+    V6,
+    /// Dual stack (prefer IPv4)
+    Dual,
+}
+
+impl Default for IpVersion {
+    fn default() -> Self {
+        Self::Dual
+    }
+}
+
 /// Congestion control algorithms
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CongestionControl {
@@ -435,11 +465,28 @@ fn convert_h3_config_to_quiche(h3_config: &H3Config) -> Result<quiche::Config, S
     config.set_initial_max_stream_data_uni(h3_config.initial_max_stream_data_uni);
     
     // Set idle timeout
-    config.set_max_idle_timeout(h3_config.max_idle_timeout.as_millis() as u64);
+    use std::convert::TryFrom;
+    config.set_max_idle_timeout(
+        u64::try_from(h3_config.max_idle_timeout.as_millis())
+            .unwrap_or_else(|_| {
+                tracing::warn!("Duration exceeds u64 range, clamping to max");
+                u64::MAX
+            })
+    );
     
     // Set UDP payload size
-    config.set_max_recv_udp_payload_size(h3_config.max_udp_payload_size as usize);
-    config.set_max_send_udp_payload_size(h3_config.max_udp_payload_size as usize);
+    config.set_max_recv_udp_payload_size(
+        usize::try_from(h3_config.max_udp_payload_size).unwrap_or_else(|_| {
+            tracing::warn!("UDP payload size exceeds usize range, using default");
+            1452
+        })
+    );
+    config.set_max_send_udp_payload_size(
+        usize::try_from(h3_config.max_udp_payload_size).unwrap_or_else(|_| {
+            tracing::warn!("UDP payload size exceeds usize range, using default");
+            1452
+        })
+    );
 
     // Enable early data and 0-RTT if requested
     config.enable_early_data();
@@ -474,12 +521,28 @@ fn convert_quiche_config_to_quiche(quiche_config: &QuicheConfig) -> Result<quich
     config.set_initial_max_stream_data_bidi_remote(quiche_config.initial_max_stream_data_bidi_remote);
     config.set_initial_max_stream_data_uni(quiche_config.initial_max_stream_data_uni);
     
-    // Set idle timeout
-    config.set_max_idle_timeout(quiche_config.max_idle_timeout.as_millis() as u64);
+    // Set idle timeout 
+    config.set_max_idle_timeout(
+        u64::try_from(quiche_config.max_idle_timeout.as_millis())
+            .unwrap_or_else(|_| {
+                tracing::warn!("Duration exceeds u64 range, clamping to max");
+                u64::MAX
+            })
+    );
     
     // Set UDP payload size
-    config.set_max_recv_udp_payload_size(quiche_config.max_udp_payload_size as usize);
-    config.set_max_send_udp_payload_size(quiche_config.max_udp_payload_size as usize);
+    config.set_max_recv_udp_payload_size(
+        usize::try_from(quiche_config.max_udp_payload_size).unwrap_or_else(|_| {
+            tracing::warn!("UDP payload size exceeds usize range, using default");
+            1452
+        })
+    );
+    config.set_max_send_udp_payload_size(
+        usize::try_from(quiche_config.max_udp_payload_size).unwrap_or_else(|_| {
+            tracing::warn!("UDP payload size exceeds usize range, using default");
+            1452
+        })
+    );
 
     // Enable early data and 0-RTT if requested
     if quiche_config.enable_early_data {

@@ -84,6 +84,7 @@ where
     /// Tracks the path taken through the JSON structure for efficient backtracking
     /// during recursive descent evaluation.
     #[inline]
+    #[allow(clippy::cast_possible_truncation)]
     pub(super) fn update_breadcrumbs(&mut self, property_name: Option<&str>) {
         if self.deserializer.streaming_state.in_recursive_descent {
             if let Some(name) = property_name {

@@ -21,7 +21,7 @@ impl Proxy {
     /// - Move semantics for ownership transfer
     /// - Lazy iterator evaluation for `no_proxy` parsing
     /// - Perfect error propagation without unwrap/expect
-    #[inline(always)]
+    #[inline]
     pub(crate) fn into_matcher(self) -> Result<super::super::matcher::types::Matcher, crate::Error> {
         use super::super::matcher::{
             implementation::Matcher as ImplMatcher,
@@ -91,7 +91,7 @@ impl Proxy {
     }
 
     /// Apply no-proxy patterns with zero-allocation lazy evaluation
-    #[inline(always)]
+    #[inline]
     fn apply_no_proxy_patterns_static(
         mut inner: Matcher_,
         no_proxy_str: &str,

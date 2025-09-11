@@ -59,6 +59,7 @@ impl ConnectorBuilder {
     ///
     /// # Returns
     /// Self with the timeout configured
+    #[must_use]
     pub fn timeout(mut self, timeout: Duration) -> Self {
         self.connect_timeout = Some(timeout);
         self

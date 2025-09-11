@@ -21,7 +21,7 @@ impl ConnectorService {
 
         AsyncStream::with_channel(move |sender| {
             spawn_task(move || {
-                let proxy_config = if let Some(config) = connector_service.intercepted.first_proxy() { config } else {
+                let Some(proxy_config) = connector_service.intercepted.first_proxy() else {
                     emit!(
                         sender,
                         TcpConnectionChunk::bad_chunk(
@@ -32,7 +32,7 @@ impl ConnectorService {
                 };
 
                 let proxy_uri = &proxy_config.uri;
-                let proxy_host = if let Some(h) = proxy_uri.host() { h } else {
+                let Some(proxy_host) = proxy_uri.host() else {
                     emit!(
                         sender,
                         TcpConnectionChunk::bad_chunk("Proxy URI missing host".to_string())

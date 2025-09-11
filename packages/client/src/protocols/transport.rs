@@ -10,8 +10,6 @@ use ystream::prelude::*;
 use quiche::Config;
 
 use super::connection::{Connection, ConnectionManager};
-// h2 imports removed - not used
-// h3 imports removed - not used
 use crate::protocols::frames::FrameChunk;
 
 /// Transport type for connection negotiation

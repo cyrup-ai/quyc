@@ -923,6 +923,7 @@ where
     }
     
     /// Evaluate current selector against streaming state
+    #[allow(clippy::cast_possible_truncation)]
     fn evaluate_current_selector(&self) -> bool {
         let state = &self.deserializer.streaming_state;
         
@@ -999,6 +1000,7 @@ where
     }
     
     /// Check if a specific selector matches current state
+    #[allow(clippy::cast_possible_truncation)]
     fn matches_selector(&self, selector: &crate::jsonpath::ast::JsonSelector) -> bool {
         let state = &self.deserializer.streaming_state;
         
@@ -1120,6 +1122,7 @@ where
 
 
     /// Evaluate a single selector within a Union
+    #[allow(clippy::cast_possible_truncation)]
     fn evaluate_single_union_selector(&self, selector: &crate::jsonpath::ast::JsonSelector) -> bool {
         let state = &self.deserializer.streaming_state;
         
@@ -1164,6 +1167,7 @@ where
     }
 
     /// Check if array index matches slice criteria
+    #[allow(clippy::cast_possible_truncation)]
     fn index_matches_slice(&self, index: usize, start: Option<i64>, end: Option<i64>, step: Option<i64>) -> bool {
         let step = step.unwrap_or(1).max(1) as usize; // Ensure positive step
         let index = index as i64;

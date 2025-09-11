@@ -176,7 +176,18 @@ impl Unpin for Conn {}
 
 /// Connection trait for different connection types
 pub trait ConnectionTrait: AsyncRead + AsyncWrite + std::fmt::Debug + Send + Sync + Unpin {
+    /// Get the peer address of this connection.
+    ///
+    /// # Errors
+    ///
+    /// Returns an IO error if the peer address cannot be determined.
     fn peer_addr(&self) -> std::io::Result<SocketAddr>;
+    
+    /// Get the local address of this connection.
+    ///
+    /// # Errors
+    ///
+    /// Returns an IO error if the local address cannot be determined.
     fn local_addr(&self) -> std::io::Result<SocketAddr>;
     fn is_closed(&self) -> bool;
     fn as_any(&self) -> &dyn std::any::Any;

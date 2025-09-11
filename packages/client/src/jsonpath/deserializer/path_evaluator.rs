@@ -87,9 +87,8 @@ where
 
         match selector {
             JsonSelector::Root => self.deserializer.current_depth == 0,
-            JsonSelector::Child { .. } => self.deserializer.current_depth > 0,
+            JsonSelector::Child { .. } | JsonSelector::Wildcard => self.deserializer.current_depth > 0,
             JsonSelector::RecursiveDescent => true, // Always matches
-            JsonSelector::Wildcard => self.deserializer.current_depth > 0,
             JsonSelector::Index { index, from_end } => {
                 self.evaluate_index_selector(*index, *from_end)
             }

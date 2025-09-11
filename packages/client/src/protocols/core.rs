@@ -93,6 +93,7 @@ pub enum ConnectionStatus {
 
 /// Protocol capability flags
 #[derive(Debug, Clone, Copy)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct ProtocolCapabilities {
     pub supports_multiplexing: bool,
     pub supports_server_push: bool,

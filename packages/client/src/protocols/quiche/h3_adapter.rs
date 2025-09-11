@@ -1,4 +1,3 @@
-// HashMap import removed - not used
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 
@@ -355,12 +354,24 @@ fn encode_headers(headers: &[(Vec<u8>, Vec<u8>)]) -> Vec<u8> {
         // Simplified QPACK encoding - literal header field
         headers_data.push(0x20); // Literal header field without name reference
         if name.len() > 255 {
-            return Err(format!("Header name too long: {} bytes", name.len()));
+            // Skip headers that are too long - continue with next header
+            tracing::warn!(
+                target: "quyc::h3",
+                name_len = name.len(),
+                "Skipping header with name too long for QPACK encoding"
+            );
+            continue;
         }
         headers_data.push(name.len() as u8);
         headers_data.extend_from_slice(name);
         if value.len() > 255 {
-            return Err(format!("Header value too long: {} bytes", value.len()));
+            // Skip headers that are too long - continue with next header
+            tracing::warn!(
+                target: "quyc::h3",
+                value_len = value.len(),
+                "Skipping header with value too long for QPACK encoding"
+            );
+            continue;
         }
         headers_data.push(value.len() as u8);
         headers_data.extend_from_slice(value);

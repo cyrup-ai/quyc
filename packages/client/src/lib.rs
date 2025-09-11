@@ -150,6 +150,12 @@ pub fn init_global_client(config: HttpConfig) {
 }
 
 /// Internal validation and initialization
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Configuration validation fails (invalid timeouts, pool settings, or user agent)
+/// - Global client initialization fails (already initialized or client creation error)
 fn validate_and_init_client(
     config: HttpConfig,
 ) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -161,6 +167,14 @@ fn validate_and_init_client(
 }
 
 /// Validate HTTP configuration before initialization
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Timeout is zero or exceeds 1 hour
+/// - Connect timeout is zero or exceeds 5 minutes  
+/// - Pool max idle per host is zero or exceeds 1000
+/// - User agent is empty or exceeds 1000 characters
 fn validate_http_config(config: &HttpConfig) -> std::result::Result<(), String> {
     // Validate timeout values
     if config.timeout.as_secs() == 0 {
@@ -198,6 +212,12 @@ fn validate_http_config(config: &HttpConfig) -> std::result::Result<(), String> 
 }
 
 /// Internal function to perform the actual global client initialization
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Global client has already been initialized (OnceLock constraint)
+/// - Client creation fails during initialization
 fn initialize_global_client_internal(
     config: HttpConfig,
 ) -> std::result::Result<(), Box<dyn std::error::Error + Send + Sync>> {

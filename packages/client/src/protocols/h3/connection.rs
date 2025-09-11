@@ -4,6 +4,7 @@
 //! integrated with ystream streaming patterns.
 
 use std::sync::Arc;
+use std::net::SocketAddr;
 
 use crossbeam_utils::Backoff;
 use ystream::prelude::*;
@@ -12,6 +13,46 @@ use quiche::h3::NameValue;
 use crate::prelude::*;
 // quiche import removed - not used
 use crate::protocols::core::{HttpVersion, TimeoutConfig};
+
+/// HTTP/3 specific errors
+#[derive(Debug, thiserror::Error)]
+pub enum H3Error {
+    #[error("QUIC configuration error: {0}")]
+    Configuration(String),
+    #[error("QUIC connection error: {0}")]
+    Connection(String), 
+    #[error("HTTP/3 protocol error: {0}")]
+    Protocol(String),
+    #[error("Network error: {0}")]
+    Network(String),
+    #[error("Timeout error: {0}")]
+    Timeout(String),
+    #[error("Internal error: {0}")]
+    Internal(String),
+}
+
+impl From<quiche::Error> for H3Error {
+    fn from(err: quiche::Error) -> Self {
+        match err {
+            quiche::Error::InvalidFrame | quiche::Error::InvalidStreamState(_) | 
+            quiche::Error::InvalidTransportParam => Self::Protocol(err.to_string()),
+            quiche::Error::FlowControl | quiche::Error::StreamLimit => Self::Connection(err.to_string()),
+            _ => Self::Internal(err.to_string()),
+        }
+    }
+}
+
+impl From<H3Error> for crate::error::HttpError {
+    fn from(err: H3Error) -> Self {
+        match err {
+            H3Error::Network(msg) => crate::error::HttpError::new(crate::error::Kind::Connect).with(msg),
+            H3Error::Timeout(msg) => crate::error::HttpError::new(crate::error::Kind::Timeout).with(msg),
+            H3Error::Configuration(msg) => crate::error::HttpError::new(crate::error::Kind::Builder).with(msg),
+            H3Error::Internal(msg) => crate::error::HttpError::new(crate::error::Kind::Stream).with(msg),
+            _ => crate::error::HttpError::new(crate::error::Kind::Request).with(err.to_string()),
+        }
+    }
+}
 
 /// HTTP/3 connection wrapper that integrates quiche with ystream
 pub struct H3Connection {
@@ -468,13 +509,35 @@ impl H3Connection {
                     }
                     Err(_) => {
                         // Fallback: Create closed connection using fallback method
-                        Self::create_fallback_error_connection()
+                        match Self::create_fallback_error_connection() {
+                            Ok(fallback_conn) => fallback_conn,
+                            Err(fallback_err) => {
+                                tracing::error!(
+                                    target: "quyc::protocols::h3",
+                                    error = %fallback_err,
+                                    "Failed to create fallback error connection"
+                                );
+                                // Return a minimal connection using the basic error marker approach
+                                Self::create_minimal_error_marker()
+                            }
+                        }
                     }
                 }
             }
             Err(_) => {
                 // Complete QUIC failure: Create minimal error marker
-                Self::create_fallback_error_connection()  
+                match Self::create_fallback_error_connection() {
+                    Ok(fallback_conn) => fallback_conn,
+                    Err(fallback_err) => {
+                        tracing::error!(
+                            target: "quyc::protocols::h3",
+                            error = %fallback_err,
+                            "Complete QUIC subsystem failure"
+                        );
+                        // Last resort: return minimal error marker
+                        Self::create_minimal_error_marker()
+                    }
+                }
             }
         }
     }
@@ -518,212 +581,158 @@ impl H3Connection {
     // Now using simple panic for unrecoverable failures
 
     /// Create fallback error connection when QUIC subsystem fails
-    fn create_fallback_error_connection() -> Self {
-        // Create the most minimal error connection possible when QUIC is completely unavailable
-        // This ensures AutoStrategy can detect failure and fall back to H2
-        let scid = quiche::ConnectionId::from_ref(b"fallback");
-        let addr = std::net::SocketAddr::from(([127, 0, 0, 1], 0));
-        
-        // Try basic QUIC one more time with minimal config
-        if let Ok(mut cfg) = quiche::Config::new(quiche::PROTOCOL_VERSION) {
-            cfg.set_max_idle_timeout(0);
-            if let Ok(mut conn) = quiche::connect(None, &scid, addr, addr, &mut cfg) {
-                let _ = conn.close(true, 0x100, b"fallback");
-                return Self {
-                    inner: Arc::new(std::sync::Mutex::new(conn)),
-                    h3_conn: Arc::new(std::sync::Mutex::new(None)),
-                    config: TimeoutConfig::default(),
-                };
-            }
-        }
-        
-        // Ultimate fallback: Return proper error to calling code instead of panicking
-        // This allows AutoStrategy to detect HTTP/3 failure and fall back to HTTP/2
-        tracing::error!(
-            target: "quyc::protocols::h3",
-            "QUIC subsystem completely unavailable - returning error for AutoStrategy fallback"
+    /// 
+    /// This function safely handles QUIC subsystem failures without panicking.
+    /// Returns a Result to allow callers to properly handle connection failures.
+    fn create_fallback_error_connection() -> Result<Self, H3Error> {
+        tracing::debug!(
+            target: "quyc::protocols::h3", 
+            "Creating fallback error connection for QUIC subsystem failure"
         );
         
-        // Since we cannot create a real quiche::Connection when QUIC is unavailable,
-        // and we must not use unsafe code or stubs, the proper solution is to 
-        // change this method to return a Result<Self, Error> so callers can handle the error.
-        // However, since that would require changing callers, we use a different approach:
+        // Strategy 1: Try to create a minimal working connection for error signaling
+        let scid = quiche::ConnectionId::from_ref(b"fallback_conn");
+        let local_addr = SocketAddr::from(([127, 0, 0, 1], 0));
         
-        // Create a minimal test connection to localhost that will immediately fail
-        // This uses real QUIC APIs but connects to an unreachable address
-        let error_scid = quiche::ConnectionId::from_ref(b"error_marker_unreachable");
-        let unreachable_addr = std::net::SocketAddr::from(([0, 0, 0, 0], 1)); // Port 1 on 0.0.0.0 - unreachable
+        // Attempt to create basic QUIC configuration
+        let mut config = quiche::Config::new(quiche::PROTOCOL_VERSION)
+            .map_err(|e| H3Error::Configuration(format!("Failed to create QUIC config: {e}")))?;
         
-        // Create minimal but valid QUIC config  
-        let mut error_cfg = match quiche::Config::new(quiche::PROTOCOL_VERSION) {
-            Ok(config) => config,
-            Err(config_error) => {
-                tracing::error!("Failed to create QUIC config: {}", config_error);
-                // If config creation fails, we need to change this function to return Result
-                // For now, we'll have to accept this as a design limitation
-                // The proper fix is to change the function signature
+        // Configure minimal parameters for immediate error state
+        config.set_max_idle_timeout(1); // 1ms timeout for immediate failure
+        config.set_initial_max_data(1024); // Minimal data allowance
+        config.set_initial_max_streams_bidi(1);
+        config.set_initial_max_streams_uni(0);
+        
+        // Set HTTP/3 application protocol
+        config.set_application_protos(&[b"h3"])
+            .map_err(|e| H3Error::Protocol(format!("Failed to set HTTP/3 protocol: {e}")))?;
+        
+        // Try to create connection - use unreachable address for immediate failure
+        let unreachable_addr = SocketAddr::from(([192, 0, 2, 1], 1)); // RFC 5737 test address
+        
+        match quiche::connect(None, &scid, local_addr, unreachable_addr, &mut config) {
+            Ok(mut connection) => {
+                // Close connection immediately to put it in error state
+                let close_result = connection.close(true, 0x100, b"Fallback error connection");
+                if let Err(e) = close_result {
+                    tracing::debug!("Close connection result: {e} (expected for error state)");
+                }
                 
-                // Since we cannot panic and must return a valid H3Connection,
-                // we'll create a connection that's marked as broken
-                // This is better than panicking at construction time
-                
-                // Create a minimal config that will work for error state
-                quiche::Config::new(0x1).unwrap_or_else(|_| {
-                    // If even version 1 fails, the quiche library is broken
-                    tracing::error!("CRITICAL: QUIC library completely broken");
-                    // We need to change this function to return Result
-                    // For now, we'll have to accept this limitation
-                    
-                    // Since we cannot panic and cannot create a config,
-                    // we'll have to change the architecture
-                    // For this immediate fix, we accept this as impossible to handle
-                    // without changing the function signature
-                    
-                    // The proper solution is to make this function return Result
-                    // For now, we'll have to use a working config as fallback
-                    quiche::Config::new(quiche::PROTOCOL_VERSION).unwrap_or_else(|_| {
-                        // We're back to the original problem - we need Result-based API
-                        // For this immediate fix, we accept this as a limitation
-                        // that requires architectural change
-                        
-                        // Since we cannot panic, we need to handle this differently
-                        // The only option is to change the function signature
-                        // For now, we'll create a config that will work
-                        
-                        // Use a different QUIC version as fallback
-                        quiche::Config::new(0xff00_0020).unwrap_or_else(|_| {
-                            // If all versions fail, quiche is completely broken
-                            // We need Result-based constructors
-                            // For this immediate fix, we must accept system limitations
-                            
-                            // Since we cannot panic and must return something,
-                            // we'll have to change the design
-                            // For now, we create using a known working approach
-                            
-                            // Try draft versions as fallback
-                            quiche::Config::new(0xff00_001d).unwrap_or_else(|_| {
-                                // All QUIC versions failed - the library is broken
-                                // We need to change to Result-based APIs
-                                // For this immediate fix, we accept the limitation
-                                
-                                // Since we cannot create any config, we must return something
-                                // The only option is to change the function signature
-                                // For now, we'll have to accept this edge case
-                                
-                                // Try the most basic possible config
-                                quiche::Config::new(1).unwrap_or_else(|_| {
-                                    // Even version 1 failed - this should be impossible
-                                    // We need architectural changes
-                                    // For now, we must stop the unwrap chain
-                                    
-                                    // The proper fix is Result-based constructors
-                                    // For this immediate fix, we accept the limitation
-                                    
-                                    // Since we must return a config and cannot panic,
-                                    // we'll have to change the approach entirely
-                                    
-                                    // Create using emergency version
-                                    quiche::Config::new(0).unwrap_or_else(|_| {
-                                        // We're in an infinite unwrap cycle
-                                        // The solution is to change the function signature
-                                        // For now, we stop unwrapping
-                                        
-                                        // Create emergency fallback without unwrap
-                                        match quiche::Config::new(2) {
-                                            Ok(emergency_config) => emergency_config,
-                                            Err(_) => {
-                                                // This represents total quiche library failure
-                                                // We need Result-based APIs
-                                                // For now, we must accept this limitation
-                                                
-                                                // Since we cannot create any config at all,
-                                                // we need to change the architecture
-                                                // For this immediate fix, we'll have to use
-                                                // a different approach entirely
-                                                
-                                                // The only remaining option is to change
-                                                // the function to return Result
-                                                // For now, we use emergency handling
-                                                
-                                                // Try one more version without unwrap
-                                                if let Ok(final_config) = quiche::Config::new(0x1) {
-                                                    final_config
-                                                } else {
-                                                    // This should be impossible
-                                                    // If reached, we need architectural changes
-                                                    // For now, we must break the pattern
-                                                    
-                                                    // Since we cannot create any config,
-                                                    // we need to return an error state
-                                                    // But this function doesn't return Result
-                                                    
-                                                    // The only option is to change the design
-                                                    // For this immediate fix, we must accept
-                                                    // that this represents a limitation
-                                                    
-                                                    // Create using absolute final approach
-                                                    quiche::Config::new(0xff00_0000).unwrap_or_else(|_| {
-                                                        // We cannot avoid unwrap without changing the API
-                                                        // This represents a design limitation
-                                                        // The proper fix is Result-based constructors
-                                                        
-                                                        // For now, we accept this as impossible to handle
-                                                        // without architectural changes
-                                                        
-                                                        // Use emergency fallback that should work
-                                                        quiche::Config::new(quiche::PROTOCOL_VERSION)
-                                                            .expect("QUIC config creation - this requires Result-based API")
-                                                    })
-                                                }
-                                            }
-                                        }
-                                    })
-                                })
-                            })
-                        })
-                    })
+                tracing::debug!("Successfully created fallback error connection");
+                Ok(Self {
+                    inner: Arc::new(std::sync::Mutex::new(connection)),
+                    h3_conn: Arc::new(std::sync::Mutex::new(None)),
+                    config: TimeoutConfig {
+                        request_timeout: std::time::Duration::from_millis(1),
+                        connect_timeout: std::time::Duration::from_millis(1),
+                        idle_timeout: std::time::Duration::from_millis(1),
+                        keepalive_timeout: None,
+                    },
                 })
             }
+            Err(e) => {
+                tracing::error!(
+                    target: "quyc::protocols::h3",
+                    error = %e,
+                    "Failed to create fallback QUIC connection - QUIC subsystem unavailable"
+                );
+                
+                // Strategy 2: Try with even more minimal configuration
+                let mut minimal_config = quiche::Config::new(quiche::PROTOCOL_VERSION)
+                    .map_err(|config_err| H3Error::Configuration(format!("QUIC completely unavailable: {config_err}")))?;
+                
+                // Use absolute minimal configuration
+                minimal_config.set_max_idle_timeout(0); // No timeout
+                
+                // Try connection without protocol setup
+                match quiche::connect(None, &scid, local_addr, local_addr, &mut minimal_config) {
+                    Ok(mut minimal_conn) => {
+                        let _ = minimal_conn.close(true, 0x100, b"minimal_fallback");
+                        
+                        tracing::warn!("Created minimal fallback connection without HTTP/3 protocol");
+                        Ok(Self {
+                            inner: Arc::new(std::sync::Mutex::new(minimal_conn)),
+                            h3_conn: Arc::new(std::sync::Mutex::new(None)),
+                            config: TimeoutConfig::default(),
+                        })
+                    }
+                    Err(minimal_err) => {
+                        // Complete QUIC failure - return structured error
+                        Err(H3Error::Connection(format!(
+                            "QUIC subsystem completely unavailable. Primary error: {e}, Minimal config error: {minimal_err}"
+                        )))
+                    }
+                }
+            }
+        }
+    }
+
+    /// Create absolute minimal error marker when all other connection attempts fail
+    /// 
+    /// This is the last resort when both normal connection creation and fallback fail.
+    /// Creates the most basic possible connection for error signaling.
+    fn create_minimal_error_marker() -> Self {
+        tracing::warn!(
+            target: "quyc::protocols::h3",
+            "Creating minimal error marker - QUIC subsystem completely unavailable"
+        );
+
+        // Create basic QUIC configuration with no fancy options
+        let mut basic_config = match quiche::Config::new(quiche::PROTOCOL_VERSION) {
+            Ok(config) => config,
+            Err(_) => {
+                // If even basic config fails, try older version
+                match quiche::Config::new(0x1) {
+                    Ok(old_config) => old_config,
+                    Err(_) => {
+                        // This should never happen in practice
+                        tracing::error!("CRITICAL: Cannot create any QUIC config - library broken");
+                        // Since this is a marker for complete failure, we must create something
+                        // In practice, this branch should never execute
+                        panic!("QUIC library completely broken - cannot create basic configuration");
+                    }
+                }
+            }
         };
-            
-        // Set minimal timeouts for immediate failure
-        error_cfg.set_max_idle_timeout(1); // 1ms = immediate timeout
-        error_cfg.set_initial_max_data(1024); // Minimal data
-        error_cfg.set_initial_max_streams_bidi(1);
-        error_cfg.set_initial_max_streams_uni(0);
+
+        // Set absolute minimal parameters
+        basic_config.set_max_idle_timeout(0); // No timeout
+        basic_config.set_initial_max_data(512); // Absolute minimum
+        basic_config.set_initial_max_streams_bidi(0); // No bidirectional streams
+        basic_config.set_initial_max_streams_uni(0); // No unidirectional streams
+
+        // Skip application protocol - not essential for error marker
         
-        // Set application protocol
-        error_cfg.set_application_protos(&[b"h3"])
-            .expect("Setting h3 protocol should never fail");
+        // Create connection to localhost (will fail but creates valid object)
+        let scid = quiche::ConnectionId::from_ref(b"minimal");
+        let addr = SocketAddr::from(([127, 0, 0, 1], 1)); // Port 1 = usually closed
         
-        // Create connection to unreachable address - this will create a valid connection
-        // that immediately enters error/timeout state when used
-        let error_conn = quiche::connect(
-            None, 
-            &error_scid, 
-            unreachable_addr, 
-            unreachable_addr, 
-            &mut error_cfg
-        ).expect("Creating connection to unreachable address should work - QUIC allows it");
-        
-        // The connection is valid but will timeout/fail immediately when used
-        // This provides proper AutoStrategy error detection without unsafe code
-        Self {
-            inner: Arc::new(std::sync::Mutex::new(error_conn)),
-            h3_conn: Arc::new(std::sync::Mutex::new(None)),
-            config: TimeoutConfig {
-                request_timeout: std::time::Duration::from_millis(1), // Immediate timeout
-                connect_timeout: std::time::Duration::from_millis(1), // Immediate timeout  
-                idle_timeout: std::time::Duration::from_millis(1), // Immediate timeout
-                keepalive_timeout: None,
-            },
+        match quiche::connect(None, &scid, addr, addr, &mut basic_config) {
+            Ok(mut conn) => {
+                // Close immediately to mark as error
+                let _ = conn.close(true, 0x100, b"minimal_error");
+                
+                Self {
+                    inner: Arc::new(std::sync::Mutex::new(conn)),
+                    h3_conn: Arc::new(std::sync::Mutex::new(None)),
+                    config: TimeoutConfig {
+                        request_timeout: std::time::Duration::from_millis(1),
+                        connect_timeout: std::time::Duration::from_millis(1),
+                        idle_timeout: std::time::Duration::from_millis(1),
+                        keepalive_timeout: None,
+                    },
+                }
+            }
+            Err(e) => {
+                tracing::error!("Even minimal QUIC connection failed: {e}");
+                // This represents complete system failure
+                // The only remaining option is to panic as a last resort
+                panic!("QUIC subsystem completely broken - cannot create any connection: {e}");
+            }
         }
     }
 }
-
-// DELETED: parse_varint() function - quiche handles all varint parsing internally
-
-// DELETED: parse_qpack_headers_simple() function - quiche QPACK decoder handles all header parsing internally
 
 /// Convert h3 `HeaderField` Vec to `http::StatusCode` and `http::HeaderMap` (unused now but kept for reference)
 #[allow(dead_code)]
@@ -768,81 +777,59 @@ impl Clone for H3Connection {
     }
 }
 
-/// Parse HTTP request bytes to extract headers for HTTP/3
-fn parse_http_request_headers(request_data: &[u8]) -> Result<Vec<quiche::h3::Header>, String> {
-    // Convert bytes to string for parsing
-    let request_str = std::str::from_utf8(request_data)
-        .map_err(|_| "Invalid UTF-8 in request data")?;
-    
-    // Split request into lines
-    let lines: Vec<&str> = request_str.lines().collect();
-    
-    if lines.is_empty() {
-        return Err("Empty request data".to_string());
-    }
-    
-    // Parse the request line (e.g., "GET /path HTTP/1.1")
-    let request_line_parts: Vec<&str> = lines[0].split_whitespace().collect();
-    if request_line_parts.len() < 3 {
-        return Err("Invalid request line format".to_string());
-    }
-    
-    let method = request_line_parts[0];
-    let path = request_line_parts[1];
-    
-    // Start building HTTP/3 headers
-    let mut headers = vec![
-        quiche::h3::Header::new(b":method", method.as_bytes()),
-        quiche::h3::Header::new(b":scheme", b"https"), // Default to HTTPS for HTTP/3
-        quiche::h3::Header::new(b":path", path.as_bytes()),
+/// Create HTTP/3 headers from structured HTTP components (RFC 9114 compliant)
+fn create_http3_headers(
+    method: &http::Method,
+    uri: &url::Url,
+    headers: &http::HeaderMap,
+) -> Vec<quiche::h3::Header> {
+    let mut h3_headers = vec![
+        quiche::h3::Header::new(b":method", method.as_str().as_bytes()),
+        quiche::h3::Header::new(b":scheme", uri.scheme().as_bytes()),
+        quiche::h3::Header::new(b":authority", uri.host_str().unwrap_or("localhost").as_bytes()),
+        quiche::h3::Header::new(b":path", uri.path().as_bytes()),
     ];
     
-    // Parse HTTP headers to find Host header for :authority
-    let mut authority = b"localhost".as_slice(); // Default fallback
+    // Add query string to path if present
+    if let Some(query) = uri.query() {
+        let path_with_query = format!("{}?{}", uri.path(), query);
+        h3_headers[3] = quiche::h3::Header::new(b":path", path_with_query.as_bytes());
+    }
     
-    // Look for headers starting from line 1
-    for line in &lines[1..] {
-        if line.is_empty() {
-            break; // End of headers
-        }
+    // Add regular headers (skip pseudo-headers and hop-by-hop headers)
+    for (name, value) in headers {
+        let name_str = name.as_str().to_lowercase();
         
-        if let Some(colon_pos) = line.find(':') {
-            let header_name = line[..colon_pos].trim().to_lowercase();
-            let header_value = line[colon_pos + 1..].trim();
-            
-            match header_name.as_str() {
-                "host" => {
-                    authority = header_value.as_bytes();
-                }
-                _ => {
-                    // Add other headers as regular headers (not pseudo-headers)
-                    headers.push(quiche::h3::Header::new(
-                        header_name.as_bytes(), 
-                        header_value.as_bytes()
-                    ));
-                }
-            }
+        // Skip pseudo-headers and HTTP/1.1 hop-by-hop headers not valid in HTTP/3
+        if !name_str.starts_with(':') 
+            && name_str != "connection" 
+            && name_str != "upgrade" 
+            && name_str != "http2-settings" {
+            h3_headers.push(quiche::h3::Header::new(
+                name.as_str().as_bytes(),
+                value.as_bytes()
+            ));
         }
     }
     
-    // Add the :authority pseudo-header
-    headers.insert(1, quiche::h3::Header::new(b":authority", authority));
-    
-    Ok(headers)
+    h3_headers
 }
 
 impl H3Connection {
     /// Send HTTP/3 request and return separate status, headers, and body stream
     pub fn send_request_separated(
-        &self, 
-        request_data: &[u8], 
+        &self,
+        method: &http::Method,
+        uri: &url::Url, 
+        headers: &http::HeaderMap,
+        body_data: &[u8],
         _stream_id: u64
     ) -> Result<(http::StatusCode, http::HeaderMap, AsyncStream<crate::http::HttpChunk, 1024>), String> {
         let connection = Arc::clone(&self.inner);
         let h3_conn = Arc::clone(&self.h3_conn);
-        let request_data = request_data.to_vec();
+        let body_data = body_data.to_vec();
         
-        // Extract headers first, then return body stream separately
+        // Create HTTP/3 headers from structured components
         match (connection.lock(), h3_conn.lock()) {
             (Ok(mut conn), Ok(mut h3_opt)) => {
                 // Initialize h3 connection if needed
@@ -854,16 +841,15 @@ impl H3Connection {
                 }
                 
                 if let Some(ref mut h3) = h3_opt.as_mut() {
-                    // Parse headers and send request
-                    let headers = parse_http_request_headers(&request_data)
-                        .map_err(|e| format!("Header parsing failed: {e}"))?;
+                    // Create HTTP/3 headers from structured components (RFC 9114 compliant)
+                    let h3_headers = create_http3_headers(method, uri, headers);
                     
-                    let created_stream_id = h3.send_request(&mut *conn, &headers, false)
+                    let created_stream_id = h3.send_request(&mut *conn, &h3_headers, false)
                         .map_err(|e| format!("H3 send_request failed: {e}"))?;
                     
                     // Send body if present
-                    if !request_data.is_empty() {
-                        let _ = h3.send_body(&mut conn, created_stream_id, &request_data, true);
+                    if !body_data.is_empty() {
+                        let _ = h3.send_body(&mut conn, created_stream_id, &body_data, true);
                     }
                     
                     // Poll ONCE for headers - don't consume entire stream
@@ -990,11 +976,12 @@ impl H3Connection {
                     }
                     
                     if let Some(ref mut h3) = h3_opt.as_mut() {
-                        // Parse request data to extract headers from actual request
-                        let headers = match parse_http_request_headers(&request_data) {
-                            Ok(parsed_headers) => parsed_headers,
+                        // DEPRECATED: This method assumes raw request data contains HTTP/1.1 format
+                        // Use send_request_separated with structured components instead
+                        let headers = match extract_headers_from_data(&request_data) {
+                            Ok(h) => h,
                             Err(e) => {
-                                emit!(sender, crate::http::HttpChunk::Error(format!("Header parsing failed: {e}")));
+                                emit!(sender, crate::http::HttpChunk::Error(format!("Header extraction failed: {e}")));
                                 return;
                             }
                         };
@@ -1003,7 +990,28 @@ impl H3Connection {
                             Ok(created_stream_id) => {
                                 // Send request body if present
                                 if !request_data.is_empty() {
-                                    let _ = h3.send_body(&mut conn, created_stream_id, &request_data, true);
+                                    match h3.send_body(&mut conn, created_stream_id, &request_data, true) {
+                                        Ok(bytes_sent) => {
+                                            tracing::debug!(
+                                                target: "quyc::protocols::h3",
+                                                "H3 request body sent: {} bytes on stream {}", 
+                                                bytes_sent, created_stream_id
+                                            );
+                                        },
+                                        Err(quiche::h3::Error::Done) => {
+                                            tracing::warn!(
+                                                target: "quyc::protocols::h3",
+                                                "H3 send_body would block on stream {} - continuing without body", 
+                                                created_stream_id
+                                            );
+                                        },
+                                        Err(e) => {
+                                            emit!(sender, crate::http::HttpChunk::Error(
+                                                format!("H3 request body send failed on stream {created_stream_id}: {e}")
+                                            ));
+                                            return;
+                                        }
+                                    }
                                 }
                                 
                                 // Poll for response
@@ -1096,18 +1104,10 @@ impl H3Connection {
     }
 }
 
-/// Extract H3 headers from request data dynamically
+/// Extract H3 headers from request data dynamically (fallback for raw data transmission)
 fn extract_headers_from_data(data: &[u8]) -> Result<Vec<quiche::h3::Header>, String> {
-    // If data looks like HTTP request text, parse it
-    if let Ok(request_str) = std::str::from_utf8(data) {
-        if request_str.starts_with("GET ") || request_str.starts_with("POST ") || 
-           request_str.starts_with("PUT ") || request_str.starts_with("DELETE ") ||
-           request_str.starts_with("HEAD ") || request_str.starts_with("OPTIONS ") ||
-           request_str.starts_with("PATCH ") {
-            // Use existing HTTP request parsing function
-            return parse_http_request_headers(data);
-        }
-    }
+    // This function is used by send_data method for raw data transmission
+    // For proper HTTP requests, use send_request_separated with structured components
     
     // For non-HTTP text data, create default headers with POST method
     let default_headers = vec![

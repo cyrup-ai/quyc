@@ -7,6 +7,12 @@ use std::net::TcpStream;
 use std::time::Duration;
 
 /// Configure TCP socket for optimal performance.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Failed to set TCP_NODELAY socket option
+/// - System socket configuration call fails
 pub fn configure_tcp_socket(
     stream: &mut TcpStream,
     nodelay: bool,
@@ -31,7 +37,13 @@ pub fn configure_tcp_socket(
 }
 
 /// Inline TCP socket configuration for performance-critical paths.
-#[inline(always)]
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Failed to set TCP_NODELAY socket option
+/// - System socket configuration call fails
+#[inline]
 pub fn configure_tcp_socket_inline(stream: &TcpStream, nodelay: bool) -> Result<(), String> {
     if nodelay {
         stream

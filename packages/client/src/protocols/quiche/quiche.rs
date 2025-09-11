@@ -61,7 +61,7 @@ pub fn connect_quiche(addr: SocketAddr, server_name: &str) -> AsyncStream<Quiche
                 return;
             }
 
-            config.set_max_idle_timeout(30000);
+            config.set_max_idle_timeout(30_000);
             config.set_max_recv_udp_payload_size(1200);
             config.set_max_send_udp_payload_size(1200);
             config.set_initial_max_data(10_000_000);

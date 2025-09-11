@@ -64,6 +64,7 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Apply array selector with comprehensive pattern matching
+    #[allow(clippy::cast_possible_truncation)]
     pub fn apply_array_selector(
         &self,
         arr: &[Value],
@@ -84,8 +85,13 @@ impl CoreJsonPathEvaluator {
                     return Ok(vec![]); // Index out of bounds
                 }
             } else {
-                // Safe cast: index >= 0 guaranteed by else branch
-                index as usize
+                // Safe conversion: index >= 0 guaranteed by else branch
+                use std::convert::TryInto;
+                index.try_into().map_err(|_| {
+                    crate::jsonpath::error::JsonPathError::invalid_index(
+                        format!("Index {index} too large for platform")
+                    )
+                })?
             };
 
             if actual_index < arr.len() {
@@ -106,6 +112,7 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Apply slice selector with colon notation (start:end:step)
+    #[allow(clippy::cast_possible_truncation)]
     pub fn apply_slice_selector(
         &self,
         arr: &[Value],
@@ -150,6 +157,7 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Apply union selector with comma-separated indices
+    #[allow(clippy::cast_possible_truncation)]
     pub fn apply_union_selector(
         &self,
         arr: &[Value],

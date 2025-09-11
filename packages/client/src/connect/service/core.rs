@@ -35,6 +35,12 @@ pub struct ConnectorService {
 
 impl ConnectorService {
     /// Create new connector service with configuration
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Proxy configuration is invalid or malformed
+    /// - Required proxy authentication information is missing or invalid
     pub fn new(
         http: HttpConnector,
         #[cfg(feature = "__rustls")] rustls_config: Option<rustls::ClientConfig>,

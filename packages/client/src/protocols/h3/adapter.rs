@@ -231,14 +231,32 @@ pub fn execute_h3_request(
             method.clone(),
             match url::Url::parse(&format!("{scheme}://{host}{path}")) {
                 Ok(url) => url,
-                Err(_) => return, // Error parsing URL
+                Err(e) => {
+                    // Communicate URL parsing error through body channel
+                    let error_chunk = crate::http::response::HttpBodyChunk::new(
+                        bytes::Bytes::from(format!("URL parsing failed: {e}")),
+                        0,
+                        true // This is a final error chunk
+                    );
+                    let _ = body_tx.try_send(error_chunk);
+                    return;
+                }
             },
             Some(headers.clone()),
             body_data.clone(),
             None,
         ), &config_clone) {
             Ok(req) => req,
-            Err(_) => return, // Error serializing request
+            Err(e) => {
+                // Communicate request serialization error through body channel
+                let error_chunk = crate::http::response::HttpBodyChunk::new(
+                    bytes::Bytes::from(format!("Request serialization failed: {e}")),
+                    0,
+                    true // This is a final error chunk
+                );
+                let _ = body_tx.try_send(error_chunk);
+                return;
+            }
         };
         
         // Use the pre-generated stream ID
@@ -357,11 +375,22 @@ fn create_quiche_config(config: &H3Config) -> Result<quiche::Config, HttpError> 
     quiche_config.set_initial_max_stream_data_uni(config.initial_max_stream_data_uni);
     
     // Set idle timeout
-    quiche_config.set_max_idle_timeout(config.max_idle_timeout.as_millis() as u64);
+    use std::convert::TryFrom;
+    quiche_config.set_max_idle_timeout(
+        u64::try_from(config.max_idle_timeout.as_millis())
+            .unwrap_or_else(|_| {
+                tracing::warn!("Duration exceeds u64 range, clamping to max");
+                u64::MAX
+            })
+    );
     
     // Set UDP payload size
-    quiche_config.set_max_recv_udp_payload_size(config.max_udp_payload_size as usize);
-    quiche_config.set_max_send_udp_payload_size(config.max_udp_payload_size as usize);
+    quiche_config.set_max_recv_udp_payload_size(
+        usize::from(config.max_udp_payload_size)
+    );
+    quiche_config.set_max_send_udp_payload_size(
+        usize::from(config.max_udp_payload_size)
+    );
     
     // Enable early data if configured
     if config.enable_early_data {
@@ -397,9 +426,19 @@ fn create_h3_connection(config: &H3Config, request: &HttpRequest) -> Result<H3Co
         .map_err(|e| HttpError::new(crate::error::Kind::Request).with(e))?;
     
     // Apply config settings
-    quiche_config.set_max_idle_timeout(config.max_idle_timeout.as_millis() as u64);
-    quiche_config.set_max_recv_udp_payload_size(config.max_udp_payload_size.into());
-    quiche_config.set_max_send_udp_payload_size(config.max_udp_payload_size.into());
+    quiche_config.set_max_idle_timeout(
+        u64::try_from(config.max_idle_timeout.as_millis())
+            .unwrap_or_else(|_| {
+                tracing::warn!("Duration exceeds u64 range, clamping to max");
+                u64::MAX
+            })
+    );
+    quiche_config.set_max_recv_udp_payload_size(
+        usize::from(config.max_udp_payload_size)
+    );
+    quiche_config.set_max_send_udp_payload_size(
+        usize::from(config.max_udp_payload_size)
+    );
     quiche_config.set_initial_max_data(config.initial_max_data);
     quiche_config.set_initial_max_stream_data_bidi_local(config.initial_max_stream_data_bidi_local);
     quiche_config.set_initial_max_stream_data_bidi_remote(config.initial_max_stream_data_bidi_remote);
@@ -528,14 +567,14 @@ fn serialize_multipart_body_smart(fields: &[crate::http::request::MultipartField
     // Create H3RequestProcessor instance
     let processor = H3RequestProcessor::new();
     
-    // Create dummy channel for body_tx since we're just serializing
-    let (body_tx, _body_rx) = AsyncStream::<HttpBodyChunk, 1024>::channel();
+    // Create dummy channel locally (minimal allocation cost)
+    let (dummy_sender, _dummy_receiver) = AsyncStream::<HttpBodyChunk, 1024>::channel();
     
     // Create a RequestBody::Multipart with cloned fields (safe to clone as they don't contain streams)
     let multipart_body = RequestBody::Multipart(fields.to_vec());
     
     // Call existing production-quality body processing implementation
-    match processor.prepare_request_body(multipart_body, config, &body_tx) {
+    match processor.prepare_request_body(multipart_body, config, &dummy_sender) {
         Ok(body_vec) => Bytes::from(body_vec),
         Err(e) => {
             tracing::error!(target: "quyc::h3", error = %e, "Failed to serialize multipart body");
@@ -549,11 +588,11 @@ fn serialize_streaming_body_bridge(stream: AsyncStream<HttpChunk, 1024>, config:
     // Use the existing H3RequestProcessor implementation directly
     let processor = H3RequestProcessor::new();
     
-    // Create dummy channel for body_tx since the parameter is unused in prepare_stream_body
-    let (body_tx, _body_rx) = AsyncStream::<HttpBodyChunk, 1024>::channel();
+    // Create dummy channel locally (minimal allocation cost)
+    let (dummy_sender, _dummy_receiver) = AsyncStream::<HttpBodyChunk, 1024>::channel();
     
-    // Call existing production-quality streaming body processing implementation
-    let body_vec = processor.prepare_stream_body(stream, config, &body_tx);
+    // Call existing production-quality streaming body processing implementation (parameter unused)
+    let body_vec = processor.prepare_stream_body(stream, config, &dummy_sender);
     
     Bytes::from(body_vec)
 }

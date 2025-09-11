@@ -83,7 +83,6 @@ pub fn is_secure_scheme(url: &Url) -> bool {
 pub fn extract_port(url: &Url) -> u16 {
     url.port().unwrap_or_else(|| match url.scheme() {
         "https" | "wss" => 443,
-        "http" | "ws" => 80,
         _ => 80,
     })
 }

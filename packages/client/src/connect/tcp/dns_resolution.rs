@@ -7,6 +7,13 @@ use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 use std::str::FromStr;
 
 /// Resolve hostname to socket addresses synchronously with optimal performance.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - DNS resolution fails (hostname not found, network unreachable, DNS timeout)
+/// - DNS resolution returns no addresses for the hostname
+/// - System DNS resolver encounters an error
 pub fn resolve_host_sync(host: &str, port: u16) -> Result<Vec<SocketAddr>, String> {
     // Fast path for IP addresses
     if let Ok(ip) = IpAddr::from_str(host) {

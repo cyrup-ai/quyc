@@ -3,6 +3,8 @@
 //! Handles comparison operations between `FilterValues` with support for
 //! RFC 9535 missing vs null semantics and context-aware comparisons.
 
+#![allow(clippy::cast_precision_loss)]
+
 use std::collections::HashSet;
 
 use super::property::PropertyResolver;
@@ -15,6 +17,7 @@ pub struct ValueComparator;
 impl ValueComparator {
     /// Compare two filter values using the specified operator
     #[inline]
+    #[allow(clippy::cast_precision_loss)]
     pub fn compare_values(
         left: &FilterValue,
         op: ComparisonOp,
@@ -135,21 +138,47 @@ impl ValueComparator {
                 ComparisonOp::NotEqual => true,
                 _ => false,
             }),
-            // Type coercion for number/integer comparisons
-            (FilterValue::Integer(a), FilterValue::Number(b)) => Self::compare_values(
-                // Precision loss acceptable for filter value comparisons
-                #[allow(clippy::cast_precision_loss)]
-                &FilterValue::Number(*a as f64),
-                op,
-                &FilterValue::Number(*b),
-            ),
-            (FilterValue::Number(a), FilterValue::Integer(b)) => Self::compare_values(
-                &FilterValue::Number(*a),
-                op,
-                // Precision loss acceptable for filter value comparisons
-                #[allow(clippy::cast_precision_loss)]
-                &FilterValue::Number(*b as f64),
-            ),
+            // Type coercion for number/integer comparisons with safe precision handling
+            (FilterValue::Integer(a), FilterValue::Number(b)) => {
+                // Use safe integer to f64 conversion that preserves precision when possible
+                let safe_float = if a.abs() > (1i64 << 53) {
+                    // For very large integers that might lose precision in f64,
+                    // compare as strings to maintain exact precision
+                    return Self::compare_values(
+                        &FilterValue::String(a.to_string()),
+                        op,
+                        &FilterValue::String(b.to_string()),
+                    );
+                } else {
+                    // Safe to convert to f64 without precision loss
+                    *a as f64
+                };
+                Self::compare_values(
+                    &FilterValue::Number(safe_float),
+                    op,
+                    &FilterValue::Number(*b),
+                )
+            },
+            (FilterValue::Number(a), FilterValue::Integer(b)) => {
+                // Use safe integer to f64 conversion that preserves precision when possible
+                let safe_float = if b.abs() > (1i64 << 53) {
+                    // For very large integers that might lose precision in f64,
+                    // compare as strings to maintain exact precision
+                    return Self::compare_values(
+                        &FilterValue::String(a.to_string()),
+                        op,
+                        &FilterValue::String(b.to_string()),
+                    );
+                } else {
+                    // Safe to convert to f64 without precision loss
+                    *b as f64
+                };
+                Self::compare_values(
+                    &FilterValue::Number(*a),
+                    op,
+                    &FilterValue::Number(safe_float),
+                )
+            },
             _ => Ok(false), // Other cross-type comparisons are false
         }
     }

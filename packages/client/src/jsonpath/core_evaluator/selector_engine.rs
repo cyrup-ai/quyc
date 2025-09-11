@@ -194,9 +194,7 @@ impl SelectorEngine {
     #[must_use] 
     pub fn selector_complexity(selector: &JsonSelector) -> u32 {
         match selector {
-            JsonSelector::Root => 1,
-            JsonSelector::Child { .. } => 1,
-            JsonSelector::Index { .. } => 1,
+            JsonSelector::Root | JsonSelector::Child { .. } | JsonSelector::Index { .. } => 1,
             JsonSelector::Wildcard => 10,
             JsonSelector::Slice { .. } => 5,
             JsonSelector::Filter { .. } => 20,

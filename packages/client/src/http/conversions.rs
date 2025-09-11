@@ -18,6 +18,10 @@ pub fn to_bytes<T: AsRef<[u8]>>(value: T) -> Bytes {
 }
 
 /// Convert bytes to value with type validation
+///
+/// # Errors
+///
+/// Returns an error if the byte vector cannot be converted to the target type T
 #[inline]
 pub fn from_bytes<T: TryFrom<Vec<u8>>>(bytes: Bytes) -> Result<T, T::Error> {
     T::try_from(bytes.to_vec())
@@ -37,6 +41,10 @@ pub fn string_to_bytes(s: String) -> Bytes {
 }
 
 /// Convert bytes to string with UTF-8 validation
+///
+/// # Errors
+///
+/// Returns an error if the byte sequence is not valid UTF-8
 #[inline]
 pub fn bytes_to_string(bytes: Bytes) -> Result<String, crate::error::HttpError> {
     String::from_utf8(bytes.to_vec()).map_err(|e| deserialization_error(e.to_string()))
@@ -70,6 +78,10 @@ pub fn str_to_bytes(s: &str) -> Bytes {
 }
 
 /// Convert bytes to string slice (borrowed)
+///
+/// # Errors
+///
+/// Returns an error if the byte sequence is not valid UTF-8
 #[inline]
 pub fn bytes_to_str(bytes: &Bytes) -> Result<&str, crate::error::HttpError> {
     std::str::from_utf8(bytes)
@@ -88,6 +100,13 @@ pub enum SecurityMode {
 }
 
 /// Secure bytes to string conversion with configurable validation
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Basic mode: UTF-8 validation fails or SIMD validation fails
+/// - Strict mode: UTF-8 validation fails, overlong encodings detected, or malicious patterns found
+/// - Paranoid mode: Any of the above, plus non-NFC Unicode normalization or bidirectional attacks detected
 pub fn bytes_to_string_secure(
     bytes: Bytes, 
     mode: SecurityMode
@@ -142,6 +161,15 @@ pub fn bytes_to_string_secure(
 }
 
 /// Detect overlong encodings and invalid code points
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Invalid UTF-8 start byte encountered
+/// - Truncated UTF-8 sequence detected
+/// - Invalid UTF-8 continuation byte found
+/// - Overlong UTF-8 encoding detected
+/// - Invalid Unicode code point found (surrogates or out of range)
 pub fn validate_strict_utf8(bytes: &[u8]) -> Result<(), crate::error::HttpError> {
     let mut i = 0;
     while i < bytes.len() {
@@ -194,6 +222,11 @@ pub fn validate_strict_utf8(bytes: &[u8]) -> Result<(), crate::error::HttpError>
 }
 
 /// Detect bidirectional override attacks
+///
+/// # Errors
+///
+/// Returns an error if potentially malicious bidirectional Unicode characters are detected,
+/// including left-to-right/right-to-left embeddings, overrides, and isolate characters
 pub fn detect_bidirectional_attacks(text: &str) -> Result<(), crate::error::HttpError> {
     for ch in text.chars() {
         match ch {
@@ -278,6 +311,12 @@ fn get_security_scanner() -> Result<&'static AhoCorasick, crate::error::HttpErro
 }
 
 /// Scan for malicious patterns using multi-pattern detection
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Security scanner initialization fails (critical system error)
+/// - Malicious patterns are detected (bidirectional attacks, overlong encodings, invalid surrogates, BOMs, or control characters)
 pub fn scan_for_malicious_patterns(data: &[u8]) -> Result<(), crate::error::HttpError> {
     let scanner = get_security_scanner()?;
     
@@ -331,6 +370,10 @@ pub fn fast_scan_malicious_bytes(data: &[u8]) -> Option<usize> {
 }
 
 /// Generic conversion with error handling
+///
+/// # Errors
+///
+/// Returns an error if the type conversion from T to U fails
 #[inline]
 pub fn convert<T, U>(value: T) -> Result<U, crate::error::HttpError>
 where

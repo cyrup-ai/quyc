@@ -23,27 +23,23 @@ where
 
         // Try to parse as complete JSON first using simple evaluator
         let all_data = self.buffer.as_bytes();
-        let json_str = match std::str::from_utf8(all_data) {
-            Ok(s) => s,
-            Err(_) => return Vec::new(), // Invalid UTF-8
+        let Ok(json_str) = std::str::from_utf8(all_data) else { 
+            return Vec::new(); // Invalid UTF-8
         };
 
         // Try to parse as complete JSON
-        let json_value = match serde_json::from_str::<serde_json::Value>(json_str) {
-            Ok(value) => value,
-            Err(_) => return Vec::new(), // Not complete JSON
+        let Ok(json_value) = serde_json::from_str::<serde_json::Value>(json_str) else { 
+            return Vec::new(); // Not complete JSON
         };
 
         // Use core evaluator for complete JSON
         let expression = self.path_expression.as_string();
-        let evaluator = match CoreJsonPathEvaluator::new(&expression) {
-            Ok(eval) => eval,
-            Err(_) => return Vec::new(),
+        let Ok(evaluator) = CoreJsonPathEvaluator::new(&expression) else {
+            return Vec::new();
         };
 
-        let results = match evaluator.evaluate(&json_value) {
-            Ok(values) => values,
-            Err(_) => return Vec::new(),
+        let Ok(results) = evaluator.evaluate(&json_value) else {
+            return Vec::new();
         };
 
         // Convert JSON values to target type T

@@ -9,6 +9,7 @@ use crate::jsonpath::parser::JsonSelector;
 
 impl CoreJsonPathEvaluator {
     /// Apply a single selector to a JSON value
+    #[allow(clippy::cast_possible_truncation)]
     pub fn apply_selector_to_value(
         &self,
         value: &Value,

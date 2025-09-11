@@ -4,6 +4,7 @@
 
 // SocketAddr import removed - not used
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::net::{SocketAddr, IpAddr, Ipv4Addr, Ipv6Addr};
 
 use ystream::{AsyncStream, emit};
 use crate::protocols::strategy_trait::ProtocolStrategy;
@@ -62,11 +63,28 @@ impl H3Strategy {
         config.set_initial_max_stream_data_uni(self.config.initial_max_stream_data_uni);
         
         // Set idle timeout
-        config.set_max_idle_timeout(self.config.max_idle_timeout.as_millis() as u64);
+        use std::convert::TryFrom;
+        config.set_max_idle_timeout(
+            u64::try_from(self.config.max_idle_timeout.as_millis())
+                .unwrap_or_else(|_| {
+                    tracing::warn!("Duration exceeds u64 range, clamping to max");
+                    u64::MAX
+                })
+        );
         
         // Set UDP payload size
-        config.set_max_recv_udp_payload_size(self.config.max_udp_payload_size as usize);
-        config.set_max_send_udp_payload_size(self.config.max_udp_payload_size as usize);
+        config.set_max_recv_udp_payload_size(
+            usize::try_from(self.config.max_udp_payload_size).unwrap_or_else(|_| {
+                tracing::warn!("UDP payload size exceeds usize range, using default");
+                1452
+            })
+        );
+        config.set_max_send_udp_payload_size(
+            usize::try_from(self.config.max_udp_payload_size).unwrap_or_else(|_| {
+                tracing::warn!("UDP payload size exceeds usize range, using default");
+                1452
+            })
+        );
         
         // Enable early data if configured
         if self.config.enable_early_data {
@@ -113,6 +131,47 @@ impl H3Strategy {
     /// Get the next connection ID
     pub(crate) fn next_connection_id() -> u64 {
         NEXT_CONNECTION_ID.fetch_add(1, Ordering::SeqCst)
+    }
+
+    /// Resolve local address for UDP socket binding
+    /// 
+    /// Dynamically determines the appropriate local address based on:
+    /// - Configured local_bind_address (if specified)
+    /// - Remote address IP family
+    /// - Preferred IP version setting
+    /// 
+    /// Returns a SocketAddr suitable for binding the UDP socket.
+    fn resolve_local_address(config: &crate::protocols::strategy::H3Config, remote_addr: &SocketAddr) -> Result<SocketAddr, String> {
+        use crate::protocols::strategy::IpVersion;
+        
+        // Use explicit local address if configured
+        if let Some(addr) = config.local_bind_address {
+            return Ok(addr);
+        }
+        
+        // Dynamic resolution based on remote address family and preferences
+        let local_ip = match (remote_addr.ip(), config.preferred_ip_version) {
+            // Remote is IPv4
+            (IpAddr::V4(_), IpVersion::V4 | IpVersion::Dual) => {
+                IpAddr::V4(Ipv4Addr::UNSPECIFIED)
+            },
+            (IpAddr::V4(_), IpVersion::V6) => {
+                // Remote is IPv4 but user prefers V6 - use V4-mapped IPv6
+                IpAddr::V6(Ipv6Addr::UNSPECIFIED)
+            },
+            
+            // Remote is IPv6  
+            (IpAddr::V6(_), IpVersion::V6 | IpVersion::Dual) => {
+                IpAddr::V6(Ipv6Addr::UNSPECIFIED)
+            },
+            (IpAddr::V6(_), IpVersion::V4) => {
+                // Remote is IPv6 but user prefers V4 - will likely fail, but try V4
+                IpAddr::V4(Ipv4Addr::UNSPECIFIED)
+            },
+        };
+        
+        // Use port 0 for automatic port assignment
+        Ok(SocketAddr::new(local_ip, 0))
     }
 }
 
@@ -211,7 +270,10 @@ impl ProtocolStrategy for H3Strategy {
     }
     
     fn max_concurrent_streams(&self) -> usize {
-        self.config.initial_max_streams_bidi as usize
+        usize::try_from(self.config.initial_max_streams_bidi).unwrap_or_else(|_| {
+            tracing::warn!("Max streams value exceeds usize range, using default");
+            100
+        })
     }
 
 }
@@ -236,10 +298,9 @@ impl H3Strategy {
             
             // Create QUIC connection
             let scid = generate_connection_id();
-            let local_addr = "127.0.0.1:0".parse()
-                .map_err(|e| format!("Local address parse error: {e}"))?;
             let peer_addr = format!("{host}:{port}").parse()
                 .map_err(|e| format!("Peer address parse error: {e}"))?;
+            let local_addr = Self::resolve_local_address(&h3_config, &peer_addr)?;
 
             let quic_conn = quiche::connect(None, &scid, local_addr, peer_addr, &mut quic_config)
                 .map_err(|e| format!("QUIC connection failed: {e}"))?;
@@ -252,15 +313,25 @@ impl H3Strategy {
                 keepalive_timeout: Some(h3_config.max_idle_timeout / 2),
             });
 
-            // Serialize request properly
-            let serialized_request = serialize_http_request_for_h3(method, uri, &mut headers.clone(), body_data)
-                .map_err(|e| format!("Request serialization failed: {e}"))?;
+            // Serialize request body only (headers are passed separately for HTTP/3)
+            let body_bytes = serialize_http_request_for_h3(method, uri, &mut headers.clone(), body_data)
+                .map_err(|e| format!("Request body serialization failed: {e}"))?;
 
-            // Send request and get separated response components
+            // Parse URI for HTTP/3 headers
+            let parsed_uri = url::Url::parse(uri)
+                .map_err(|e| format!("URI parsing failed: {e}"))?;
+
+            // Send request with structured components (RFC 9114 compliant)
             let stream_id = NEXT_STREAM_ID.fetch_add(2, Ordering::SeqCst);
-            let (status, headers, body_stream) = connection.send_request_separated(&serialized_request, stream_id)?;
+            let (status, response_headers, body_stream) = connection.send_request_separated(
+                method, 
+                &parsed_uri, 
+                &headers, 
+                &body_bytes, 
+                stream_id
+            )?;
 
-            Ok((status, headers, body_stream))
+            Ok((status, response_headers, body_stream))
         };
 
         // Use existing runtime handle if available, create minimal runtime only if needed
@@ -358,10 +429,10 @@ fn serialize_multipart_form_data(
         .duration_since(UNIX_EPOCH)
         .map_err(|e| format!("Failed to get timestamp: {e}"))?
         .as_nanos();
-    let boundary = format!("----formdata-quyc-{:x}", timestamp);
+    let boundary = format!("----formdata-quyc-{timestamp:x}");
     
     // Set content-type header with boundary
-    let content_type = format!("multipart/form-data; boundary={}", boundary);
+    let content_type = format!("multipart/form-data; boundary={boundary}");
     headers.insert(
         http::HeaderName::from_static("content-type"),
         http::HeaderValue::from_str(&content_type)

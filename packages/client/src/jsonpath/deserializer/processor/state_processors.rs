@@ -23,11 +23,9 @@ where
                 self.deserializer.transition_to_processing_object();
                 self.deserializer.object_nesting =
                     self.deserializer.object_nesting.saturating_add(1);
-                if self.matches_root_object_path() {
-                    JsonProcessResult::Continue
-                } else {
-                    JsonProcessResult::Continue
-                }
+                // Process root object regardless of path match
+                self.matches_root_object_path(); // Call for side effects if any
+                JsonProcessResult::Continue
             }
             b'[' => {
                 self.deserializer.transition_to_processing_array();

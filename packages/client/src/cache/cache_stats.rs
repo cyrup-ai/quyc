@@ -63,6 +63,7 @@ impl CacheStats {
     }
 
     /// Get hit ratio
+    #[allow(clippy::cast_precision_loss)]
     pub fn hit_ratio(&self) -> f64 {
         let hits = self.hits.load(Ordering::Relaxed);
         let misses = self.misses.load(Ordering::Relaxed);
@@ -70,9 +71,14 @@ impl CacheStats {
         if total == 0 {
             0.0
         } else {
-            #[allow(clippy::cast_precision_loss)]
-            {
-                hits as f64 / total as f64
+            // Use safe precision-aware hit rate calculation
+            if hits > (1u64 << 53) || total > (1u64 << 53) {
+                // For very large cache stats, use high-precision integer calculation
+                let hit_rate_scaled = (u128::from(hits) * 1_000_000_000) / u128::from(total);
+                (hit_rate_scaled as f64) / 1_000_000_000.0
+            } else {
+                // Safe to use f64 for smaller cache stats
+                (hits as f64) / (total as f64)
             }
         }
     }

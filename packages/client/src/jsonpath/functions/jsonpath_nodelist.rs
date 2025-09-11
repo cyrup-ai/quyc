@@ -9,6 +9,7 @@ pub struct JsonPathNodelistEvaluator;
 impl JsonPathNodelistEvaluator {
     /// Evaluate `JSONPath` selectors to produce a nodelist
     #[inline]
+    #[allow(clippy::cast_possible_truncation)]
     pub fn evaluate_jsonpath_nodelist(
         context: &serde_json::Value,
         selectors: &[crate::jsonpath::parser::JsonSelector],

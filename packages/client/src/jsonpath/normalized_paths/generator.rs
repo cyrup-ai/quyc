@@ -23,6 +23,7 @@ impl NormalizedPathProcessor {
     /// - Contains union selectors
     /// - Invalid or malformed selectors
     #[inline]
+    #[allow(clippy::cast_possible_truncation)]
     pub fn generate_normalized_path(selectors: &[JsonSelector]) -> JsonPathResult<NormalizedPath> {
         let mut segments = Vec::new();
 
@@ -52,10 +53,15 @@ impl NormalizedPathProcessor {
 
                 JsonSelector::Index { index, from_end } => {
                     if *from_end {
+                        let abs_index = index.wrapping_abs();
+                        let safe_index = usize::try_from(abs_index).unwrap_or_else(|_| {
+                            tracing::warn!("Index {} too large for usize, clamping to max", abs_index);
+                            usize::MAX
+                        });
                         return Err(invalid_expression_error(
                             "",
                             "normalized paths cannot contain negative indices",
-                            Some(index.wrapping_abs() as usize),
+                            Some(safe_index),
                         ));
                     }
                     if *index < 0 {

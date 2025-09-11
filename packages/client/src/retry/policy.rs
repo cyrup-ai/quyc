@@ -103,20 +103,29 @@ impl RetryPolicy {
     /// calculations for maximum performance.
     #[inline]
     #[must_use] 
+    #[allow(clippy::cast_precision_loss)]
     pub fn calculate_delay(&self, attempt: u32) -> Duration {
         if attempt == 0 {
             return Duration::from_millis(0);
         }
 
-        // Calculate exponential backoff delay
-        // Precision loss acceptable for retry delay calculations
-        #[allow(clippy::cast_precision_loss)]
-        let base_delay =
-            self.initial_delay_ms as f64 * self.backoff_multiplier.powi((attempt - 1) as i32);
-
-        // Cap at maximum delay  
-        #[allow(clippy::cast_precision_loss)]
-        let capped_delay = base_delay.min(self.max_delay_ms as f64);
+        // Calculate exponential backoff delay with safe precision handling
+        let base_delay = if self.initial_delay_ms > (1u64 << 53) || self.max_delay_ms > (1u64 << 53) {
+            // For very large delay values, use integer arithmetic to avoid precision loss
+            let max_safe_multiplier = ((self.max_delay_ms / self.initial_delay_ms.max(1)) as f64).ln() / self.backoff_multiplier.ln();
+            let safe_attempt = f64::from(attempt - 1).min(max_safe_multiplier);
+            
+            // Use integer calculation for large values
+            let multiplier_times = self.backoff_multiplier.powf(safe_attempt);
+            let delay_calc = (self.initial_delay_ms as f64) * multiplier_times;
+            delay_calc.min(self.max_delay_ms as f64)
+        } else {
+            // Safe to use f64 for smaller delay values
+            let base_calc = (self.initial_delay_ms as f64) * self.backoff_multiplier.powi((attempt - 1) as i32);
+            base_calc.min(self.max_delay_ms as f64)
+        };
+        
+        let capped_delay = base_delay;
 
         // Add jitter to prevent thundering herd
         let jitter_range = capped_delay * self.jitter_factor;
@@ -136,20 +145,21 @@ impl RetryPolicy {
     #[must_use] 
     pub fn is_retryable_error(&self, error: &HttpError) -> bool {
         match &error.inner.kind {
-            crate::error::types::Kind::Builder => false,     // Client configuration errors not retryable
             crate::error::types::Kind::Request => true,      // Request errors may be transient
-            crate::error::types::Kind::Redirect => false,    // Redirect errors usually not transient
             crate::error::types::Kind::Status(status, _) => {
                 // Retry on server errors (5xx) and some client errors (429)
                 status.as_u16() >= 500 || status.as_u16() == 429
             }
-            crate::error::types::Kind::Body => false,        // Body errors usually not retryable
-            crate::error::types::Kind::Decode => false,      // Decode errors usually not retryable
-            crate::error::types::Kind::Upgrade => false,
             crate::error::types::Kind::Connect => true, // Connection failures are retryable
             crate::error::types::Kind::Timeout => true, // Timeout errors are retryable
-            crate::error::types::Kind::PayloadTooLarge => false, // Payload size errors are not retryable
-            crate::error::types::Kind::Stream => true, // Stream errors may be retryable     // Upgrade errors usually not retryable
+            crate::error::types::Kind::Stream => true, // Stream errors may be retryable
+            // All other error types are not retryable
+            crate::error::types::Kind::Builder 
+            | crate::error::types::Kind::Redirect 
+            | crate::error::types::Kind::Body 
+            | crate::error::types::Kind::Decode 
+            | crate::error::types::Kind::Upgrade 
+            | crate::error::types::Kind::PayloadTooLarge => false,
         }
     }
 

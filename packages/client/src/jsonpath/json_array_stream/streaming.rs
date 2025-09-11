@@ -42,14 +42,11 @@ where
 
         // Try to parse as complete JSON first using simple evaluator
         let all_data = self.buffer.as_bytes();
-        let json_str = match std::str::from_utf8(all_data) {
-            Ok(s) => s,
-            Err(_) => {
-                // Invalid UTF-8, return empty stream
-                return AsyncStream::with_channel(|_sender| {
-                    // Empty stream - no chunks to emit
-                });
-            }
+        let Ok(json_str) = std::str::from_utf8(all_data) else {
+            // Invalid UTF-8, return empty stream
+            return AsyncStream::with_channel(|_sender| {
+                // Empty stream - no chunks to emit
+            });
         };
 
         // Try to parse as complete JSON

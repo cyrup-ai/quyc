@@ -56,36 +56,44 @@ impl TlsCacheStats {
     /// Calculate overall cache hit rate as a percentage (0.0 to 100.0)
     pub fn hit_rate(&self) -> f64 {
         let total = self.total_requests();
-        if total == 0 {
-            0.0
-        } else {
-            // Precision loss acceptable for TLS cache hit rate statistics
-            #[allow(clippy::cast_precision_loss)]
-            { (self.total_hits() as f64 / total as f64) * 100.0 }
-        }
+        let hits = self.total_hits();
+        Self::safe_percentage_calculation(hits, total)
     }
     
     /// Calculate OCSP cache hit rate as a percentage (0.0 to 100.0)
     pub fn ocsp_hit_rate(&self) -> f64 {
         let total = self.ocsp_hits + self.ocsp_misses;
-        if total == 0 {
-            0.0
-        } else {
-            // Precision loss acceptable for OCSP hit rate statistics
-            #[allow(clippy::cast_precision_loss)]
-            { (self.ocsp_hits as f64 / total as f64) * 100.0 }
-        }
+        Self::safe_percentage_calculation(self.ocsp_hits, total)
     }
     
     /// Calculate CRL cache hit rate as a percentage (0.0 to 100.0)
     pub fn crl_hit_rate(&self) -> f64 {
         let total = self.crl_hits + self.crl_misses;
-        if total == 0 {
+        Self::safe_percentage_calculation(self.crl_hits, total)
+    }
+    
+    /// Helper function for safe precision-aware percentage calculations
+    #[allow(clippy::cast_precision_loss)]
+    fn safe_percentage_calculation(numerator: usize, denominator: usize) -> f64 {
+        if denominator == 0 {
             0.0
         } else {
-            // Precision loss acceptable for CRL hit rate statistics
-            #[allow(clippy::cast_precision_loss)]
-            { (self.crl_hits as f64 / total as f64) * 100.0 }
+            // Use safe precision-aware percentage calculation
+            let precision_threshold = if usize::BITS >= 64 {
+                1usize << 53  // For 64-bit platforms: f64 precision threshold
+            } else {
+                usize::MAX / 2  // For 32-bit platforms, use safe threshold
+            };
+            
+            if numerator > precision_threshold || denominator > precision_threshold {
+                // For very large values, use high-precision integer calculation
+                // Calculate percentage using integer arithmetic: (numerator * 10000) / denominator / 100
+                let percentage_basis_points = (numerator as u128 * 10000) / (denominator as u128);
+                (percentage_basis_points as f64) / 100.0
+            } else {
+                // Safe to use f64 for smaller values
+                (numerator as f64 / denominator as f64) * 100.0
+            }
         }
     }
 }
@@ -107,6 +115,7 @@ pub struct TlsManager {
 
 /// TLS configuration for enterprise features
 #[derive(Debug, Clone)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct TlsConfig {
     /// Enable OCSP validation
     pub enable_ocsp: bool,

@@ -39,9 +39,11 @@ impl ArrayOperations {
                 return Ok(results); // Index out of bounds
             }
         } else if index >= 0 {
-            // Regular positive index - safe conversion
-            #[allow(clippy::cast_sign_loss)]
-            { index as usize }
+            // Regular positive index - safe conversion with bounds check
+            match usize::try_from(index) {
+                Ok(idx) => idx,
+                Err(_) => return Ok(results), // Index too large for usize
+            }
         } else {
             // Negative index in non-from_end context is invalid
             return Ok(results);
@@ -79,9 +81,10 @@ impl ArrayOperations {
             let mut i = start_idx;
             while i < end_idx && i < len {
                 if i >= 0 {
-                    // Safe cast: i is guaranteed >= 0 by the if condition
-                    #[allow(clippy::cast_sign_loss)]
-                    results.push(arr[i as usize].clone());
+                    // Safe cast: i is guaranteed >= 0 by the if condition and within bounds
+                    if let Ok(idx) = usize::try_from(i) {
+                        results.push(arr[idx].clone());
+                    }
                 }
                 i += step;
             }
@@ -90,9 +93,10 @@ impl ArrayOperations {
             let mut i = start_idx;
             while i > end_idx && i >= 0 {
                 if i < len {
-                    // Safe cast: i is guaranteed >= 0 by outer while condition
-                    #[allow(clippy::cast_sign_loss)]
-                    results.push(arr[i as usize].clone());
+                    // Safe cast: i is guaranteed >= 0 by outer while condition and within bounds
+                    if let Ok(idx) = usize::try_from(i) {
+                        results.push(arr[idx].clone());
+                    }
                 }
                 i += step; // step is negative
             }
@@ -126,17 +130,26 @@ impl ArrayOperations {
     pub fn is_valid_index(arr: &[Value], index: i64, from_end: bool) -> bool {
         if from_end && index < 0 {
             // Safe cast: -index is guaranteed positive since index < 0
-            #[allow(clippy::cast_sign_loss)]
-            let abs_index = (-index) as usize;
-            abs_index <= arr.len() && abs_index > 0
+            match usize::try_from(-index) {
+                Ok(abs_index) => abs_index <= arr.len() && abs_index > 0,
+                Err(_) => false, // Index too large for usize
+            }
         } else if from_end && index > 0 {
             // Safe cast: index is guaranteed > 0 by condition
-            #[allow(clippy::cast_sign_loss)]
-            { (index as usize) <= arr.len() }
+            match usize::try_from(index) {
+                Ok(idx) => idx <= arr.len(),
+                Err(_) => false, // Index too large for usize
+            }
         } else {
             // Safe cast: index >= 0 check ensures non-negative value
-            #[allow(clippy::cast_sign_loss)]
-            { index >= 0 && (index as usize) < arr.len() }
+            if index >= 0 {
+                match usize::try_from(index) {
+                    Ok(idx) => idx < arr.len(),
+                    Err(_) => false, // Index too large for usize
+                }
+            } else {
+                false
+            }
         }
     }
 
@@ -166,10 +179,12 @@ impl ArrayOperations {
         let mut results = Vec::new();
 
         for &index in indices {
-            if index >= 0 && (index as usize) < arr.len() {
-                // Safe cast: index >= 0 check ensures non-negative value
-                #[allow(clippy::cast_sign_loss)]
-                results.push(arr[index as usize].clone());
+            if index >= 0 {
+                if let Ok(index_usize) = usize::try_from(index) {
+                    if index_usize < arr.len() {
+                        results.push(arr[index_usize].clone());
+                    }
+                }
             }
         }
 

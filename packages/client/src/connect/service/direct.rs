@@ -67,7 +67,7 @@ impl ConnectorService {
 
         AsyncStream::with_channel(move |sender| {
             spawn_task(move || {
-                let host = if let Some(h) = destination.host() { h } else {
+                let Some(host) = destination.host() else {
                     let () = emit!(
                         sender,
                         TcpConnectionChunk::bad_chunk("URI missing host".to_string())
@@ -80,7 +80,6 @@ impl ConnectorService {
                         .port_u16()
                         .unwrap_or_else(|| match destination.scheme_str() {
                             Some("https") => 443,
-                            Some("http") => 80,
                             _ => 80,
                         });
 

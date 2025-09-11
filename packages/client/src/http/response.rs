@@ -250,8 +250,8 @@ impl HttpDownloadChunk {
     #[must_use] 
     pub fn progress(&self) -> Option<(u64, Option<u64>)> {
         match self {
-            HttpDownloadChunk::Data { downloaded, total_size, .. } => Some((*downloaded, *total_size)),
-            HttpDownloadChunk::Progress { downloaded, total_size } => Some((*downloaded, *total_size)),
+            HttpDownloadChunk::Data { downloaded, total_size, .. } 
+            | HttpDownloadChunk::Progress { downloaded, total_size } => Some((*downloaded, *total_size)),
             _ => None,
         }
     }
@@ -288,13 +288,13 @@ impl HttpResponse {
     }
 
     /// Get status code (0 if not yet received) - lock-free, zero-cost
-    #[inline(always)]
+    #[inline]
     pub fn status(&self) -> u16 {
         self.status.load(Ordering::Acquire)
     }
     
     /// Get `StatusCode` if available
-    #[inline(always)]
+    #[inline]
     pub fn status_code(&self) -> Option<StatusCode> {
         match self.status() {
             0 => None,
@@ -303,29 +303,29 @@ impl HttpResponse {
     }
     
     /// Set status (called by protocol layers only)
-    #[inline(always)]
+    #[inline]
     pub(crate) fn set_status(&self, status: StatusCode) {
         self.status.store(status.as_u16(), Ordering::Release);
     }
     
     /// Get HTTP version
-    #[inline(always)]
+    #[inline]
     pub fn version(&self) -> Version {
         self.version
     }
     
     /// Check methods - zero-cost, lock-free
-    #[inline(always)]
+    #[inline]
     pub fn is_success(&self) -> bool {
         self.status_code().is_some_and(|s| s.is_success())
     }
     
-    #[inline(always)]
+    #[inline]
     pub fn is_error(&self) -> bool {
         self.status_code().is_some_and(|s| s.is_client_error() || s.is_server_error())
     }
     
-    #[inline(always)]
+    #[inline]
     pub fn is_redirect(&self) -> bool {
         self.status_code().is_some_and(|s| s.is_redirection())
     }

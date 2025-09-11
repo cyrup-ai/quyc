@@ -17,7 +17,7 @@ pub(crate) fn add_cookie_header(
 
 /// Format cookie key-value pairs into a cookie header string
 #[must_use] 
-pub fn format_cookie(cookies: &HashMap<String, String>) -> String {
+pub fn format_cookie<S: ::std::hash::BuildHasher>(cookies: &HashMap<String, String, S>) -> String {
     cookies
         .iter()
         .map(|(key, value)| format!("{key}={value}"))
@@ -43,6 +43,13 @@ pub fn parse_cookie(cookie_header: &str) -> HashMap<String, String> {
 }
 
 /// Validate cookie name and value according to RFC 6265
+/// 
+/// # Errors
+/// 
+/// Returns an error message as a `String` if validation fails:
+/// - If the cookie name is empty
+/// - If the cookie name contains control characters or RFC 6265 separator characters: `(),/<>@[\\]{}`
+/// - If the cookie value contains control characters (except tab character)
 pub fn validate_cookie(name: &str, value: &str) -> Result<(), String> {
     // Basic validation - cookie name cannot be empty
     if name.is_empty() {

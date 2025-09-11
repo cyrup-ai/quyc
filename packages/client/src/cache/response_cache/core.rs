@@ -47,9 +47,11 @@ impl ResponseCache {
 
     /// Get current cache size information
     pub fn size_info(&self) -> (usize, u64, f64) {
-        let entries = self.entry_count.load(Ordering::Relaxed).min(usize::MAX as u64);
-        #[allow(clippy::cast_possible_truncation)]
-        let entries = entries as usize;
+        let entry_count = self.entry_count.load(Ordering::Relaxed);
+        let entries = usize::try_from(entry_count).unwrap_or_else(|_| {
+            tracing::warn!("Entry count {} exceeds usize::MAX, clamping to maximum", entry_count);
+            usize::MAX
+        });
         let memory = self.memory_usage.load(Ordering::Relaxed);
         #[allow(clippy::cast_precision_loss)]
         let memory_pct = (memory as f64 / self.config.max_memory_bytes as f64) * 100.0;

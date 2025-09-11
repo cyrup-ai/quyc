@@ -12,6 +12,7 @@ use super::retry::{ConnectionReuse, RetryPolicy};
 /// Central configuration struct containing all HTTP client settings including
 /// connection pools, timeouts, HTTP/2 and HTTP/3 parameters, and security options.
 #[derive(Debug, Clone)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct HttpConfig {
     /// Maximum number of idle connections per host
     pub pool_max_idle_per_host: usize,

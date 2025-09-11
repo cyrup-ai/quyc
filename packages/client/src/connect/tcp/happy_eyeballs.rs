@@ -9,6 +9,13 @@ use std::time::{Duration, Instant};
 use super::basic_connection::connect_to_address_list;
 
 /// Implement Happy Eyeballs (RFC 6555) for optimal dual-stack connectivity.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Both IPv4 and IPv6 connection attempts fail (network unreachable, connection refused, etc.)
+/// - Connection timeout is exceeded without successful connection
+/// - Thread communication fails during parallel connection attempts
 pub fn happy_eyeballs_connect(
     ipv6_addrs: &[SocketAddr],
     ipv4_addrs: &[SocketAddr],

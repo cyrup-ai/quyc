@@ -81,10 +81,13 @@ impl StreamingBuilder {
     }
 }
 
+/// Type alias for chunk handler to reduce complexity
+pub type ChunkHandler<T> = Box<dyn Fn(Result<T, HttpError>) -> T + Send + Sync>;
+
 /// Pure `AsyncStream` of JSON objects via `JSONPath` - NO Result wrapping
 pub struct JsonPathStream<T> {
     inner: AsyncStream<T, 1024>,
-    chunk_handler: Option<Box<dyn Fn(Result<T, HttpError>) -> T + Send + Sync>>,
+    chunk_handler: Option<ChunkHandler<T>>,
 }
 
 impl<T> JsonPathStream<T>

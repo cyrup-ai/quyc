@@ -4,7 +4,7 @@
 
 use std::time::Duration;
 
-use super::super::core::HttpConfig;
+use super::super::HttpConfig;
 
 impl HttpConfig {
     /// Set QUIC connection maximum idle timeout
@@ -92,7 +92,7 @@ impl HttpConfig {
     /// ```
     #[must_use] 
     pub fn with_quic_send_window(mut self, window_size: u64) -> Self {
-        self.quic_send_window = Some(window_size);
+        self.quic_send_window = Some(window_size.try_into().unwrap_or(u32::MAX));
         self
     }
 }

@@ -23,6 +23,7 @@ impl ArrayAccess {
 /// Handles array index access while maintaining null vs missing semantics.
 /// Out-of-bounds access is considered missing, not null.
 #[inline]
+#[allow(clippy::cast_possible_truncation)]
 pub fn access_array_index(array: &JsonValue, index: i64) -> PropertyAccessResult {
     match array {
         JsonValue::Array(arr) => {

@@ -42,6 +42,14 @@ impl TlsConnection {
     /// # Returns
     /// * `Ok(TlsConnection)` - Successfully established TLS connection
     /// * `Err(TlsError)` - TLS connection or validation failed
+    ///
+    /// # Errors
+    ///
+    /// Returns a `TlsError` if:
+    /// - TLS connection establishment fails
+    /// - Certificate validation fails
+    /// - Network connection fails
+    /// - TLS handshake fails
     pub async fn create_with_manager(
         tls_manager: &TlsManager,
         host: &str,
@@ -103,9 +111,8 @@ impl ConnectionTrait for TlsConnection {
         // Check if the underlying TCP connection is closed
         // This is a proper implementation that checks actual connection state
         match self.stream.get_ref().0.peer_addr() {
-            Ok(_) => false, // Connection is still valid
             Err(ref e) if e.kind() == std::io::ErrorKind::NotConnected => true,
-            Err(_) => false, // Other errors don't necessarily mean closed
+            _ => false, // Connection valid or other errors don't necessarily mean closed
         }
     }
 

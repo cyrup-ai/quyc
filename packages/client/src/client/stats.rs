@@ -91,15 +91,23 @@ impl ClientStats {
     }
 
     /// Get success ratio
+    #[allow(clippy::cast_precision_loss)]
     pub fn success_ratio(&self) -> f64 {
         let total = self.requests_total.load(Ordering::Relaxed);
         if total == 0 {
             0.0
         } else {
             let successful = self.requests_successful.load(Ordering::Relaxed);
-            // Precision loss acceptable for success rate statistics
-            #[allow(clippy::cast_precision_loss)]
-            { successful as f64 / total as f64 }
+            // Use safe precision-aware success ratio calculation
+            if successful > (1u64 << 53) || total > (1u64 << 53) {
+                // For very large request counts, use high-precision integer calculation
+                // Calculate ratio using 128-bit precision to maintain accuracy
+                let ratio_scaled = (u128::from(successful) * 1_000_000_000) / u128::from(total);
+                (ratio_scaled as f64) / 1_000_000_000.0
+            } else {
+                // Safe to use f64 for smaller request counts
+                (successful as f64) / (total as f64)
+            }
         }
     }
 

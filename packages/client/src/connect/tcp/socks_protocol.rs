@@ -8,6 +8,14 @@ use std::net::{IpAddr, Ipv4Addr, TcpStream};
 use std::str::FromStr;
 
 /// Perform SOCKS handshake with full protocol support.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - SOCKS handshake fails (invalid response, connection refused)
+/// - Target host resolution fails through SOCKS proxy
+/// - Network I/O error occurs during protocol exchange
+/// - SOCKS proxy rejects connection request
 pub fn socks_handshake(
     stream: TcpStream,
     target_host: &str,
@@ -21,6 +29,14 @@ pub fn socks_handshake(
 }
 
 /// SOCKS4 handshake implementation.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - SOCKS4 proxy rejects connection (invalid request, connection refused)
+/// - Target hostname cannot be resolved to IPv4 address
+/// - Network I/O error during SOCKS4 protocol exchange
+/// - Invalid SOCKS4 response from proxy server
 pub fn socks4_handshake(
     mut stream: TcpStream,
     target_host: &str,
@@ -64,6 +80,15 @@ pub fn socks4_handshake(
 }
 
 /// SOCKS5 handshake implementation.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - SOCKS5 authentication negotiation fails
+/// - SOCKS5 proxy rejects connection request
+/// - Network I/O error during SOCKS5 protocol exchange
+/// - Invalid or unsupported SOCKS5 response from proxy server
+/// - Target host/port specification fails
 pub fn socks5_handshake(
     mut stream: TcpStream,
     target_host: &str,

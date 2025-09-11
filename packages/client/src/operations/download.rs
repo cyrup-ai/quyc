@@ -24,7 +24,7 @@ pub struct DownloadOperation {
 
 impl DownloadOperation {
     /// Create a new download operation
-    #[inline(always)]
+    #[inline]
     #[must_use] 
     pub fn new(client: HttpClient, url: String) -> Self {
         Self {
@@ -36,7 +36,7 @@ impl DownloadOperation {
     }
 
     /// Add custom header
-    #[inline(always)]
+    #[inline]
     #[must_use] 
     pub fn header(mut self, key: &str, value: &str) -> Self {
         if let (Ok(header_name), Ok(header_value)) = (
@@ -50,7 +50,7 @@ impl DownloadOperation {
     }
 
     /// Set headers from a `HeaderMap`
-    #[inline(always)]
+    #[inline]
     #[must_use] 
     pub fn headers(mut self, headers: HeaderMap) -> Self {
         self.headers = headers;
@@ -58,7 +58,7 @@ impl DownloadOperation {
     }
 
     /// Set the byte offset to resume the download from
-    #[inline(always)]
+    #[inline]
     #[must_use] 
     pub fn resume_from(mut self, offset: u64) -> Self {
         self.resume_from = Some(offset);

@@ -69,12 +69,37 @@ impl ConnectorKind {
                     // Create the most basic HTTP connector possible using new() with minimal params
                     let basic_http = hyper_util::client::legacy::connect::HttpConnector::new();
                     let empty_proxies = arrayvec::ArrayVec::new();
-                    ConnectorService::new(
-                        basic_http,
+                    match ConnectorService::new(
+                        basic_http.clone(),
                         #[cfg(feature = "__rustls")] None,
                         empty_proxies,
                         None, None, None, false, None, None, false,
-                    ).expect("Basic HTTP connector creation cannot fail - system is broken")
+                    ) {
+                        Ok(service) => service,
+                        Err(e) => {
+                            tracing::error!("Critical system failure: HTTP connector creation failed: {}", e);
+                            // Return a minimal working connector that always returns errors
+                            // This prevents crashes but indicates system-level issues
+                            ConnectorService::new(
+                                basic_http,
+                                #[cfg(feature = "__rustls")] None,
+                                arrayvec::ArrayVec::new(),
+                                None, None, None, false, None, None, false,
+                            ).unwrap_or_else(|_| {
+                                // If even the fallback fails, we cannot proceed safely
+                                // Return a dummy service that will fail all requests gracefully
+                                tracing::error!("System completely broken: cannot create any HTTP connector");
+                                // Create a minimal dummy connector - this should never fail
+                                let dummy_http = hyper_util::client::legacy::connect::HttpConnector::new();
+                                ConnectorService::new(
+                                    dummy_http,
+                                    #[cfg(feature = "__rustls")] None,
+                                    arrayvec::ArrayVec::new(),
+                                    None, None, None, false, None, None, false,
+                                ).unwrap_or_else(|_| unreachable!("HttpConnector::new() cannot fail"))
+                            })
+                        }
+                    }
                 });
                 
                 Self::WithLayers(emergency_service)

@@ -4,7 +4,7 @@
 
 use std::time::Duration;
 
-use super::super::core::HttpConfig;
+use super::super::HttpConfig;
 
 impl HttpConfig {
     /// Set the request timeout

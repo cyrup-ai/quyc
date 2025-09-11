@@ -62,22 +62,24 @@ impl ClientStats {
 
     /// Create a snapshot of current statistics
     pub fn snapshot(&self) -> crate::telemetry::ClientStatsSnapshot {
+        // Safe conversion with overflow protection for cross-platform compatibility
+        let request_count = usize::try_from(self.total_requests.load(Ordering::Relaxed)).unwrap_or(usize::MAX);
+        let connection_count = usize::try_from(self.connection_pool_size.load(Ordering::Relaxed)).unwrap_or(usize::MAX);
+        let successful_requests = usize::try_from(self.successful_requests.load(Ordering::Relaxed)).unwrap_or(usize::MAX);
+        let failed_requests = usize::try_from(self.failed_requests.load(Ordering::Relaxed)).unwrap_or(usize::MAX);
+        let cache_hits = usize::try_from(self.cache_hits.load(Ordering::Relaxed)).unwrap_or(usize::MAX);
+        let cache_misses = usize::try_from(self.cache_misses.load(Ordering::Relaxed)).unwrap_or(usize::MAX);
+        
         crate::telemetry::ClientStatsSnapshot {
-            #[allow(clippy::cast_possible_truncation)]
-            request_count: self.total_requests.load(Ordering::Relaxed) as usize,
-            #[allow(clippy::cast_possible_truncation)]
-            connection_count: self.connection_pool_size.load(Ordering::Relaxed) as usize,
+            request_count,
+            connection_count,
             total_bytes_sent: self.bytes_sent.load(Ordering::Relaxed),
             total_bytes_received: self.bytes_received.load(Ordering::Relaxed),
             total_response_time_nanos: 0, // Not tracked in this implementation
-            #[allow(clippy::cast_possible_truncation)]
-            successful_requests: self.successful_requests.load(Ordering::Relaxed) as usize,
-            #[allow(clippy::cast_possible_truncation)]
-            failed_requests: self.failed_requests.load(Ordering::Relaxed) as usize,
-            #[allow(clippy::cast_possible_truncation)]
-            cache_hits: self.cache_hits.load(Ordering::Relaxed) as usize,
-            #[allow(clippy::cast_possible_truncation)]
-            cache_misses: self.cache_misses.load(Ordering::Relaxed) as usize,
+            successful_requests,
+            failed_requests,
+            cache_hits,
+            cache_misses,
         }
     }
 }

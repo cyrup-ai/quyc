@@ -98,7 +98,13 @@ pub mod httpdate {
             .duration_since(SystemTime::UNIX_EPOCH)
             .unwrap_or_default();
 
-        let dt = DateTime::<Utc>::from_timestamp(duration.as_secs() as i64, 0).unwrap_or_default();
+        let timestamp_secs = duration.as_secs()
+            .try_into()
+            .unwrap_or_else(|_| {
+                tracing::warn!("Duration exceeds i64 range, clamping to max");
+                i64::MAX
+            });
+        let dt = DateTime::<Utc>::from_timestamp(timestamp_secs, 0).unwrap_or_default();
 
         dt.format("%a, %d %b %Y %H:%M:%S GMT").to_string()
     }

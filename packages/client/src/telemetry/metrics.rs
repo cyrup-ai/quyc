@@ -106,11 +106,25 @@ pub struct RequestMetrics {
 impl RequestMetrics {
     /// Calculate success rate as percentage
     #[must_use] 
+    #[allow(clippy::cast_precision_loss)]
     pub fn success_rate(&self) -> f64 {
         if self.total_requests > 0 {
-            // Precision loss acceptable for request success rate statistics
-            #[allow(clippy::cast_precision_loss)]
-            { (self.successful_requests as f64 / self.total_requests as f64) * 100.0 }
+            // Use safe precision-aware success rate calculation
+            let precision_threshold = if usize::BITS >= 64 {
+                1usize << 53  // For 64-bit platforms
+            } else {
+                usize::MAX / 2  // For 32-bit platforms, use safe threshold
+            };
+            
+            if self.successful_requests > precision_threshold || self.total_requests > precision_threshold {
+                // For very large request counts, use integer calculation to avoid precision loss
+                // Calculate success rate using integer arithmetic: (successful * 10000) / total / 100
+                let success_rate_basis_points = (self.successful_requests as u128 * 10000) / (self.total_requests as u128);
+                (success_rate_basis_points as f64) / 100.0
+            } else {
+                // Safe to use f64 for smaller request counts
+                (self.successful_requests as f64 / self.total_requests as f64) * 100.0
+            }
         } else {
             0.0
         }

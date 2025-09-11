@@ -207,6 +207,7 @@ impl AtomicProtocolSupport {
     }
 
     /// Get success rate (0.0 to 1.0)
+    #[allow(clippy::cast_precision_loss)]
     pub fn success_rate(&self) -> f64 {
         let successes = self.success_count.load(Ordering::Relaxed);
         let failures = self.failure_count.load(Ordering::Relaxed);
@@ -215,9 +216,21 @@ impl AtomicProtocolSupport {
         if total == 0 {
             0.0
         } else {
-            // Precision loss acceptable for protocol success rate statistics
-            #[allow(clippy::cast_precision_loss)]
-            { successes as f64 / total as f64 }
+            // Use safe precision-aware success rate calculation
+            let precision_threshold = if usize::BITS >= 64 {
+                1usize << 53  // For 64-bit platforms
+            } else {
+                usize::MAX / 2  // For 32-bit platforms, use safe threshold
+            };
+            
+            if successes > precision_threshold || total > precision_threshold {
+                // For very large success counts, use high-precision integer calculation
+                let success_rate_scaled = (successes as u128 * 1_000_000_000) / (total as u128);
+                (success_rate_scaled as f64) / 1_000_000_000.0
+            } else {
+                // Safe to use f64 for smaller success counts
+                (successes as f64) / (total as f64)
+            }
         }
     }
 
@@ -673,9 +686,8 @@ impl ProtocolIntelligence {
     /// Evict oldest domains to maintain cache size limit
     fn evict_oldest_domains(&self, domains: &mut HashMap<String, Arc<DomainCapabilities>>) {
         // Remove 10% of cache when limit is exceeded
-        // Precision loss acceptable for cache size calculations
-        #[allow(clippy::cast_precision_loss)]
-        let target_size = (self.config.max_domains as f64 * 0.9) as usize;
+        // Use safe integer arithmetic to avoid precision loss
+        let target_size = self.config.max_domains * 9 / 10; // Integer calculation: 90% of max_domains
         let to_remove = domains.len().saturating_sub(target_size);
 
         if to_remove == 0 {

@@ -17,7 +17,7 @@ pub struct DeleteOperation {
 
 impl DeleteOperation {
     /// Create a new DELETE operation
-    #[inline(always)]
+    #[inline]
     #[must_use] 
     pub fn new(client: HttpClient, url: String) -> Self {
         Self {
@@ -28,7 +28,7 @@ impl DeleteOperation {
     }
 
     /// Add custom header
-    #[inline(always)]
+    #[inline]
     #[must_use] 
     pub fn header(mut self, key: &str, value: &str) -> Self {
         if let (Ok(header_name), Ok(header_value)) = (
@@ -42,7 +42,7 @@ impl DeleteOperation {
     }
 
     /// Add If-Match header for conditional deletion
-    #[inline(always)]
+    #[inline]
     pub fn if_match(mut self, etag: &str) -> Self {
         if let Ok(header_value) = HeaderValue::from_str(etag) {
             self.headers.insert(http::header::IF_MATCH, header_value);
@@ -85,12 +85,12 @@ impl HttpOperation for DeleteOperation {
         })
     }
 
-    #[inline(always)]
+    #[inline]
     fn method(&self) -> Method {
         Method::DELETE
     }
 
-    #[inline(always)]
+    #[inline]
     fn url(&self) -> &str {
         &self.url
     }

@@ -152,7 +152,7 @@ pub fn configure_tcp_socket(
 }
 
 /// Inline TCP socket configuration for performance-critical paths.
-#[inline(always)]
+#[inline]
 pub fn configure_tcp_socket_inline(stream: &TcpStream, nodelay: bool) -> Result<(), String> {
     if nodelay {
         stream

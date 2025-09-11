@@ -51,7 +51,7 @@ impl ResponseCache {
 
         // Clone the data to avoid lifetime issues
         let status = entry.status;
-        let _version = entry.version;
+        let _ = entry.version; // Explicit acknowledgment that version is not used in response construction
         let headers = entry.headers.clone();
         let body = entry.body.clone();
 
@@ -126,20 +126,19 @@ impl ResponseCache {
 
         // Check entry count limits
         let current_entries_u64 = self.entry_count.load(Ordering::Relaxed);
-        let current_entries = match usize::try_from(current_entries_u64) {
-            Ok(entries) => entries,
-            Err(_) => {
-                // u64 value is too large for usize on this platform
-                // This can only happen if we have more than 2^32-1 entries on 32-bit platforms
-                tracing::warn!(
-                    target: "quyc::cache",
-                    current_entries_u64 = current_entries_u64,
-                    max_usize = usize::MAX,
-                    "Entry count exceeds platform usize limits, using max_entries for comparison"
-                );
-                // Use max_entries as a safe fallback to trigger eviction
-                self.config.max_entries
-            }
+        let current_entries = if let Ok(entries) = usize::try_from(current_entries_u64) {
+            entries
+        } else {
+            // u64 value is too large for usize on this platform
+            // This can only happen if we have more than 2^32-1 entries on 32-bit platforms
+            tracing::warn!(
+                target: "quyc::cache",
+                current_entries_u64 = current_entries_u64,
+                max_usize = usize::MAX,
+                "Entry count exceeds platform usize limits, using max_entries for comparison"
+            );
+            // Use max_entries as a safe fallback to trigger eviction
+            self.config.max_entries
         };
         if current_entries >= self.config.max_entries {
             let evicted = self.evict_lru_entries();

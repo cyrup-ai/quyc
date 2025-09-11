@@ -14,6 +14,14 @@ use super::basic_connection::connect_to_address_list;
 use super::dns_resolution::resolve_host_sync;
 
 /// Establish HTTP connection using `HttpConnector`.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The URI is missing a host component
+/// - DNS resolution fails for the hostname
+/// - TCP connection establishment fails
+/// - Connection timeout is exceeded
 pub fn establish_http_connection(
     _connector: &hyper_util::client::legacy::connect::HttpConnector,
     uri: &Uri,
@@ -22,7 +30,6 @@ pub fn establish_http_connection(
     let host = uri.host().ok_or("URI missing host")?;
     let port = uri.port_u16().unwrap_or_else(|| match uri.scheme_str() {
         Some("https") => 443,
-        Some("http") => 80,
         _ => 80,
     });
 
@@ -33,6 +40,14 @@ pub fn establish_http_connection(
 // native-TLS function removed - using rustls universally through TlsManager
 
 /// Establish TLS connection using rustls.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The hostname cannot be parsed as a valid DNS name
+/// - TLS client connection creation fails
+/// - Certificate validation fails
+/// - TLS handshake fails
 #[cfg(feature = "__rustls")]
 pub fn establish_rustls_connection(
     stream: TcpStream,

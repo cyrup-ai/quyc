@@ -11,6 +11,7 @@ use crate::jsonpath::error::JsonPathError;
 type JsonPathResult<T> = Result<T, JsonPathError>;
 
 /// Apply slice selector to array with proper bounds checking
+#[allow(clippy::cast_possible_truncation)]
 pub fn apply_slice_to_array(
     array: &Value,
     start: Option<i64>,
@@ -70,6 +71,7 @@ pub fn apply_slice_to_array(
 }
 
 /// Apply index selector for owned results
+#[allow(clippy::cast_possible_truncation)]
 pub fn apply_index_selector_owned(
     _evaluator: &CoreJsonPathEvaluator,
     value: &Value,
@@ -106,6 +108,7 @@ pub fn apply_index_selector_owned(
 
 impl CoreJsonPathEvaluator {
     /// Apply slice to array with start, end, step parameters
+    #[allow(clippy::cast_possible_truncation)]
     pub fn apply_slice_to_array(
         &self,
         arr: &[Value],
@@ -159,6 +162,7 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Apply index selector for array access
+    #[allow(clippy::cast_possible_truncation)]
     pub fn apply_index_selector<'a>(
         &self,
         node: &'a Value,
@@ -194,6 +198,7 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Apply slice selector with start, end, step parameters for arrays
+    #[allow(clippy::cast_possible_truncation)]
     pub fn apply_slice_selector_with_params<'a>(
         &self,
         node: &'a Value,

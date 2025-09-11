@@ -221,6 +221,7 @@ pub fn compress_bytes(
 /// This is the internal implementation that supports metrics tracking
 /// for telemetry and monitoring.
 #[inline]
+#[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
 pub fn compress_bytes_with_metrics(
     data: &[u8], 
     algorithm: CompressionAlgorithm, 
@@ -267,16 +268,34 @@ pub fn compress_bytes_with_metrics(
             let compression_time = start_time.elapsed();
             
             // Check if compression is worthwhile  
-            // Precision loss acceptable for compression ratio calculations
-            #[allow(clippy::cast_precision_loss)]
-            let ratio = data.len() as f64 / compressed.len() as f64;
+            // Use safe precision-aware ratio calculation for large data sizes
+            let ratio = if compressed.len() == 0 {
+                f64::INFINITY // Avoid division by zero, treat as maximum compression
+            } else if data.len() > (1u64 << 53) as usize || compressed.len() > (1u64 << 53) as usize {
+                // For very large sizes that might lose precision in f64, use integer comparison
+                tracing::debug!(
+                    target: "quyc::compression",
+                    original_size = data.len(),
+                    compressed_size = compressed.len(),
+                    "Using integer comparison for very large data sizes to avoid precision loss"
+                );
+                // If original is significantly larger than compressed, consider it worthwhile
+                if data.len() >= compressed.len() + (compressed.len() / 20) { // At least 5% reduction
+                    MIN_COMPRESSION_RATIO + 0.1 // Slightly above threshold
+                } else {
+                    MIN_COMPRESSION_RATIO - 0.1 // Slightly below threshold
+                }
+            } else {
+                // Safe to convert to f64 without precision loss for smaller sizes
+                (data.len() as f64) / (compressed.len() as f64)
+            };
             if ratio >= MIN_COMPRESSION_RATIO {
                 // Record successful compression metrics
                 if let Some(stats) = stats {
                     stats.compression_applied.fetch_add(1, Ordering::Relaxed);
                     stats.bytes_after_compression.fetch_add(compressed.len() as u64, Ordering::Relaxed);
                     let compression_micros = compression_time.as_micros();
-                    let compression_micros_u64 = if compression_micros > u64::MAX as u128 {
+                    let compression_micros_u64 = if compression_micros > u128::from(u64::MAX) {
                         tracing::warn!(
                             target: "quyc::compression",
                             compression_micros = compression_micros,
@@ -355,6 +374,14 @@ pub fn decompress_bytes(data: &[u8], algorithm: CompressionAlgorithm) -> Result<
 /// 
 /// This is the internal implementation that supports metrics tracking
 /// for telemetry and monitoring.
+/// 
+/// # Errors
+/// 
+/// Returns `HttpError` with `Kind::Request` if:
+/// - Input data is corrupted or invalid for the specified algorithm
+/// - Decompression buffer size exceeds the configured maximum limit
+/// - I/O errors occur during decompression operations
+/// - Memory allocation fails during decompression
 #[inline]
 pub fn decompress_bytes_with_metrics(
     data: &[u8], 
@@ -397,7 +424,7 @@ pub fn decompress_bytes_with_metrics(
                 stats.decompression_applied.fetch_add(1, Ordering::Relaxed);
                 stats.bytes_after_decompression.fetch_add(decompressed.len() as u64, Ordering::Relaxed);
                 let decompression_micros = decompression_time.as_micros();
-                let decompression_micros_u64 = if decompression_micros > u64::MAX as u128 {
+                let decompression_micros_u64 = if decompression_micros > u128::from(u64::MAX) {
                     tracing::warn!(
                         target: "quyc::compression",
                         decompression_micros = decompression_micros,
@@ -882,9 +909,9 @@ mod tests {
         
         for algorithm in [CompressionAlgorithm::Gzip, CompressionAlgorithm::Deflate, CompressionAlgorithm::Brotli] {
             let compressed = compress_bytes(original, algorithm, None)
-                .expect("Compression should succeed in test");
+                .unwrap_or_else(|e| panic!("Compression should succeed in test but failed: {}", e));
             let decompressed = decompress_bytes(&compressed, algorithm)
-                .expect("Decompression should succeed in test");
+                .unwrap_or_else(|e| panic!("Decompression should succeed in test but failed: {}", e));
             assert_eq!(original, decompressed.as_slice());
         }
     }

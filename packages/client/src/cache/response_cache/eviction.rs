@@ -36,8 +36,12 @@ impl ResponseCache {
 
                 // Stop if under limits
                 let current_memory = self.memory_usage.load(Ordering::Relaxed);
-                #[allow(clippy::cast_possible_truncation)]
-                let current_entries = self.entry_count.load(Ordering::Relaxed) as usize;
+                let entry_count_raw = self.entry_count.load(Ordering::Relaxed);
+                let current_entries = usize::try_from(entry_count_raw).unwrap_or_else(|_| {
+                    // If count exceeds usize::MAX, we definitely need eviction
+                    tracing::warn!("Entry count {} exceeds usize::MAX during eviction", entry_count_raw);
+                    usize::MAX
+                });
 
                 if current_memory < self.config.max_memory_bytes
                     && current_entries < self.config.max_entries

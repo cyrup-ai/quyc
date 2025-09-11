@@ -178,9 +178,8 @@ impl ConnectionTrait for TcpConnection {
     fn is_closed(&self) -> bool {
         // Check if the TCP connection is actually closed by attempting to get peer address
         match self.stream.peer_addr() {
-            Ok(_) => false, // Connection is still valid
             Err(ref e) if e.kind() == std::io::ErrorKind::NotConnected => true,
-            Err(_) => false, // Other errors don't necessarily mean closed
+            _ => false, // Connection valid or other errors don't necessarily mean closed
         }
     }
 

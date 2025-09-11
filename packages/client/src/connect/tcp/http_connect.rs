@@ -9,6 +9,15 @@ use std::net::TcpStream;
 use http::Uri;
 
 /// Establish HTTP CONNECT tunnel through proxy.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Target URI is missing hostname
+/// - Failed to send CONNECT request to proxy server
+/// - Failed to read response from proxy server
+/// - Proxy server rejects CONNECT request (non-200 response)
+/// - I/O error occurs during header reading or tunnel establishment
 pub fn establish_connect_tunnel(
     mut proxy_stream: TcpStream,
     target_uri: &Uri,

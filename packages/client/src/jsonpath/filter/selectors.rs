@@ -13,6 +13,7 @@ pub struct SelectorEvaluator;
 impl SelectorEvaluator {
     /// Evaluate complex `JSONPath` selectors relative to current context
     #[inline]
+    #[allow(clippy::cast_possible_truncation)]
     pub fn evaluate_jsonpath_selectors(
         context: &serde_json::Value,
         selectors: &[JsonSelector],

@@ -47,9 +47,8 @@ impl ProxyBypass {
 
     /// Check if URI should bypass proxy
     pub fn should_bypass(&self, uri: &Uri) -> bool {
-        let host = match uri.host() {
-            Some(h) => h,
-            None => return false,
+        let Some(host) = uri.host() else { 
+            return false; 
         };
 
         // Check exact host matches
