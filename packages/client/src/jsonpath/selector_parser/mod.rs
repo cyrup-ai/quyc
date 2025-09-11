@@ -1,6 +1,6 @@
-//! JSONPath selector parsing implementation
+//! `JSONPath` selector parsing implementation
 //!
-//! Decomposed selector parser for individual JSONPath selectors including
+//! Decomposed selector parser for individual `JSONPath` selectors including
 //! array indices, slices, filters, property access, and union patterns.
 
 pub mod bracket;

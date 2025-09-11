@@ -1,4 +1,4 @@
-//! Filter expression parsing for JSONPath predicates
+//! Filter expression parsing for `JSONPath` predicates
 //!
 //! Handles parsing of complex filter expressions including comparisons,
 //! logical operations, function calls, and property access patterns.

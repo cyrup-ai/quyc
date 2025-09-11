@@ -7,16 +7,17 @@ use http::{HeaderName, HeaderValue};
 
 use crate::builder::core::{ContentType, Http3Builder};
 
-/// Helper type for accept method that can handle both strings and ContentType enums
+/// Helper type for accept method that can handle both strings and `ContentType` enums
 pub enum AcceptValue {
     /// String representation of content type
     String(String),
-    /// ContentType enum variant
+    /// `ContentType` enum variant
     ContentType(ContentType),
 }
 
 impl AcceptValue {
     /// Convert to string representation
+    #[must_use] 
     pub fn as_str(&self) -> &str {
         match self {
             AcceptValue::String(s) => s,
@@ -162,7 +163,7 @@ impl<S> Http3Builder<S> {
     /// ```
     #[must_use]
     pub fn max_age(self, seconds: u64) -> Self {
-        let value = format!("max-age={}", seconds);
+        let value = format!("max-age={seconds}");
         self.cache_control(&value)
     }
 
@@ -190,10 +191,10 @@ impl<S> Http3Builder<S> {
         }
     }
 
-    /// Set Accept header - supports both string and ContentType enum
+    /// Set Accept header - supports both string and `ContentType` enum
     ///
     /// # Arguments
-    /// * `accept` - The accept header value (string or ContentType enum)
+    /// * `accept` - The accept header value (string or `ContentType` enum)
     ///
     /// # Returns
     /// `Self` for method chaining
@@ -221,7 +222,7 @@ impl<S> Http3Builder<S> {
         }
     }
 
-    /// Set Accept header using ContentType enum
+    /// Set Accept header using `ContentType` enum
     ///
     /// # Arguments
     /// * `content_type` - The content type to accept

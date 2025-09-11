@@ -84,7 +84,7 @@ pub(crate) fn parse_operator(
         }
         _ => Err(invalid_expression_error(
             &parser.input,
-            &format!("unexpected operator character '{}'", chars[i]),
+            format!("unexpected operator character '{}'", chars[i]),
             Some(i),
         )),
     }

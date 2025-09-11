@@ -44,12 +44,35 @@ impl CapacityManager {
         let required = current_size + needed;
 
         if required > current_capacity {
+            // Precision loss acceptable for buffer growth calculations
+            #[allow(clippy::cast_precision_loss)]
+            let growth_target = current_capacity as f64 * self.growth_factor;
+            #[allow(clippy::cast_precision_loss)]
+            let growth_target_usize = if growth_target > usize::MAX as f64 {
+                tracing::warn!(
+                    target: "quyc::jsonpath::buffer",
+                    current_capacity = current_capacity,
+                    growth_factor = self.growth_factor,
+                    growth_target = growth_target,
+                    max_usize = usize::MAX,
+                    "Growth calculation exceeds usize limits, using max_capacity"
+                );
+                self.max_capacity
+            } else if growth_target < 0.0 {
+                tracing::warn!(
+                    target: "quyc::jsonpath::buffer",
+                    growth_target = growth_target,
+                    "Negative growth target, using current capacity"
+                );
+                current_capacity
+            } else {
+                // Safe cast: growth_target is positive and within usize bounds
+                #[allow(clippy::cast_sign_loss)]
+                { growth_target as usize }
+            };
             let new_capacity = std::cmp::min(
                 self.max_capacity,
-                std::cmp::max(
-                    required,
-                    (current_capacity as f64 * self.growth_factor) as usize,
-                ),
+                std::cmp::max(required, growth_target_usize),
             );
 
             buffer.reserve(new_capacity - current_capacity);
@@ -62,6 +85,8 @@ impl CapacityManager {
     pub(super) fn maybe_shrink(&mut self, buffer: &mut BytesMut) {
         let capacity = buffer.capacity();
         let size = buffer.len();
+        // Precision loss acceptable for buffer utilization calculations
+        #[allow(clippy::cast_precision_loss)]
         let utilization = size as f64 / capacity as f64;
 
         // Hysteresis check: don't shrink immediately after growing
@@ -70,11 +95,10 @@ impl CapacityManager {
         }
 
         // Don't shrink to a size we recently shrunk from (prevents oscillation)
-        if let Some(last_shrink) = self.last_shrink_size {
-            if capacity <= last_shrink * 2 {
+        if let Some(last_shrink) = self.last_shrink_size
+            && capacity <= last_shrink * 2 {
                 return;
             }
-        }
 
         // Only shrink if significantly under-utilized and above initial capacity
         // Additional check: only shrink if we can save significant memory (at least 8KB)
@@ -82,9 +106,35 @@ impl CapacityManager {
             && capacity > self.initial_capacity * 2
             && capacity > size + 8192
         {
+            // Precision loss acceptable for buffer shrink calculations
+            #[allow(clippy::cast_precision_loss)]
+            let shrink_target = size as f64 / self.shrink_threshold;
+            #[allow(clippy::cast_precision_loss)]
+            let shrink_target_usize = if shrink_target > usize::MAX as f64 {
+                tracing::warn!(
+                    target: "quyc::jsonpath::buffer",
+                    size = size,
+                    shrink_threshold = self.shrink_threshold,
+                    shrink_target = shrink_target,
+                    max_usize = usize::MAX,
+                    "Shrink calculation exceeds usize limits, using current size"
+                );
+                size
+            } else if shrink_target < 0.0 {
+                tracing::warn!(
+                    target: "quyc::jsonpath::buffer",
+                    shrink_target = shrink_target,
+                    "Negative shrink target, using current size"
+                );
+                size
+            } else {
+                // Safe cast: shrink_target is positive and within usize bounds
+                #[allow(clippy::cast_sign_loss)]
+                { shrink_target as usize }
+            };
             let target_capacity = std::cmp::max(
                 self.initial_capacity,
-                (size as f64 / self.shrink_threshold) as usize,
+                shrink_target_usize,
             );
 
             // Only proceed if the saving is significant (at least 50% capacity reduction)

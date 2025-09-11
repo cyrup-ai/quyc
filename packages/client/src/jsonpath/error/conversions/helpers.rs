@@ -4,12 +4,12 @@
 
 use super::super::types::JsonPathError;
 
-/// Helper trait for converting Results to JsonPathError
+/// Helper trait for converting Results to `JsonPathError`
 pub trait IntoJsonPathError<T> {
-    /// Converts a Result into JsonPathError with context
+    /// Converts a Result into `JsonPathError` with context
     fn into_jsonpath_error(self, context: &str) -> Result<T, JsonPathError>;
 
-    /// Converts a Result into JsonPathError with custom error mapping
+    /// Converts a Result into `JsonPathError` with custom error mapping
     fn map_jsonpath_error<F>(self, f: F) -> Result<T, JsonPathError>
     where
         F: FnOnce() -> JsonPathError;
@@ -44,7 +44,8 @@ where
 
 /// Specialized conversions for common scenarios
 impl JsonPathError {
-    /// Creates a JsonPathError from a serde_json::Error with additional context
+    /// Creates a `JsonPathError` from a `serde_json::Error` with additional context
+    #[must_use] 
     pub fn from_serde_with_context(
         error: serde_json::Error,
         json_fragment: &str,
@@ -53,19 +54,17 @@ impl JsonPathError {
         JsonPathError::new(
             super::super::types::ErrorKind::SerdeError,
             format!(
-                "Deserialization error: {} for fragment '{}' to type {}",
-                error.to_string(),
-                json_fragment,
-                target_type
+                "Deserialization error: {error} for fragment '{json_fragment}' to type {target_type}"
             ),
         )
     }
 
-    /// Creates a JsonPathError from an IO error with stream context
+    /// Creates a `JsonPathError` from an IO error with stream context
+    #[must_use] 
     pub fn from_io_with_context(error: std::io::Error, state: &str) -> Self {
         JsonPathError::new(
             super::super::types::ErrorKind::IoError,
-            format!("IO error in state '{}': {}", state, error.to_string()),
+            format!("IO error in state '{state}': {error}"),
         )
     }
 }

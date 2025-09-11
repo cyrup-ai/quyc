@@ -1,4 +1,4 @@
-//! Array operations for JSONPath evaluation
+//! Array operations for `JSONPath` evaluation
 //!
 //! This module handles array indexing, slicing, and related operations.
 
@@ -8,7 +8,7 @@ use crate::jsonpath::error::JsonPathError;
 
 type JsonPathResult<T> = Result<T, JsonPathError>;
 
-/// Array operations engine for JSONPath evaluation
+/// Array operations engine for `JSONPath` evaluation
 pub struct ArrayOperations;
 
 impl ArrayOperations {
@@ -18,7 +18,10 @@ impl ArrayOperations {
 
         let actual_index = if from_end && index < 0 {
             // Negative index - count from end (e.g., -1 means last element)
-            let abs_index = (-index) as usize;
+            let abs_index = match usize::try_from(-index) {
+                Ok(idx) => idx,
+                Err(_) => return Ok(results), // Index too large for usize
+            };
             if abs_index <= arr.len() && abs_index > 0 {
                 arr.len() - abs_index
             } else {
@@ -26,14 +29,22 @@ impl ArrayOperations {
             }
         } else if from_end && index > 0 {
             // Positive from_end index
-            if (index as usize) <= arr.len() {
-                arr.len() - (index as usize)
+            let index_usize = match usize::try_from(index) {
+                Ok(idx) => idx,
+                Err(_) => return Ok(results), // Index too large for usize
+            };
+            if index_usize <= arr.len() {
+                arr.len() - index_usize
             } else {
                 return Ok(results); // Index out of bounds
             }
+        } else if index >= 0 {
+            // Regular positive index - safe conversion
+            #[allow(clippy::cast_sign_loss)]
+            { index as usize }
         } else {
-            // Regular positive index
-            index as usize
+            // Negative index in non-from_end context is invalid
+            return Ok(results);
         };
 
         if actual_index < arr.len() {
@@ -68,6 +79,8 @@ impl ArrayOperations {
             let mut i = start_idx;
             while i < end_idx && i < len {
                 if i >= 0 {
+                    // Safe cast: i is guaranteed >= 0 by the if condition
+                    #[allow(clippy::cast_sign_loss)]
                     results.push(arr[i as usize].clone());
                 }
                 i += step;
@@ -77,6 +90,8 @@ impl ArrayOperations {
             let mut i = start_idx;
             while i > end_idx && i >= 0 {
                 if i < len {
+                    // Safe cast: i is guaranteed >= 0 by outer while condition
+                    #[allow(clippy::cast_sign_loss)]
                     results.push(arr[i as usize].clone());
                 }
                 i += step; // step is negative
@@ -107,18 +122,26 @@ impl ArrayOperations {
     }
 
     /// Check if an array index is valid
+    #[must_use] 
     pub fn is_valid_index(arr: &[Value], index: i64, from_end: bool) -> bool {
         if from_end && index < 0 {
+            // Safe cast: -index is guaranteed positive since index < 0
+            #[allow(clippy::cast_sign_loss)]
             let abs_index = (-index) as usize;
             abs_index <= arr.len() && abs_index > 0
         } else if from_end && index > 0 {
-            (index as usize) <= arr.len()
+            // Safe cast: index is guaranteed > 0 by condition
+            #[allow(clippy::cast_sign_loss)]
+            { (index as usize) <= arr.len() }
         } else {
-            index >= 0 && (index as usize) < arr.len()
+            // Safe cast: index >= 0 check ensures non-negative value
+            #[allow(clippy::cast_sign_loss)]
+            { index >= 0 && (index as usize) < arr.len() }
         }
     }
 
     /// Get array length safely
+    #[must_use] 
     pub fn safe_len(value: &Value) -> Option<usize> {
         match value {
             Value::Array(arr) => Some(arr.len()),
@@ -127,11 +150,13 @@ impl ArrayOperations {
     }
 
     /// Check if a value is an array
+    #[must_use] 
     pub fn is_array(value: &Value) -> bool {
         matches!(value, Value::Array(_))
     }
 
     /// Get array element safely
+    #[must_use] 
     pub fn get_element(arr: &[Value], index: usize) -> Option<&Value> {
         arr.get(index)
     }
@@ -142,6 +167,8 @@ impl ArrayOperations {
 
         for &index in indices {
             if index >= 0 && (index as usize) < arr.len() {
+                // Safe cast: index >= 0 check ensures non-negative value
+                #[allow(clippy::cast_sign_loss)]
                 results.push(arr[index as usize].clone());
             }
         }
@@ -155,6 +182,7 @@ impl ArrayOperations {
     }
 
     /// Get last N elements from array
+    #[must_use] 
     pub fn get_last_n(arr: &[Value], n: usize) -> Vec<Value> {
         if n >= arr.len() {
             arr.to_vec()
@@ -164,6 +192,7 @@ impl ArrayOperations {
     }
 
     /// Get first N elements from array
+    #[must_use] 
     pub fn get_first_n(arr: &[Value], n: usize) -> Vec<Value> {
         if n >= arr.len() {
             arr.to_vec()

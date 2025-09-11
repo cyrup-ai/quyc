@@ -1,7 +1,7 @@
 //! UTF-8 validation and recovery utilities
 //!
 //! Provides robust UTF-8 handling with multiple recovery strategies
-//! and specialized JSONPath string processing capabilities.
+//! and specialized `JSONPath` string processing capabilities.
 
 use crate::jsonpath::error::{JsonPathResult, invalid_expression_error};
 
@@ -26,7 +26,7 @@ impl Utf8Handler {
                 .map_err(|e| {
                     invalid_expression_error(
                         "",
-                        &format!("invalid UTF-8 sequence at byte {}", e.valid_up_to()),
+                        format!("invalid UTF-8 sequence at byte {}", e.valid_up_to()),
                         Some(e.valid_up_to()),
                     )
                 }),
@@ -69,9 +69,9 @@ impl Utf8Handler {
         }
     }
 
-    /// Validate JSONPath string with escape sequence handling
+    /// Validate `JSONPath` string with escape sequence handling
     ///
-    /// Specifically handles UTF-8 validation in the context of JSONPath
+    /// Specifically handles UTF-8 validation in the context of `JSONPath`
     /// string literals, including proper handling of escape sequences.
     #[inline]
     pub fn validate_jsonpath_string(input: &str, allow_escapes: bool) -> JsonPathResult<String> {
@@ -109,7 +109,7 @@ impl Utf8Handler {
                         let code_point = u32::from_str_radix(&hex_chars, 16).map_err(|_| {
                             invalid_expression_error(
                                 input,
-                                &format!("invalid Unicode escape sequence: \\u{}", hex_chars),
+                                format!("invalid Unicode escape sequence: \\u{hex_chars}"),
                                 None,
                             )
                         })?;
@@ -119,7 +119,7 @@ impl Utf8Handler {
                         } else {
                             return Err(invalid_expression_error(
                                 input,
-                                &format!("invalid Unicode code point: U+{:04X}", code_point),
+                                format!("invalid Unicode code point: U+{code_point:04X}"),
                                 None,
                             ));
                         }
@@ -127,7 +127,7 @@ impl Utf8Handler {
                     Some(invalid) => {
                         return Err(invalid_expression_error(
                             input,
-                            &format!("invalid escape sequence: \\{}", invalid),
+                            format!("invalid escape sequence: \\{invalid}"),
                             None,
                         ));
                     }
@@ -150,8 +150,9 @@ impl Utf8Handler {
     /// Detect and handle byte order marks (BOMs)
     ///
     /// Handles UTF-8 BOM and other encoding markers that might appear
-    /// in JSONPath expressions loaded from files.
+    /// in `JSONPath` expressions loaded from files.
     #[inline]
+    #[must_use] 
     pub fn handle_bom(input: &[u8]) -> &[u8] {
         // UTF-8 BOM: EF BB BF
         if input.len() >= 3 && input[0] == 0xEF && input[1] == 0xBB && input[2] == 0xBF {

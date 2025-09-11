@@ -1,6 +1,6 @@
-//! Core StreamBuffer implementation for zero-allocation JSON streaming
+//! Core `StreamBuffer` implementation for zero-allocation JSON streaming
 //!
-//! Contains the main StreamBuffer struct and its fundamental operations
+//! Contains the main `StreamBuffer` struct and its fundamental operations
 //! for efficient chunk management and JSON boundary detection.
 
 use bytes::{Bytes, BytesMut};
@@ -35,6 +35,7 @@ impl StreamBuffer {
     ///
     /// Initial capacity should be sized based on expected chunk sizes and JSON object sizes.
     /// Larger capacities reduce reallocations but increase memory usage.
+    #[must_use] 
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             buffer: BytesMut::with_capacity(capacity),
@@ -45,6 +46,7 @@ impl StreamBuffer {
     }
 
     /// Create buffer with default capacity optimized for HTTP responses
+    #[must_use] 
     pub fn new() -> Self {
         Self::with_capacity(8192) // 8KB default
     }
@@ -74,7 +76,7 @@ impl StreamBuffer {
 
     /// Get a reader for the current buffer contents
     ///
-    /// Returns a reader that implements `std::io::Read` for use with serde_json::StreamDeserializer.
+    /// Returns a reader that implements `std::io::Read` for use with `serde_json::StreamDeserializer`.
     /// The reader tracks position and handles partial reads correctly.
     pub fn reader(&mut self) -> BufferReader<'_> {
         BufferReader::new(&self.buffer[..])
@@ -83,7 +85,7 @@ impl StreamBuffer {
     /// Create a reader for the current buffer contents (alias for reader)
     ///
     /// Returns a reader that implements both `std::io::Read` and `serde_json::de::Read`
-    /// for seamless integration with serde_json streaming deserializers.
+    /// for seamless integration with `serde_json` streaming deserializers.
     #[inline]
     pub fn create_reader(&mut self) -> BufferReader<'_> {
         self.reader()

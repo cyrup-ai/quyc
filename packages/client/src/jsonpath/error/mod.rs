@@ -1,6 +1,6 @@
-//! JSONPath error handling module
+//! `JSONPath` error handling module
 //!
-//! This module provides comprehensive error types and utilities for JSONPath operations
+//! This module provides comprehensive error types and utilities for `JSONPath` operations
 //! in the HTTP3 streaming framework. It includes error types, constructors, conversions,
 //! and utilities for error handling.
 

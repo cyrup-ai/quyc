@@ -1,7 +1,7 @@
 //! JSON byte-by-byte processing logic
 //!
 //! Contains the core logic for processing individual JSON bytes during streaming,
-//! including state transitions and JSONPath evaluation integration.
+//! including state transitions and `JSONPath` evaluation integration.
 //!
 //! NOTE: Many methods in this module appear to duplicate functionality from core.rs.
 //! These are preserved as they may represent different architectural approaches.

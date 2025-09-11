@@ -1,6 +1,6 @@
 //! Content type enumeration and conversions for HTTP requests
 //!
-//! Provides elegant ContentType enum with string conversions and common MIME types.
+//! Provides elegant `ContentType` enum with string conversions and common MIME types.
 
 /// Content type enumeration for elegant API
 #[derive(Debug, Clone, Copy)]
@@ -37,13 +37,12 @@ impl ContentType {
 impl From<&str> for ContentType {
     fn from(s: &str) -> Self {
         match s {
-            "application/json" => ContentType::ApplicationJson,
             "application/x-www-form-urlencoded" => ContentType::ApplicationFormUrlEncoded,
             "application/octet-stream" => ContentType::ApplicationOctetStream,
             "text/plain" => ContentType::TextPlain,
             "text/html" => ContentType::TextHtml,
             "multipart/form-data" => ContentType::MultipartFormData,
-            _ => ContentType::ApplicationJson, // Default fallback
+            _ => ContentType::ApplicationJson, // Default fallback including "application/json"
         }
     }
 }

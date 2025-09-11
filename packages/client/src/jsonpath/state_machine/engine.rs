@@ -16,6 +16,7 @@ use crate::jsonpath::{
 
 impl StreamStateMachine {
     /// Create new state machine for JSON streaming
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             state: JsonStreamState::Initial,
@@ -25,15 +26,15 @@ impl StreamStateMachine {
         }
     }
 
-    /// Initialize state machine with JSONPath expression
+    /// Initialize state machine with `JSONPath` expression
     ///
     /// # Arguments
     ///
-    /// * `expression` - Compiled JSONPath expression to evaluate
+    /// * `expression` - Compiled `JSONPath` expression to evaluate
     ///
     /// # Performance
     ///
-    /// JSONPath expression is analyzed once during initialization to optimize
+    /// `JSONPath` expression is analyzed once during initialization to optimize
     /// runtime state transitions and minimize allocation during streaming.
     pub fn initialize(&mut self, expression: JsonPathExpression) {
         self.path_expression = Some(expression);
@@ -51,6 +52,7 @@ impl StreamStateMachine {
 
     /// Get current state (for testing and debugging)
     #[inline]
+    #[must_use] 
     pub fn state(&self) -> &JsonStreamState {
         &self.state
     }
@@ -161,7 +163,7 @@ impl StreamStateMachine {
             }
             _ => {
                 let err = stream_error(
-                    &format!("unexpected byte 0x{:02x} in initial state", byte),
+                    format!("unexpected byte 0x{byte:02x} in initial state"),
                     "initial",
                     false,
                 );
@@ -170,7 +172,7 @@ impl StreamStateMachine {
         }
     }
 
-    /// Process byte while navigating to JSONPath target
+    /// Process byte while navigating to `JSONPath` target
     fn process_navigating_byte(
         &mut self,
         byte: u8,
@@ -245,7 +247,7 @@ pub struct MatchedValue {
 }
 
 impl StreamStateMachine {
-    /// Process JSON chunk with full streaming JSONPath state management
+    /// Process JSON chunk with full streaming `JSONPath` state management
     pub fn process_chunk_with_jsonpath_state(
         &mut self,
         chunk: &[u8],
@@ -275,11 +277,11 @@ impl StreamStateMachine {
                 Ok(ProcessResult::NeedMoreData) => break,
                 Ok(ProcessResult::Complete) => break,
                 Ok(ProcessResult::Error(err)) => {
-                    log::error!("JSONPath streaming error at offset {}: {}", pos, err);
+                    log::error!("JSONPath streaming error at offset {pos}: {err}");
                     pos += 1; // Continue processing
                 }
                 Err(err) => {
-                    log::error!("State machine error at offset {}: {}", pos, err);
+                    log::error!("State machine error at offset {pos}: {err}");
                     pos += 1; // Continue processing
                 }
             }
@@ -288,7 +290,7 @@ impl StreamStateMachine {
         Ok(matches)
     }
 
-    /// Check if current position matches JSONPath expression
+    /// Check if current position matches `JSONPath` expression
     fn matches_current_expression(&self, jsonpath_state: &StreamingJsonPathState) -> bool {
         // Complete implementation that evaluates JSONPath selectors
         if jsonpath_state.selectors.is_empty() {
@@ -378,15 +380,14 @@ impl StreamStateMachine {
         }
         
         // Handle end boundary
-        if let Some(end_bound) = end {
-            if index >= end_bound {
+        if let Some(end_bound) = end
+            && index >= end_bound {
                 return false;
             }
-        }
         
         // Check step alignment
         if step > 1 {
-            ((index - start_bound) as usize % step) == 0
+            ((index - start_bound) as usize).is_multiple_of(step)
         } else {
             true
         }
@@ -411,7 +412,7 @@ impl StreamStateMachine {
         }
     }
 
-    /// Process byte with JSONPath state tracking
+    /// Process byte with `JSONPath` state tracking
     fn process_byte_with_jsonpath(
         &mut self,
         byte: u8,
@@ -445,7 +446,7 @@ impl StreamStateMachine {
         Ok(result)
     }
 
-    /// Handle JSON object start for JSONPath evaluation
+    /// Handle JSON object start for `JSONPath` evaluation
     fn handle_object_start_for_jsonpath(
         &mut self,
         jsonpath_state: &mut StreamingJsonPathState,
@@ -505,7 +506,7 @@ impl StreamStateMachine {
                     // Property selectors will be handled when we encounter property names
                     // For now, just add a placeholder navigation frame that will be updated
                     jsonpath_state.push_navigation_frame(
-                        crate::jsonpath::deserializer::core::types::PathSegment::Property("".to_string()),
+                        crate::jsonpath::deserializer::core::types::PathSegment::Property(String::new()),
                         false
                     );
                 }
@@ -574,7 +575,7 @@ impl StreamStateMachine {
         Ok(())
     }
 
-    /// Handle JSON object end for JSONPath evaluation  
+    /// Handle JSON object end for `JSONPath` evaluation  
     fn handle_object_end_for_jsonpath(
         &mut self,
         jsonpath_state: &mut StreamingJsonPathState,
@@ -584,7 +585,7 @@ impl StreamStateMachine {
         Ok(())
     }
 
-    /// Handle JSON array start for JSONPath evaluation
+    /// Handle JSON array start for `JSONPath` evaluation
     fn handle_array_start_for_jsonpath(
         &mut self,
         jsonpath_state: &mut StreamingJsonPathState,
@@ -759,7 +760,7 @@ impl StreamStateMachine {
         Ok(())
     }
 
-    /// Handle JSON array end for JSONPath evaluation
+    /// Handle JSON array end for `JSONPath` evaluation
     fn handle_array_end_for_jsonpath(
         &mut self,
         jsonpath_state: &mut StreamingJsonPathState,

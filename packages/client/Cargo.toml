@@ -22,21 +22,21 @@ urlencoding = "2"
 h2 = "0.4.12"
 
 # HTTP/3 / QUIC support
-quiche = "0.24"
+quiche = "0.24.6"
 
 # TLS support
-rustls = { version = "0.23", features = ["ring"] }
+rustls = { version = "0.23.31", features = ["ring"] }
 rustls-pemfile = "2"
 webpki-roots = "1"
 # DNS resolution
 hickory-resolver = "0.25"
 
 # Core utilities
-tokio = { version = "1", features = ["full"] }
+tokio = { version = "1.47.1", features = ["full"] }
 bytes = "1"
 futures = "0.3"
 futures-util = { version = "0.3", default-features = false, features = ["std", "alloc"] }
-hyper = { version = "1", features = ["http1", "client"] }
+hyper = { version = "1.7.0", features = ["http1", "client"] }
 hyper-util = { version = "0.1", features = ["http1", "http2", "client", "client-legacy"] }
 pin-project-lite = "0.2"
 once_cell = "1"
@@ -46,11 +46,11 @@ anyhow = "1"
 thiserror = "2"
 
 # Collections
-hashbrown = "0.16"
+hashbrown = "0.16.0"
 
 # Compression libraries
-flate2 = "1.0"  # gzip, deflate, zlib algorithms
-brotli = "8.0"  # Brotli compression algorithm
+flate2 = "1.1.2"  # gzip, deflate, zlib algorithms
+brotli = "8.0.2"   # Brotli compression algorithm
 
 # Serialization
 serde = { version = "1", features = ["derive"] }

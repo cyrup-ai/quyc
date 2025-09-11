@@ -1,4 +1,4 @@
-//! Descendant operations for JSONPath recursive descent processing
+//! Descendant operations for `JSONPath` recursive descent processing
 //!
 //! Handles recursive descent (..) operations and descendant collection
 //! with RFC 9535 compliance.

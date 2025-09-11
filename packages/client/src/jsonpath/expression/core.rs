@@ -1,11 +1,11 @@
-//! Core JsonPathExpression structure and basic methods
+//! Core `JsonPathExpression` structure and basic methods
 //!
-//! Provides the main JSONPath expression struct with basic accessors
-//! and utility methods for compiled JSONPath expressions.
+//! Provides the main `JSONPath` expression struct with basic accessors
+//! and utility methods for compiled `JSONPath` expressions.
 
 use crate::jsonpath::ast::JsonSelector;
 
-/// Compiled JSONPath expression optimized for streaming evaluation
+/// Compiled `JSONPath` expression optimized for streaming evaluation
 #[derive(Debug, Clone)]
 pub struct JsonPathExpression {
     /// Optimized selector chain for runtime execution
@@ -17,8 +17,9 @@ pub struct JsonPathExpression {
 }
 
 impl JsonPathExpression {
-    /// Create new JsonPathExpression
+    /// Create new `JsonPathExpression`
     #[inline]
+    #[must_use] 
     pub fn new(selectors: Vec<JsonSelector>, original: String, is_array_stream: bool) -> Self {
         Self {
             selectors,
@@ -27,32 +28,37 @@ impl JsonPathExpression {
         }
     }
 
-    /// Get original JSONPath expression string
+    /// Get original `JSONPath` expression string
     #[inline]
+    #[must_use] 
     pub fn original(&self) -> &str {
         &self.original
     }
 
-    /// Get original JSONPath expression string (alias for original)
+    /// Get original `JSONPath` expression string (alias for original)
     #[inline]
+    #[must_use] 
     pub fn as_string(&self) -> String {
         self.original.clone()
     }
 
     /// Check if this expression targets array elements for streaming
     #[inline]
+    #[must_use] 
     pub fn is_array_stream(&self) -> bool {
         self.is_array_stream
     }
 
     /// Get compiled selector chain
     #[inline]
+    #[must_use] 
     pub fn selectors(&self) -> &[JsonSelector] {
         &self.selectors
     }
 
     /// Check if expression has recursive descent
     #[inline]
+    #[must_use] 
     pub fn has_recursive_descent(&self) -> bool {
         self.selectors
             .iter()
@@ -61,6 +67,7 @@ impl JsonPathExpression {
 
     /// Get the starting position of recursive descent in selector chain
     #[inline]
+    #[must_use] 
     pub fn recursive_descent_start(&self) -> Option<usize> {
         self.selectors
             .iter()
@@ -72,6 +79,7 @@ impl JsonPathExpression {
     /// Returns the first meaningful selector after the root ($) identifier.
     /// This is commonly used to determine the root navigation behavior.
     #[inline]
+    #[must_use] 
     pub fn root_selector(&self) -> Option<&JsonSelector> {
         self.selectors
             .iter()

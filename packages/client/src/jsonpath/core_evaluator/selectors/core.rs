@@ -1,7 +1,7 @@
 //! Core selector application logic
 //!
 //! Handles the main selector application method and basic selector types
-//! including Root, Child, RecursiveDescent, and Union selectors.
+//! including Root, Child, `RecursiveDescent`, and Union selectors.
 
 use serde_json::Value;
 
@@ -26,11 +26,10 @@ impl CoreJsonPathEvaluator {
                 results.push(value.clone());
             }
             JsonSelector::Child { name, .. } => {
-                if let Value::Object(obj) = value {
-                    if let Some(child_value) = obj.get(name) {
+                if let Value::Object(obj) = value
+                    && let Some(child_value) = obj.get(name) {
                         results.push(child_value.clone());
                     }
-                }
             }
             JsonSelector::RecursiveDescent => {
                 // Collect all descendants
@@ -93,11 +92,10 @@ impl CoreJsonPathEvaluator {
         name: &str,
         results: &mut Vec<&'a Value>,
     ) {
-        if let Value::Object(obj) = node {
-            if let Some(value) = obj.get(name) {
+        if let Value::Object(obj) = node
+            && let Some(value) = obj.get(name) {
                 results.push(value);
             }
-        }
     }
 
     /// Collect all descendants using recursive descent (..)

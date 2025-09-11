@@ -1,4 +1,4 @@
-//! Descendant collection operations for JSONPath evaluation
+//! Descendant collection operations for `JSONPath` evaluation
 //!
 //! Contains methods for collecting all descendants and applying selectors recursively.
 
@@ -9,6 +9,7 @@ use crate::jsonpath::parser::JsonSelector;
 
 impl CoreJsonPathEvaluator {
     /// Collect all descendant values from a JSON structure
+    #[must_use] 
     pub fn collect_descendants(&self, json: &Value) -> Vec<Value> {
         let mut descendants = Vec::new();
         self.collect_descendants_impl(json, &mut descendants);

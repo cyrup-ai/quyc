@@ -1,6 +1,6 @@
-//! Core JSONPath evaluator with public API
+//! Core `JSONPath` evaluator with public API
 //!
-//! This module provides the main evaluator struct and public interface for JSONPath evaluation.
+//! This module provides the main evaluator struct and public interface for `JSONPath` evaluation.
 
 use serde_json::Value;
 
@@ -10,22 +10,22 @@ use crate::jsonpath::parser::{JsonPathParser, JsonSelector};
 
 type JsonPathResult<T> = Result<T, JsonPathError>;
 
-/// Core JSONPath evaluator that works with parsed JSON according to RFC 9535
+/// Core `JSONPath` evaluator that works with parsed JSON according to RFC 9535
 ///
-/// This evaluator supports the complete JSONPath specification with optimized performance
+/// This evaluator supports the complete `JSONPath` specification with optimized performance
 /// and protection against pathological inputs.
 pub struct CoreJsonPathEvaluator {
-    /// The parsed selectors from the JSONPath expression
+    /// The parsed selectors from the `JSONPath` expression
     pub(crate) selectors: Vec<JsonSelector>,
     /// The original expression string for debugging and error reporting
     pub(crate) expression: String,
 }
 
 impl CoreJsonPathEvaluator {
-    /// Create new evaluator with JSONPath expression
+    /// Create new evaluator with `JSONPath` expression
     ///
     /// # Arguments
-    /// * `expression` - JSONPath expression string (e.g., "$.store.book[*].author")
+    /// * `expression` - `JSONPath` expression string (e.g., "$.store.book[*].author")
     ///
     /// # Returns
     /// * `JsonPathResult<Self>` - New evaluator instance or parse error
@@ -51,23 +51,25 @@ impl CoreJsonPathEvaluator {
         })
     }
 
-    /// Evaluate JSONPath expression against JSON value using AST-based evaluation
+    /// Evaluate `JSONPath` expression against JSON value using AST-based evaluation
     pub fn evaluate(&self, json: &Value) -> JsonPathResult<Vec<Value>> {
         // Add timeout protection for deep nesting patterns
         TimeoutProtectedEvaluator::evaluate_with_timeout(&self.expression, json)
     }
 
     /// Get the parsed selectors for this evaluator
+    #[must_use] 
     pub fn selectors(&self) -> &[JsonSelector] {
         &self.selectors
     }
 
     /// Get the original expression string
+    #[must_use] 
     pub fn expression(&self) -> &str {
         &self.expression
     }
 
-    /// Evaluate JSONPath expression against JSON value with custom timeout
+    /// Evaluate `JSONPath` expression against JSON value with custom timeout
     pub fn evaluate_with_custom_timeout(
         &self,
         json: &Value,
@@ -77,6 +79,7 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Check if the expression is safe for evaluation (no deep nesting patterns)
+    #[must_use] 
     pub fn is_safe_expression(&self) -> bool {
         // Check for potentially problematic patterns
         let expr = &self.expression;
@@ -104,6 +107,7 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Get a summary of the evaluator's configuration
+    #[must_use] 
     pub fn summary(&self) -> String {
         format!(
             "JSONPath Evaluator: '{}' with {} selectors (safe: {})",

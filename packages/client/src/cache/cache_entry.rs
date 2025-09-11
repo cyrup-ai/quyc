@@ -1,7 +1,7 @@
 //! Cache entry management with TTL and validation support
 //!
-//! Provides CacheEntry for storing HTTP responses with metadata like
-//! expiration times, ETags, and hit tracking for LRU eviction.
+//! Provides `CacheEntry` for storing HTTP responses with metadata like
+//! expiration times, `ETags`, and hit tracking for LRU eviction.
 
 use std::{
     sync::atomic::{AtomicU64, Ordering},
@@ -28,7 +28,7 @@ pub struct CacheEntry {
     pub last_accessed: Instant,
     /// Cache expiration time (from Cache-Control headers)
     pub expires_at: Option<Instant>,
-    /// ETag for validation
+    /// `ETag` for validation
     pub etag: Option<String>,
     /// Last-Modified timestamp for validation
     pub last_modified: Option<SystemTime>,
@@ -112,11 +112,10 @@ impl CacheEntry {
     fn parse_max_age(cache_control: &str) -> Option<u64> {
         for directive in cache_control.split(',') {
             let directive = directive.trim();
-            if directive.starts_with("max-age=") {
-                if let Ok(seconds) = directive[8..].parse::<u64>() {
+            if directive.starts_with("max-age=")
+                && let Ok(seconds) = directive[8..].parse::<u64>() {
                     return Some(seconds);
                 }
-            }
         }
         None
     }
@@ -124,7 +123,7 @@ impl CacheEntry {
     /// Check if cache entry is expired
     pub fn is_expired(&self) -> bool {
         self.expires_at
-            .map_or(false, |expires| Instant::now() > expires)
+            .is_some_and(|expires| Instant::now() > expires)
     }
 
     /// Check if entry can be validated with conditional request

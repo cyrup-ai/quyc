@@ -1,6 +1,6 @@
 //! Function signature definitions for RFC 9535 built-in functions
 //!
-//! Contains the type signatures for all built-in JSONPath functions
+//! Contains the type signatures for all built-in `JSONPath` functions
 //! as specified in RFC 9535.
 
 use super::core::{FunctionSignature, FunctionType, TypeSystem};
@@ -11,6 +11,7 @@ impl TypeSystem {
     /// Returns the type signature for the specified function name,
     /// or None if the function is not a built-in RFC 9535 function.
     #[inline]
+    #[must_use] 
     pub fn get_function_signature(function_name: &str) -> Option<FunctionSignature> {
         match function_name {
             "length" => Some(FunctionSignature {

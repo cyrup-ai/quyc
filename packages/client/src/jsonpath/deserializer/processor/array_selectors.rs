@@ -1,4 +1,4 @@
-//! Array selector processing for JSONPath expressions
+//! Array selector processing for `JSONPath` expressions
 //!
 //! Handles array index evaluation, slicing, and filtering operations
 //! during streaming JSON processing.
@@ -15,6 +15,7 @@ pub enum ArraySelectorResult {
 }
 
 /// Process array selector against current index
+#[must_use] 
 pub fn evaluate_array_selector(
     selector: &str,
     current_index: usize,
@@ -47,7 +48,8 @@ pub fn evaluate_array_selector(
     }
 }
 
-/// Check if array index matches slice expression (e.g., "1:3", "::2")
+/// Check if array index matches slice expression (e.g., "1:3", "`::2`")
+#[must_use] 
 pub fn matches_slice(slice_expr: &str, current_index: usize, _array_length: Option<usize>) -> bool {
     // Basic slice implementation - can be expanded for full slice syntax
     if slice_expr.contains(':') {

@@ -11,6 +11,7 @@ pub struct FilterUtils;
 impl FilterUtils {
     /// Check if a filter value is "truthy" for boolean context
     #[inline]
+    #[must_use] 
     pub fn is_truthy(value: &FilterValue) -> bool {
         match value {
             FilterValue::Boolean(b) => *b,

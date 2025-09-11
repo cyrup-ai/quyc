@@ -1,5 +1,5 @@
 //! Pure streams-first execution - NO Futures, NO Result wrapping
-//! All operations return unwrapped AsyncStreams per fluent-ai architecture
+//! All operations return unwrapped `AsyncStreams` per fluent-ai architecture
 
 use ystream::{AsyncStream, prelude::MessageChunk};
 use serde::de::DeserializeOwned;
@@ -42,12 +42,12 @@ impl Default for RequestExecution {
 
 /// Pure streams extension trait - NO Result wrapping, streams-only
 ///
-/// Provides streaming methods that return AsyncStreams of deserialized types
+/// Provides streaming methods that return `AsyncStreams` of deserialized types
 /// following the streams-first architecture mandate
 pub trait HttpStreamExt<T> {
     /// Stream deserialized objects as they arrive - pure streaming
     ///
-    /// Returns unwrapped AsyncStream of deserialized objects, not Result-wrapped
+    /// Returns unwrapped `AsyncStream` of deserialized objects, not Result-wrapped
     /// Errors are emitted as stream items, not exceptions
     fn stream_objects(self) -> AsyncStream<T, 1024>;
 

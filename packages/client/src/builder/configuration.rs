@@ -6,12 +6,15 @@ use super::builder_core::Http3Builder;
 /// Trait for builder configuration methods
 pub trait BuilderConfig {
     /// Enable debug logging for this request
+    #[must_use]
     fn debug(self) -> Self;
 
     /// Set request timeout in seconds
+    #[must_use]
     fn timeout(self, seconds: u64) -> Self;
 
     /// Set maximum retry attempts
+    #[must_use]
     fn retry_attempts(self, attempts: u32) -> Self;
 }
 
@@ -58,7 +61,6 @@ impl<S> Http3Builder<S> {
     ///
     /// # Returns
     /// `Self` for method chaining
-    #[must_use]
     #[inline]
     pub fn debug(mut self) -> Self {
         self.debug_enabled = true;
@@ -81,7 +83,6 @@ impl<S> Http3Builder<S> {
     ///     .timeout(30)
     ///     .get("https://api.example.com/data");
     /// ```
-    #[must_use]
     #[inline]
     pub fn timeout(self, seconds: u64) -> Self {
         if self.debug_enabled {
@@ -98,7 +99,6 @@ impl<S> Http3Builder<S> {
     ///
     /// # Returns
     /// `Self` for method chaining
-    #[must_use]
     #[inline]
     pub fn retry_attempts(self, attempts: u32) -> Self {
         if self.debug_enabled {

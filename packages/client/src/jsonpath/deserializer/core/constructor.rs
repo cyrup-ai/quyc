@@ -11,7 +11,7 @@ where
     ///
     /// # Arguments
     ///
-    /// * `path_expression` - Compiled JSONPath expression for navigation
+    /// * `path_expression` - Compiled `JSONPath` expression for navigation
     /// * `buffer` - Streaming buffer containing JSON bytes
     #[inline]
     pub fn new(path_expression: &'a JsonPathExpression, buffer: &'a mut StreamBuffer) -> Self {

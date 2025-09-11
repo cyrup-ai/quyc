@@ -77,7 +77,7 @@ pub(crate) fn parse_character_token(
         c if c.is_alphabetic() || c == '_' => parse_identifier(parser, chars, i),
         _ => Err(invalid_expression_error(
             &parser.input,
-            &format!("unexpected character '{}'", chars[i]),
+            format!("unexpected character '{}'", chars[i]),
             Some(i),
         )),
     }

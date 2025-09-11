@@ -152,12 +152,14 @@ pub enum FrameChunk {
 impl FrameChunk {
     /// Create H2 frame chunk
     #[inline]
+    #[must_use] 
     pub fn h2_frame(frame: H2Frame) -> Self {
         Self::H2(frame)
     }
 
     /// Create H3 frame chunk
     #[inline]
+    #[must_use] 
     pub fn h3_frame(frame: H3Frame) -> Self {
         Self::H3(frame)
     }

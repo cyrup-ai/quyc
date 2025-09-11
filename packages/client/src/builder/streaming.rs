@@ -1,5 +1,5 @@
 //! Pure streams-first architecture - NO Futures, NO Result wrapping
-//! Transforms HTTP byte streams into individual JSON objects via JSONPath
+//! Transforms HTTP byte streams into individual JSON objects via `JSONPath`
 
 use ystream::prelude::MessageChunk;
 use serde::de::DeserializeOwned;
@@ -43,12 +43,14 @@ impl Default for StreamingBuilder {
 impl StreamingBuilder {
     /// Create new streaming builder
     #[inline]
+    #[must_use] 
     pub fn new() -> Self {
         Self::default()
     }
 
     /// Set buffer size for streaming
     #[inline]
+    #[must_use] 
     pub fn buffer_size(mut self, size: usize) -> Self {
         self.config.buffer_size = size;
         self
@@ -56,6 +58,7 @@ impl StreamingBuilder {
 
     /// Set chunk size for streaming
     #[inline]
+    #[must_use] 
     pub fn chunk_size(mut self, size: usize) -> Self {
         self.config.chunk_size = size;
         self
@@ -63,20 +66,22 @@ impl StreamingBuilder {
 
     /// Enable or disable compression
     #[inline]
+    #[must_use] 
     pub fn compression(mut self, enabled: bool) -> Self {
         self.config.enable_compression = enabled;
         self
     }
 
-    /// Set JSONPath expression for filtering
+    /// Set `JSONPath` expression for filtering
     #[inline]
+    #[must_use] 
     pub fn jsonpath(mut self, expression: &str) -> Self {
         self.jsonpath_expression = Some(expression.to_string());
         self
     }
 }
 
-/// Pure AsyncStream of JSON objects via JSONPath - NO Result wrapping
+/// Pure `AsyncStream` of JSON objects via `JSONPath` - NO Result wrapping
 pub struct JsonPathStream<T> {
     inner: AsyncStream<T, 1024>,
     chunk_handler: Option<Box<dyn Fn(Result<T, HttpError>) -> T + Send + Sync>>,
@@ -86,8 +91,9 @@ impl<T> JsonPathStream<T>
 where
     T: DeserializeOwned + Send + Default + MessageChunk + 'static,
 {
-    /// Create JSONPath stream from HTTP response - pure streams architecture
+    /// Create `JSONPath` stream from HTTP response - pure streams architecture
     #[inline]
+    #[must_use] 
     pub fn new(http_response_stream: AsyncStream<crate::prelude::HttpResponse, 1>, _jsonpath_expr: String) -> Self {
         Self {
             inner: AsyncStream::with_channel(move |sender| {
@@ -100,7 +106,7 @@ where
                         let body_stream = http_response.into_body_stream();
                         for body_chunk in body_stream {
                             if let Some(bytes) = body_chunk.data() {
-                                buffer.extend_from_slice(&bytes);
+                                buffer.extend_from_slice(bytes);
 
                                 // Try to parse accumulated JSON and apply JSONPath
                                 if let Ok(json_value) =
@@ -138,6 +144,7 @@ where
 
     /// Set chunk handler for error processing
     #[inline]
+    #[must_use]
     pub fn on_chunk<F>(mut self, handler: F) -> Self
     where
         F: Fn(Result<T, HttpError>) -> T + Send + Sync + 'static,
@@ -151,7 +158,7 @@ where
 
     /// Get the next item from the stream
     #[inline]
-    pub fn next(&mut self) -> Option<T> {
+    pub fn try_next(&mut self) -> Option<T> {
         self.inner.try_next()
     }
 }

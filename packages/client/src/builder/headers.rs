@@ -8,12 +8,15 @@ use crate::builder::core::{ContentType, Http3Builder};
 /// Trait for header building operations
 pub trait HeaderBuilder {
     /// Set a custom header
+    #[must_use]
     fn header(self, name: &str, value: &str) -> Self;
 
     /// Set Accept header
+    #[must_use]
     fn accept(self, content_type: ContentType) -> Self;
 
     /// Set User-Agent header
+    #[must_use]
     fn user_agent(self, agent: &str) -> Self;
 }
 
@@ -33,17 +36,18 @@ impl Default for HeaderConfig {
     }
 }
 
-/// Helper type for accept method that can handle both strings and ContentType enums
+/// Helper type for accept method that can handle both strings and `ContentType` enums
 pub enum AcceptValue {
     /// String representation of content type
     String(String),
-    /// ContentType enum variant
+    /// `ContentType` enum variant
     ContentType(ContentType),
 }
 
 impl AcceptValue {
     /// Convert to string representation
     #[inline]
+    #[must_use] 
     pub fn as_str(&self) -> &str {
         match self {
             AcceptValue::String(s) => s,
@@ -129,7 +133,7 @@ impl<S> Http3Builder<S> {
         self
     }
 
-    /// Set Accept header with ContentType enum
+    /// Set Accept header with `ContentType` enum
     ///
     /// # Arguments
     /// * `content_type` - The content type to accept
@@ -223,14 +227,15 @@ impl<S> Http3Builder<S> {
 
 /// Helper function to create header value from string
 #[inline]
+#[must_use] 
 pub fn header(name: &str, value: &str) -> (HeaderName, HeaderValue) {
     let header_name = HeaderName::from_bytes(name.as_bytes()).unwrap_or_else(|_| {
-        log::error!("Invalid header name: {}", name);
+        log::error!("Invalid header name: {name}");
         HeaderName::from_static("x-invalid")
     });
 
     let header_value = HeaderValue::from_str(value).unwrap_or_else(|_| {
-        log::error!("Invalid header value: {}", value);
+        log::error!("Invalid header value: {value}");
         HeaderValue::from_static("")
     });
 

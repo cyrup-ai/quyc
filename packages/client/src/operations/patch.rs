@@ -133,7 +133,7 @@ impl HttpOperation for PatchOperation {
                 return AsyncStream::with_channel(move |sender| {
                     let error_response = crate::prelude::HttpResponse::error(
                         http::StatusCode::BAD_REQUEST,
-                        format!("URL parse error: {}", e)
+                        format!("URL parse error: {e}")
                     );
                     ystream::emit!(sender, error_response);
                 });

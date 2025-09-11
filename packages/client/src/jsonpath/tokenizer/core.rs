@@ -1,7 +1,7 @@
 //! Core tokenizer types and parser implementation
 //!
-//! Provides the main ExpressionParser struct and core parsing logic
-//! for JSONPath expressions with RFC 9535 validation.
+//! Provides the main `ExpressionParser` struct and core parsing logic
+//! for `JSONPath` expressions with RFC 9535 validation.
 
 use std::collections::VecDeque;
 
@@ -22,6 +22,7 @@ pub struct ExpressionParser {
 impl ExpressionParser {
     /// Create new expression parser
     #[inline]
+    #[must_use] 
     pub fn new(input: &str) -> Self {
         Self {
             input: input.to_string(),
@@ -30,7 +31,7 @@ impl ExpressionParser {
         }
     }
 
-    /// Parse complete JSONPath expression into selector chain
+    /// Parse complete `JSONPath` expression into selector chain
     pub fn parse(&mut self) -> JsonPathResult<Vec<JsonSelector>> {
         self.tokenize()?;
 
@@ -40,8 +41,8 @@ impl ExpressionParser {
         // Note: Multiple root identifiers are allowed in complex expressions with functions
         let tokens_vec: Vec<_> = self.tokens.iter().collect();
 
-        if self.tokens.len() >= 3 {
-            if matches!(tokens_vec[0], Token::Root) && matches!(tokens_vec[1], Token::Identifier(_))
+        if self.tokens.len() >= 3
+            && matches!(tokens_vec[0], Token::Root) && matches!(tokens_vec[1], Token::Identifier(_))
             {
                 // This is the invalid pattern: $identifier (without dot or bracket)
                 return Err(invalid_expression_error(
@@ -50,7 +51,6 @@ impl ExpressionParser {
                     Some(1), // Position of the identifier token
                 ));
             }
-        }
 
         let mut selectors = Vec::new();
 

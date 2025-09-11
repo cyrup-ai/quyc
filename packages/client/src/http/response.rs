@@ -1,7 +1,7 @@
 //! HTTP response types with component-level streaming
 //!
-//! This module provides the CANONICAL HttpResponse implementation where each
-//! HTTP component (status, headers, body) is exposed as an individual AsyncStream,
+//! This module provides the CANONICAL `HttpResponse` implementation where each
+//! HTTP component (status, headers, body) is exposed as an individual `AsyncStream`,
 //! enabling real-time processing as data arrives from the wire.
 
 use std::sync::atomic::{AtomicU16, Ordering};
@@ -14,8 +14,8 @@ use http::{HeaderMap, HeaderName, HeaderValue, StatusCode, Version};
 
 /// HTTP response with component-level streaming
 ///
-/// This is the CANONICAL HttpResponse implementation that exposes each HTTP
-/// component as a separate AsyncStream, allowing processing of headers before
+/// This is the CANONICAL `HttpResponse` implementation that exposes each HTTP
+/// component as a separate `AsyncStream`, allowing processing of headers before
 /// the body arrives, and enabling constant-memory processing of large responses.
 pub struct HttpResponse {
     /// HTTP status code - set once, read many times (atomic, 0 = not yet received)
@@ -106,7 +106,7 @@ pub enum HttpChunk {
 
 /// Protocol-agnostic download chunk for file downloads with progress tracking
 ///
-/// Used by DownloadBuilder to provide consistent download functionality
+/// Used by `DownloadBuilder` to provide consistent download functionality
 /// across all protocols (HTTP/2, HTTP/3, QUIC) via the strategy pattern.
 #[derive(Debug, Clone)]
 pub enum HttpDownloadChunk {
@@ -238,6 +238,7 @@ impl ystream::prelude::MessageChunk for HttpDownloadChunk {
 
 impl HttpDownloadChunk {
     /// Get the data bytes from this download chunk
+    #[must_use] 
     pub fn data(&self) -> Option<&[u8]> {
         match self {
             HttpDownloadChunk::Data { chunk, .. } => Some(chunk.as_slice()),
@@ -246,6 +247,7 @@ impl HttpDownloadChunk {
     }
     
     /// Get download progress information
+    #[must_use] 
     pub fn progress(&self) -> Option<(u64, Option<u64>)> {
         match self {
             HttpDownloadChunk::Data { downloaded, total_size, .. } => Some((*downloaded, *total_size)),
@@ -255,13 +257,15 @@ impl HttpDownloadChunk {
     }
     
     /// Check if this is the completion marker
+    #[must_use] 
     pub fn is_complete(&self) -> bool {
         matches!(self, HttpDownloadChunk::Complete)
     }
 }
 
 impl HttpResponse {
-    /// Create a new HttpResponse with the given component streams
+    /// Create a new `HttpResponse` with the given component streams
+    #[must_use] 
     pub fn new(
         headers_stream: AsyncStream<HttpHeader, 256>,
         body_stream: AsyncStream<HttpBodyChunk, 1024>,
@@ -289,7 +293,7 @@ impl HttpResponse {
         self.status.load(Ordering::Acquire)
     }
     
-    /// Get StatusCode if available
+    /// Get `StatusCode` if available
     #[inline(always)]
     pub fn status_code(&self) -> Option<StatusCode> {
         match self.status() {
@@ -313,24 +317,24 @@ impl HttpResponse {
     /// Check methods - zero-cost, lock-free
     #[inline(always)]
     pub fn is_success(&self) -> bool {
-        self.status_code().map_or(false, |s| s.is_success())
+        self.status_code().is_some_and(|s| s.is_success())
     }
     
     #[inline(always)]
     pub fn is_error(&self) -> bool {
-        self.status_code().map_or(false, |s| s.is_client_error() || s.is_server_error())
+        self.status_code().is_some_and(|s| s.is_client_error() || s.is_server_error())
     }
     
     #[inline(always)]
     pub fn is_redirect(&self) -> bool {
-        self.status_code().map_or(false, |s| s.is_redirection())
+        self.status_code().is_some_and(|s| s.is_redirection())
     }
     
     /// Get a specific header value by name
     pub fn header(&self, name: &str) -> Option<HeaderValue> {
         // Check cached headers if available
-        if let Ok(cache) = self.cached_headers.read() {
-            if let Some(ref headers) = *cache {
+        if let Ok(cache) = self.cached_headers.read()
+            && let Some(ref headers) = *cache {
                 // Search through cached headers for matching name (case-insensitive)
                 for http_header in headers {
                     if http_header.name.as_str().eq_ignore_ascii_case(name) {
@@ -338,7 +342,6 @@ impl HttpResponse {
                     }
                 }
             }
-        }
         
         // No cached headers available or header not found
         // For streaming responses, user should call collect_and_cache_headers() first
@@ -356,11 +359,10 @@ impl HttpResponse {
     /// For streaming responses, use `collect_headers()` async method instead.
     pub fn headers(&self) -> Vec<HttpHeader> {
         // Return cached headers if available
-        if let Ok(cache) = self.cached_headers.read() {
-            if let Some(ref headers) = *cache {
+        if let Ok(cache) = self.cached_headers.read()
+            && let Some(ref headers) = *cache {
                 return headers.clone();
             }
-        }
         
         // No cached headers available - return empty vector
         // User should call collect_and_cache_headers() first for streaming responses
@@ -373,11 +375,10 @@ impl HttpResponse {
     /// For streaming responses, use `collect_body()` async method instead.
     pub fn body(&self) -> Vec<u8> {
         // Return cached body if available
-        if let Ok(cache) = self.cached_body.read() {
-            if let Some(ref body) = *cache {
+        if let Ok(cache) = self.cached_body.read()
+            && let Some(ref body) = *cache {
                 return body.clone();
             }
-        }
         
         // No cached body available - return empty vector
         // User should call collect_and_cache_body() first for streaming responses
@@ -397,19 +398,19 @@ impl HttpResponse {
     /// Get content type header value
     pub fn content_type(&self) -> Option<String> {
         self.header("content-type")
-            .and_then(|v| v.to_str().ok().map(|s| s.to_string()))
+            .and_then(|v| v.to_str().ok().map(std::string::ToString::to_string))
     }
     
     /// Get content length if available
     pub fn content_length(&self) -> Option<usize> {
         self.header("content-length")
-            .and_then(|v| v.to_str().ok().map(|s| s.to_string()))
+            .and_then(|v| v.to_str().ok().map(std::string::ToString::to_string))
             .and_then(|s| s.parse().ok())
     }
     
     /// Consume the response and return its body stream
     /// 
-    /// This consumes the HttpResponse and returns ownership of the body stream
+    /// This consumes the `HttpResponse` and returns ownership of the body stream
     /// for streaming transformations.
     pub fn into_body_stream(self) -> AsyncStream<HttpBodyChunk, 1024> {
         self.body_internal
@@ -417,7 +418,7 @@ impl HttpResponse {
     
     /// Consume the response and return all its streams
     /// 
-    /// This consumes the HttpResponse and returns ownership of all internal streams.
+    /// This consumes the `HttpResponse` and returns ownership of all internal streams.
     pub fn into_streams(self) -> (
         AsyncStream<HttpHeader, 256>,
         AsyncStream<HttpBodyChunk, 1024>,
@@ -427,6 +428,7 @@ impl HttpResponse {
     }
 
     /// Create an empty response (used for errors)
+    #[must_use] 
     pub fn empty() -> Self {
         // Create proper AsyncStreams using channel factory method
         let (_, headers_stream) = AsyncStream::channel();
@@ -447,9 +449,9 @@ impl HttpResponse {
         }
     }
 
-    /// Create HttpResponse from cached entry
+    /// Create `HttpResponse` from cached entry
     /// 
-    /// Converts a CacheEntry back into an HttpResponse for serving cached responses.
+    /// Converts a `CacheEntry` back into an `HttpResponse` for serving cached responses.
     pub fn from_cache_entry(cache_entry: crate::cache::cache_entry::CacheEntry) -> Self {
         use crate::http::response::{HttpBodyChunk, HttpHeader};
         
@@ -459,7 +461,7 @@ impl HttpResponse {
         let (_, trailers_stream) = AsyncStream::channel(); // No trailers in cache
 
         // Emit cached headers
-        for (name, value) in cache_entry.headers.iter() {
+        for (name, value) in &cache_entry.headers {
             let http_header = HttpHeader {
                 name: name.clone(),
                 value: value.clone(),
@@ -495,7 +497,8 @@ impl HttpResponse {
         }
     }
 
-    /// Create HttpResponse from HTTP/2 response
+    /// Create `HttpResponse` from HTTP/2 response
+    #[must_use] 
     pub fn from_http2_response(
         status: StatusCode,
         headers: HeaderMap,
@@ -507,7 +510,7 @@ impl HttpResponse {
         let (headers_sender, headers_stream) = AsyncStream::channel();
 
         // Emit headers immediately
-        for (name, value) in headers.iter() {
+        for (name, value) in &headers {
             let http_header = HttpHeader {
                 name: name.clone(),
                 value: value.clone(),
@@ -531,7 +534,8 @@ impl HttpResponse {
         }
     }
 
-    /// Create HttpResponse from HTTP/3 response
+    /// Create `HttpResponse` from HTTP/3 response
+    #[must_use] 
     pub fn from_http3_response(
         status: StatusCode,
         headers: HeaderMap,
@@ -543,7 +547,7 @@ impl HttpResponse {
         let (headers_sender, headers_stream) = AsyncStream::channel();
 
         // Emit headers immediately
-        for (name, value) in headers.iter() {
+        for (name, value) in &headers {
             let http_header = HttpHeader {
                 name: name.clone(),
                 value: value.clone(),
@@ -567,7 +571,8 @@ impl HttpResponse {
         }
     }
 
-    /// Create error HttpResponse
+    /// Create error `HttpResponse`
+    #[must_use] 
     pub fn error(status_code: StatusCode, message: String) -> Self {
         use bytes::Bytes;
 
@@ -609,7 +614,7 @@ impl HttpResponse {
         }
     }
 
-    /// Collect all headers into a HeaderMap
+    /// Collect all headers into a `HeaderMap`
     /// Note: This consumes the headers stream
     pub async fn collect_headers(&mut self) -> HeaderMap {
         let mut headers = HeaderMap::new();
@@ -634,7 +639,7 @@ impl HttpResponse {
         if chunks.is_empty() {
             Bytes::new()
         } else if chunks.len() == 1 {
-            chunks.into_iter().next().unwrap_or_else(|| Bytes::new())
+            chunks.into_iter().next().unwrap_or_else(Bytes::new)
         } else {
             let mut combined = Vec::with_capacity(total_size);
             for chunk in chunks {
@@ -676,7 +681,7 @@ impl HttpResponse {
         let body = if chunks.is_empty() {
             Vec::new()
         } else if chunks.len() == 1 {
-            chunks.into_iter().next().unwrap_or_else(|| Bytes::new()).to_vec()
+            chunks.into_iter().next().unwrap_or_else(Bytes::new).to_vec()
         } else {
             let mut combined = Vec::with_capacity(total_size);
             for chunk in chunks {
@@ -693,16 +698,16 @@ impl HttpResponse {
         body
     }
 
-    /// Extract ETag header value - returns cached value from first frame
+    /// Extract `ETag` header value - returns cached value from first frame
     #[inline]
     pub fn etag(&self) -> Option<&str> {
-        self.cached_etag.get().map(|s| s.as_str())
+        self.cached_etag.get().map(std::string::String::as_str)
     }
 
     /// Extract Last-Modified header value - returns cached value from first frame  
     #[inline]
     pub fn last_modified(&self) -> Option<&str> {
-        self.cached_last_modified.get().map(|s| s.as_str())
+        self.cached_last_modified.get().map(std::string::String::as_str)
     }
 
     /// Set cached etag value (called by protocol layer on first frame)
@@ -727,7 +732,8 @@ impl HttpResponse {
 }
 
 impl HttpStatus {
-    /// Create a new HttpStatus
+    /// Create a new `HttpStatus`
+    #[must_use] 
     pub fn new(code: StatusCode, reason: String, version: Version) -> Self {
         Self {
             code,
@@ -738,6 +744,7 @@ impl HttpStatus {
     }
 
     /// Create from just a status code (for HTTP/2 and HTTP/3)
+    #[must_use] 
     pub fn from_code(code: StatusCode, version: Version) -> Self {
         Self {
             code,
@@ -749,7 +756,7 @@ impl HttpStatus {
 }
 
 impl HttpHeader {
-    /// Create a new HttpHeader
+    /// Create a new `HttpHeader`
     pub fn new(name: HeaderName, value: HeaderValue) -> Self {
         Self {
             name,
@@ -760,7 +767,7 @@ impl HttpHeader {
 }
 
 impl HttpBodyChunk {
-    /// Create a new HttpBodyChunk
+    /// Create a new `HttpBodyChunk`
     pub fn new(data: Bytes, offset: u64, is_final: bool) -> Self {
         Self {
             data,
@@ -796,7 +803,7 @@ impl ystream::prelude::MessageChunk for HttpResponse {
     }
 
     fn is_error(&self) -> bool {
-        self.status_code().map_or(false, |s| s.is_client_error() || s.is_server_error())
+        self.status_code().is_some_and(|s| s.is_client_error() || s.is_server_error())
     }
 
     fn error(&self) -> Option<&str> {

@@ -1,4 +1,4 @@
-//! Selector application engine for JSONPath evaluation
+//! Selector application engine for `JSONPath` evaluation
 //!
 //! This module handles the core logic for applying individual selectors to JSON values.
 
@@ -27,11 +27,10 @@ impl SelectorEngine {
                 results.push(value.clone());
             }
             JsonSelector::Child { name, .. } => {
-                if let Value::Object(obj) = value {
-                    if let Some(child_value) = obj.get(name) {
+                if let Value::Object(obj) = value
+                    && let Some(child_value) = obj.get(name) {
                         results.push(child_value.clone());
                     }
-                }
             }
             JsonSelector::RecursiveDescent => {
                 // Collect all descendants
@@ -92,7 +91,7 @@ impl SelectorEngine {
         }
     }
 
-    /// Apply filter selector using FilterEvaluator
+    /// Apply filter selector using `FilterEvaluator`
     fn apply_filter(
         value: &Value,
         expression: &FilterExpression,
@@ -179,6 +178,7 @@ impl SelectorEngine {
     }
 
     /// Check if a selector is potentially expensive
+    #[must_use] 
     pub fn is_expensive_selector(selector: &JsonSelector) -> bool {
         match selector {
             JsonSelector::RecursiveDescent => true,
@@ -191,6 +191,7 @@ impl SelectorEngine {
     }
 
     /// Estimate the complexity of a selector
+    #[must_use] 
     pub fn selector_complexity(selector: &JsonSelector) -> u32 {
         match selector {
             JsonSelector::Root => 1,
@@ -203,7 +204,7 @@ impl SelectorEngine {
             JsonSelector::Union { selectors } => {
                 selectors
                     .iter()
-                    .map(|s| Self::selector_complexity(s))
+                    .map(Self::selector_complexity)
                     .sum::<u32>()
                     + 5
             }

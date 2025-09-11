@@ -2,7 +2,7 @@ use serde::de::DeserializeOwned;
 
 use super::types::JsonPathDeserializer;
 
-impl<'a, T> JsonPathDeserializer<'a, T>
+impl<T> JsonPathDeserializer<'_, T>
 where
     T: DeserializeOwned,
 {

@@ -32,10 +32,12 @@ pub struct MiddlewareChain {
 }
 
 impl MiddlewareChain {
+    #[must_use] 
     pub fn new() -> Self {
         Self::default()
     }
 
+    #[must_use]
     pub fn add<M: Middleware + 'static>(mut self, middleware: M) -> Self {
         self.middlewares.push(Arc::new(middleware));
         self

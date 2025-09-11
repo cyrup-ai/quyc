@@ -15,7 +15,7 @@ use crate::http::{HttpRequest, HttpResponse};
 
 /// Auto-selecting Protocol Strategy with Fallback
 ///
-/// Uses ProtocolIntelligence to learn domain capabilities and automatically
+/// Uses `ProtocolIntelligence` to learn domain capabilities and automatically
 /// selects the best protocol based on historical success/failure data.
 pub struct AutoStrategy {
     /// HTTP/3 strategy
@@ -30,6 +30,7 @@ pub struct AutoStrategy {
 
 impl AutoStrategy {
     /// Create a new auto strategy with preference order
+    #[must_use] 
     pub fn new(prefer: Vec<HttpVersion>, configs: ProtocolConfigs) -> Self {
         Self {
             h3_strategy: H3Strategy::new(configs.h3.clone()),
@@ -88,14 +89,12 @@ impl AutoStrategy {
         let url = request.url();
         
         // Skip HTTP/3 for localhost/127.0.0.1 over HTTP (not HTTPS)
-        if url.scheme() == "http" {
-            if let Some(host) = url.host_str() {
-                if host == "localhost" || host == "127.0.0.1" || host == "::1" {
+        if url.scheme() == "http"
+            && let Some(host) = url.host_str()
+                && (host == "localhost" || host == "127.0.0.1" || host == "::1") {
                     tracing::debug!("Skipping HTTP/3 for {} over HTTP - QUIC requires HTTPS", host);
                     return true;
                 }
-            }
-        }
         
         false
     }
@@ -190,18 +189,17 @@ impl AutoStrategy {
                 );
                 
                 return fallback_response;
-            } else {
-                // Track fallback failure too
-                self.intelligence.track_failure(&domain, fallback_protocol);
-                
-                tracing::warn!(
-                    target: "quyc::protocols::auto",
-                    domain = %domain,
-                    primary_protocol = ?preferred_protocol,
-                    fallback_protocol = ?fallback_protocol,
-                    "Both protocols failed for domain"
-                );
             }
+            // Track fallback failure too
+            self.intelligence.track_failure(&domain, fallback_protocol);
+            
+            tracing::warn!(
+                target: "quyc::protocols::auto",
+                domain = %domain,
+                primary_protocol = ?preferred_protocol,
+                fallback_protocol = ?fallback_protocol,
+                "Both protocols failed for domain"
+            );
             
             return fallback_response;
         }
@@ -338,16 +336,13 @@ impl AutoStrategy {
         let response = strategy.execute(alt_svc_request);
         
         // Extract domain from original request for intelligence tracking
-        let domain = match original_request.url().host_str() {
-            Some(host) => host,
-            None => {
-                tracing::error!(
-                    target: "quyc::protocols::auto",
-                    "Failed to extract domain from Alt-Svc request URL: {}",
-                    original_request.url()
-                );
-                return None; // Fail fast - don't corrupt intelligence tracking with invalid domain
-            }
+        let domain = if let Some(host) = original_request.url().host_str() { host } else {
+            tracing::error!(
+                target: "quyc::protocols::auto",
+                "Failed to extract domain from Alt-Svc request URL: {}",
+                original_request.url()
+            );
+            return None; // Fail fast - don't corrupt intelligence tracking with invalid domain
         };
         
         // Verify Alt-Svc endpoint success
@@ -464,7 +459,7 @@ impl AutoStrategy {
     
     /// Create modified request for Alt-Svc endpoint
     /// 
-    /// Constructs a new HttpRequest with the Alt-Svc endpoint's host and port,
+    /// Constructs a new `HttpRequest` with the Alt-Svc endpoint's host and port,
     /// copying all properties from the original request.
     fn create_alt_svc_request(&self, endpoint: &AltSvcEndpoint, original_request: &HttpRequest) -> Result<HttpRequest, String> {
         use crate::http::url::parse_url;
@@ -481,7 +476,7 @@ impl AutoStrategy {
         
         // Set Alt-Svc port
         url.set_port(Some(endpoint.port))
-            .map_err(|_| "Failed to set Alt-Svc port")?;
+            .map_err(|()| "Failed to set Alt-Svc port")?;
         
         // Create new request using proper constructor with all original properties
         let mut request = HttpRequest::new(
@@ -556,6 +551,7 @@ impl ProtocolStrategy for AutoStrategy {
 // Additional methods specific to AutoStrategy (not part of ProtocolStrategy trait)
 impl AutoStrategy {
     /// Get protocol intelligence statistics
+    #[must_use] 
     pub fn intelligence_stats(&self) -> crate::protocols::intelligence::ProtocolIntelligenceStats {
         self.intelligence.stats()
     }

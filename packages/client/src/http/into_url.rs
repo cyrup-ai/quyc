@@ -23,8 +23,8 @@ pub trait IntoUrl: IntoUrlSealed {}
 
 impl IntoUrl for Url {}
 impl IntoUrl for String {}
-impl<'a> IntoUrl for &'a str {}
-impl<'a> IntoUrl for &'a String {}
+impl IntoUrl for &str {}
+impl IntoUrl for &String {}
 
 pub trait IntoUrlSealed {
     // Besides parsing as a valid `Url`, the `Url` must be a valid
@@ -49,7 +49,7 @@ impl IntoUrlSealed for Url {
         if self.has_host() {
             Ok(self)
         } else {
-            Err(url(format!("Bad scheme in URL: {}", self)))
+            Err(url(format!("Bad scheme in URL: {self}")))
         }
     }
 
@@ -58,7 +58,7 @@ impl IntoUrlSealed for Url {
     }
 }
 
-impl<'a> IntoUrlSealed for &'a str {
+impl IntoUrlSealed for &str {
     fn into_url(self) -> std::result::Result<Url, crate::HttpError> {
         Url::parse(self).map_err(crate::error::builder)?.into_url()
     }
@@ -68,7 +68,7 @@ impl<'a> IntoUrlSealed for &'a str {
     }
 }
 
-impl<'a> IntoUrlSealed for &'a String {
+impl IntoUrlSealed for &String {
     fn into_url(self) -> std::result::Result<Url, crate::HttpError> {
         (&**self).into_url()
     }

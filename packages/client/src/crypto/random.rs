@@ -87,11 +87,13 @@ pub(crate) fn fast_random() -> u64 {
 }
 
 /// Generate boundary string for multipart forms
+#[must_use] 
 pub fn generate_boundary() -> String {
     format!("----formdata-fluent-{:016x}", fast_random())
 }
 
 /// Generate nonce for authentication
+#[must_use] 
 pub fn generate_nonce() -> String {
     format!("{:016x}", fast_random())
 }

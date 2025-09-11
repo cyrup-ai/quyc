@@ -1,6 +1,6 @@
-//! Normalized path generation from JSONPath selectors
+//! Normalized path generation from `JSONPath` selectors
 //!
-//! This module handles the conversion of JSONPath selectors into normalized paths,
+//! This module handles the conversion of `JSONPath` selectors into normalized paths,
 //! validating that they represent unique single-node paths.
 
 use super::types::{NormalizedPath, NormalizedPathProcessor, PathSegment};
@@ -10,9 +10,9 @@ use crate::jsonpath::{
 };
 
 impl NormalizedPathProcessor {
-    /// Generate normalized path from JSONPath selectors
+    /// Generate normalized path from `JSONPath` selectors
     ///
-    /// Takes a sequence of JSONPath selectors and converts them to
+    /// Takes a sequence of `JSONPath` selectors and converts them to
     /// a normalized path if they represent a unique single-node path.
     ///
     /// # Errors

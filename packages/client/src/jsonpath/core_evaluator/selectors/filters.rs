@@ -12,7 +12,7 @@ use crate::jsonpath::parser::FilterExpression;
 
 type JsonPathResult<T> = Result<T, JsonPathError>;
 
-/// Apply filter selector using FilterEvaluator with owned results
+/// Apply filter selector using `FilterEvaluator` with owned results
 pub fn apply_filter_selector_owned(
     evaluator: &CoreJsonPathEvaluator,
     node: &Value,
@@ -59,6 +59,7 @@ pub fn apply_filter_selector_owned(
 
 impl CoreJsonPathEvaluator {
     /// Collect all property names that exist across any item in the array
+    #[must_use] 
     pub fn collect_existing_properties(&self, arr: &[Value]) -> std::collections::HashSet<String> {
         let mut properties = std::collections::HashSet::new();
 
@@ -70,11 +71,11 @@ impl CoreJsonPathEvaluator {
             }
         }
 
-        log::debug!("Collected existing properties: {:?}", properties);
+        log::debug!("Collected existing properties: {properties:?}");
         properties
     }
 
-    /// Apply filter selector using FilterEvaluator
+    /// Apply filter selector using `FilterEvaluator`
     pub fn apply_filter_selector<'a>(
         &self,
         node: &'a Value,

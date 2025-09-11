@@ -27,7 +27,7 @@ pub(crate) enum Matcher_ {
 /// Intercepted request wrapper with proxy configuration
 pub(crate) struct Intercepted {
     pub(crate) inner: super::implementation::Intercept,
-    /// Extra proxy configuration from crate::proxy::Proxy design
+    /// Extra proxy configuration from `crate::proxy::Proxy` design
     /// which allows explicit auth besides URL-based auth
     pub(crate) extra: Extra,
 }

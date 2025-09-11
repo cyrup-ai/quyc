@@ -28,7 +28,7 @@ pub fn extract_name_attributes(name: &x509_cert::name::Name, attrs: &mut HashMap
     const OID_L: &str = "2.5.4.7"; // localityName
 
     // Iterate through RDNs (Relative Distinguished Names)
-    for rdn in name.0.iter() {
+    for rdn in &name.0 {
         // Each RDN contains one or more AttributeTypeAndValue
         for atv in rdn.0.iter() {
             let oid_string = atv.oid.to_string();
@@ -103,7 +103,7 @@ pub fn extract_certificate_details(
 
     // Process extensions
     if let Some(extensions) = &cert.tbs_certificate.extensions {
-        for ext in extensions.iter() {
+        for ext in extensions {
             let oid_string = ext.extn_id.to_string();
 
             match oid_string.as_str() {
@@ -120,31 +120,22 @@ pub fn extract_certificate_details(
                         Ok(octet_string) => {
                             // Now parse the actual SubjectAltName SEQUENCE
                             let san_data = octet_string.as_bytes();
-                            let mut reader = match SliceReader::new(san_data) {
-                                Ok(reader) => reader,
-                                Err(_) => {
-                                    tracing::warn!("Failed to create DER reader for SAN data");
-                                    continue;
-                                }
+                            let mut reader = if let Ok(reader) = SliceReader::new(san_data) { reader } else {
+                                tracing::warn!("Failed to create DER reader for SAN data");
+                                continue;
                             };
 
                             // Read the SEQUENCE header
-                            if let Ok(header) = reader.peek_header() {
-                                if header.tag == Tag::Sequence {
+                            if let Ok(header) = reader.peek_header()
+                                && header.tag == Tag::Sequence {
                                     // Consume the header
-                                    match reader.peek_header() {
-                                        Ok(_) => {}
-                                        Err(_) => {
-                                            tracing::warn!("Failed to consume sequence header");
-                                            continue;
-                                        }
+                                    if reader.peek_header().is_ok() {} else {
+                                        tracing::warn!("Failed to consume sequence header");
+                                        continue;
                                     }
-                                    match reader.read_slice(header.length) {
-                                        Ok(_) => {}
-                                        Err(_) => {
-                                            tracing::warn!("Failed to read sequence data");
-                                            continue;
-                                        }
+                                    if reader.read_slice(header.length).is_ok() {} else {
+                                        tracing::warn!("Failed to read sequence data");
+                                        continue;
                                     }
 
                                     // Parse each GeneralName in the sequence
@@ -153,35 +144,29 @@ pub fn extract_certificate_details(
                                             match name_header.tag.number() {
                                                 TagNumber::N2 => {
                                                     // dNSName [2] IMPLICIT IA5String
-                                                    if let Ok(dns_header) = reader.peek_header() {
-                                                        if let Ok(dns_bytes) =
+                                                    if let Ok(dns_header) = reader.peek_header()
+                                                        && let Ok(dns_bytes) =
                                                             reader.read_vec(dns_header.length)
-                                                        {
-                                                            if let Ok(dns_name) =
+                                                            && let Ok(dns_name) =
                                                                 std::str::from_utf8(&dns_bytes)
                                                             {
                                                                 san_dns_names
                                                                     .push(dns_name.to_string());
                                                             }
-                                                        }
-                                                    }
                                                 }
                                                 TagNumber::N7 => {
                                                     // iPAddress [7] IMPLICIT OCTET STRING
-                                                    if let Ok(ip_header) = reader.peek_header() {
-                                                        if let Ok(ip_bytes) =
+                                                    if let Ok(ip_header) = reader.peek_header()
+                                                        && let Ok(ip_bytes) =
                                                             reader.read_vec(ip_header.length)
                                                         {
                                                             // IPv4 = 4 bytes, IPv6 = 16 bytes
                                                             match ip_bytes.len() {
                                                                 4 => {
                                                                     let octets: [u8; 4] =
-                                                                        match ip_bytes.try_into() {
-                                                                            Ok(octets) => octets,
-                                                                            Err(_) => {
-                                                                                tracing::warn!("Invalid IPv4 address bytes");
-                                                                                continue;
-                                                                            }
+                                                                        if let Ok(octets) = ip_bytes.try_into() { octets } else {
+                                                                            tracing::warn!("Invalid IPv4 address bytes");
+                                                                            continue;
                                                                         };
                                                                     san_ip_addresses
                                                                         .push(std::net::IpAddr::V4(
@@ -192,12 +177,9 @@ pub fn extract_certificate_details(
                                                                 }
                                                                 16 => {
                                                                     let octets: [u8; 16] =
-                                                                        match ip_bytes.try_into() {
-                                                                            Ok(octets) => octets,
-                                                                            Err(_) => {
-                                                                                tracing::warn!("Invalid IPv6 address bytes");
-                                                                                continue;
-                                                                            }
+                                                                        if let Ok(octets) = ip_bytes.try_into() { octets } else {
+                                                                            tracing::warn!("Invalid IPv6 address bytes");
+                                                                            continue;
                                                                         };
                                                                     san_ip_addresses
                                                                         .push(std::net::IpAddr::V6(
@@ -211,7 +193,6 @@ pub fn extract_certificate_details(
                                                                 }
                                                             }
                                                         }
-                                                    }
                                                 }
                                                 _ => {
                                                     // Skip other GeneralName types
@@ -225,7 +206,6 @@ pub fn extract_certificate_details(
                                         }
                                     }
                                 }
-                            }
                         }
                         Err(e) => {
                             tracing::error!("Failed to parse SubjectAltName extension: {}", e);
@@ -334,7 +314,7 @@ pub fn extract_certificate_details(
     ))
 }
 
-/// Parse certificate from X509Certificate struct to extract actual certificate information
+/// Parse certificate from `X509Certificate` struct to extract actual certificate information
 pub fn parse_x509_certificate_from_der_internal(cert: &X509CertCert) -> Result<ParsedCertificate, TlsError> {
     // Extract subject DN using x509-cert API
     let mut subject = HashMap::new();
@@ -354,7 +334,7 @@ pub fn parse_x509_certificate_from_der_internal(cert: &X509CertCert) -> Result<P
 
     // Iterate through all extensions to find Authority Information Access and CRL Distribution Points
     if let Some(extensions) = &cert.tbs_certificate.extensions {
-        for ext in extensions.iter() {
+        for ext in extensions {
             let oid_str = ext.extn_id.to_string();
 
             // Authority Information Access extension (1.3.6.1.5.5.7.1.1)
@@ -376,17 +356,16 @@ pub fn parse_x509_certificate_from_der_internal(cert: &X509CertCert) -> Result<P
                             if &ext_bytes[i..i + 4] == b"http" {
                                 let mut url_bytes = Vec::new();
                                 for &byte in &ext_bytes[i..] {
-                                    if byte >= 0x20 && byte <= 0x7E {
+                                    if (0x20..=0x7E).contains(&byte) {
                                         url_bytes.push(byte);
                                     } else {
                                         break;
                                     }
                                 }
-                                if let Ok(url) = String::from_utf8(url_bytes) {
-                                    if url.starts_with("http") && !ocsp_urls.contains(&url) {
+                                if let Ok(url) = String::from_utf8(url_bytes)
+                                    && url.starts_with("http") && !ocsp_urls.contains(&url) {
                                         ocsp_urls.push(url);
                                     }
-                                }
                             }
                         }
                     }
@@ -412,17 +391,16 @@ pub fn parse_x509_certificate_from_der_internal(cert: &X509CertCert) -> Result<P
                             if &ext_bytes[i..i + 4] == b"http" {
                                 let mut url_bytes = Vec::new();
                                 for &byte in &ext_bytes[i..] {
-                                    if byte >= 0x20 && byte <= 0x7E {
+                                    if (0x20..=0x7E).contains(&byte) {
                                         url_bytes.push(byte);
                                     } else {
                                         break;
                                     }
                                 }
-                                if let Ok(url) = String::from_utf8(url_bytes) {
-                                    if url.starts_with("http") && !crl_urls.contains(&url) {
+                                if let Ok(url) = String::from_utf8(url_bytes)
+                                    && url.starts_with("http") && !crl_urls.contains(&url) {
                                         crl_urls.push(url);
                                     }
-                                }
                             }
                         }
                     }
@@ -433,10 +411,10 @@ pub fn parse_x509_certificate_from_der_internal(cert: &X509CertCert) -> Result<P
 
     // Get raw DER bytes for OCSP validation
     let subject_der = cert.tbs_certificate.subject.to_der()
-        .map_err(|e| TlsError::CertificateParsing(format!("Failed to encode subject: {}", e)))?;
+        .map_err(|e| TlsError::CertificateParsing(format!("Failed to encode subject: {e}")))?;
     
     let public_key_der = cert.tbs_certificate.subject_public_key_info.to_der()
-        .map_err(|e| TlsError::CertificateParsing(format!("Failed to encode public key: {}", e)))?;
+        .map_err(|e| TlsError::CertificateParsing(format!("Failed to encode public key: {e}")))?;
 
     // Extract serial number
     let serial_number = cert.tbs_certificate.serial_number.as_bytes().to_vec();
@@ -557,7 +535,7 @@ fn compute_bit_length(bytes: &[u8]) -> Option<u32> {
     Some(high_bits + rest_bits)
 }
 
-/// Skip a single ASN.1 element using a SliceReader
+/// Skip a single ASN.1 element using a `SliceReader`
 fn skip_element(reader: &mut der::SliceReader) -> Option<()> {
     let header = reader.peek_header().ok()?;
     let header_len: usize = header.encoded_len().ok()?.try_into().ok()?;
@@ -685,11 +663,11 @@ pub fn parse_certificate_from_pem(pem_data: &str) -> Result<ParsedCertificate, T
     let cert_der = rustls_pemfile::certs(&mut cursor)
         .next()
         .ok_or_else(|| TlsError::CertificateParsing("No certificate in PEM data".to_string()))?
-        .map_err(|e| TlsError::CertificateParsing(format!("Failed to parse PEM: {}", e)))?;
+        .map_err(|e| TlsError::CertificateParsing(format!("Failed to parse PEM: {e}")))?;
 
     // Parse X.509 certificate using x509-cert
     let cert = X509CertCert::from_der(&cert_der)
-        .map_err(|e| TlsError::CertificateParsing(format!("X.509 parsing failed: {}", e)))?;
+        .map_err(|e| TlsError::CertificateParsing(format!("X.509 parsing failed: {e}")))?;
 
     // Delegate to the DER function to avoid code duplication
     parse_x509_certificate_from_der_internal(&cert)
@@ -711,7 +689,7 @@ fn parse_authority_info_access_extension(extension_bytes: &[u8]) -> Result<Vec<S
     
     // AuthorityInfoAccessSyntax is a SEQUENCE OF AccessDescription
     let access_descriptions: Vec<AccessDescription> = Vec::<AccessDescription>::from_der(extension_bytes)
-        .map_err(|e| TlsError::CertificateParsing(format!("Failed to parse Authority Information Access: {}", e)))?;
+        .map_err(|e| TlsError::CertificateParsing(format!("Failed to parse Authority Information Access: {e}")))?;
     
     let mut ocsp_urls = Vec::new();
     
@@ -722,7 +700,7 @@ fn parse_authority_info_access_extension(extension_bytes: &[u8]) -> Result<Vec<S
             let access_location_bytes = access_desc.access_location.value();
             
             // Check if it's a uniformResourceIdentifier (context tag 6)
-            if access_location_bytes.len() > 0 && access_location_bytes[0] == 0x86 {
+            if !access_location_bytes.is_empty() && access_location_bytes[0] == 0x86 {
                 // Skip the tag byte and get the length
                 let mut offset = 1;
                 if offset >= access_location_bytes.len() {
@@ -733,13 +711,11 @@ fn parse_authority_info_access_extension(extension_bytes: &[u8]) -> Result<Vec<S
                 let url_len = access_location_bytes[offset] as usize;
                 offset += 1;
                 
-                if offset + url_len <= access_location_bytes.len() {
-                    if let Ok(url) = String::from_utf8(access_location_bytes[offset..offset + url_len].to_vec()) {
-                        if url.starts_with("http://") || url.starts_with("https://") {
+                if offset + url_len <= access_location_bytes.len()
+                    && let Ok(url) = String::from_utf8(access_location_bytes[offset..offset + url_len].to_vec())
+                        && (url.starts_with("http://") || url.starts_with("https://")) {
                             ocsp_urls.push(url);
                         }
-                    }
-                }
             }
         }
     }
@@ -766,7 +742,7 @@ fn parse_crl_distribution_points_extension(extension_bytes: &[u8]) -> Result<Vec
     
     // CRLDistributionPoints is a SEQUENCE OF DistributionPoint
     let distribution_points: Vec<DistributionPoint> = Vec::<DistributionPoint>::from_der(extension_bytes)
-        .map_err(|e| TlsError::CertificateParsing(format!("Failed to parse CRL Distribution Points: {}", e)))?;
+        .map_err(|e| TlsError::CertificateParsing(format!("Failed to parse CRL Distribution Points: {e}")))?;
     
     let mut crl_urls = Vec::new();
     
@@ -776,7 +752,7 @@ fn parse_crl_distribution_points_extension(extension_bytes: &[u8]) -> Result<Vec
             let dp_bytes = dp_name.value();
             
             // Check if it's fullName (context tag 0)
-            if dp_bytes.len() > 0 && dp_bytes[0] == 0xA0 {
+            if !dp_bytes.is_empty() && dp_bytes[0] == 0xA0 {
                 // Parse GeneralNames - look for uniformResourceIdentifier (tag [6])
                 let mut offset = 1;
                 if offset >= dp_bytes.len() {
@@ -798,13 +774,11 @@ fn parse_crl_distribution_points_extension(extension_bytes: &[u8]) -> Result<Vec
                         let url_len = dp_bytes[offset] as usize;
                         offset += 1;
                         
-                        if offset + url_len <= dp_bytes.len() {
-                            if let Ok(url) = String::from_utf8(dp_bytes[offset..offset + url_len].to_vec()) {
-                                if url.starts_with("http://") || url.starts_with("https://") {
+                        if offset + url_len <= dp_bytes.len()
+                            && let Ok(url) = String::from_utf8(dp_bytes[offset..offset + url_len].to_vec())
+                                && (url.starts_with("http://") || url.starts_with("https://")) {
                                     crl_urls.push(url);
                                 }
-                            }
-                        }
                         offset += url_len;
                     } else {
                         offset += 1;
@@ -821,7 +795,7 @@ fn parse_crl_distribution_points_extension(extension_bytes: &[u8]) -> Result<Vec
 pub fn parse_certificate_from_der(der_bytes: &[u8]) -> Result<ParsedCertificate, TlsError> {
     // Parse X.509 certificate using x509-cert
     let cert = X509CertCert::from_der(der_bytes)
-        .map_err(|e| TlsError::CertificateParsing(format!("X.509 parsing failed: {}", e)))?;
+        .map_err(|e| TlsError::CertificateParsing(format!("X.509 parsing failed: {e}")))?;
 
     // Delegate to the internal function
     parse_x509_certificate_from_der_internal(&cert)

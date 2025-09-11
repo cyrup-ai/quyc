@@ -106,7 +106,7 @@ impl NormalizedPathProcessor {
                             Some(escaped) => {
                                 return Err(invalid_expression_error(
                                     full_path,
-                                    &format!("invalid escape sequence \\{}", escaped),
+                                    format!("invalid escape sequence \\{escaped}"),
                                     Some(*position),
                                 ));
                             }

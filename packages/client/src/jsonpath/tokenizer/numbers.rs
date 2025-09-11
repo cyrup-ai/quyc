@@ -67,16 +67,14 @@ pub(crate) fn parse_number_literal(
                 Some(start),
             ));
         }
+    } else if let Ok(int_val) = number_str.parse::<i64>() {
+        parser.tokens.push_back(Token::Integer(int_val));
     } else {
-        if let Ok(int_val) = number_str.parse::<i64>() {
-            parser.tokens.push_back(Token::Integer(int_val));
-        } else {
-            return Err(invalid_expression_error(
-                &parser.input,
-                "invalid integer format",
-                Some(start),
-            ));
-        }
+        return Err(invalid_expression_error(
+            &parser.input,
+            "invalid integer format",
+            Some(start),
+        ));
     }
     Ok(i.saturating_sub(1)) // Adjust for loop increment
 }

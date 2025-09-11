@@ -65,18 +65,21 @@ pub fn parse_url(url_str: &str) -> Result<Url, crate::error::HttpError> {
 
 /// Extract host from URL
 #[inline]
+#[must_use] 
 pub fn extract_host(url: &Url) -> Option<&str> {
     url.host_str()
 }
 
 /// Check if URL uses secure scheme
 #[inline]
+#[must_use] 
 pub fn is_secure_scheme(url: &Url) -> bool {
     matches!(url.scheme(), "https" | "wss")
 }
 
 /// Extract port from URL with default fallback
 #[inline]
+#[must_use] 
 pub fn extract_port(url: &Url) -> u16 {
     url.port().unwrap_or_else(|| match url.scheme() {
         "https" | "wss" => 443,

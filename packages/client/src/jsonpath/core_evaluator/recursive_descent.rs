@@ -1,16 +1,16 @@
-//! Recursive descent operations for JSONPath evaluation
+//! Recursive descent operations for `JSONPath` evaluation
 //!
-//! Handles recursive descent (..) operations in JSONPath expressions
+//! Handles recursive descent (..) operations in `JSONPath` expressions
 //! with proper depth tracking and cycle detection.
 
 use serde_json::Value;
 
 use crate::jsonpath::error::{JsonPathError, JsonPathResult};
 
-/// Recursive descent evaluator for JSONPath expressions
+/// Recursive descent evaluator for `JSONPath` expressions
 pub struct RecursiveDescentEvaluator;
 
-/// Recursive descent engine for JSONPath evaluation
+/// Recursive descent engine for `JSONPath` evaluation
 pub struct RecursiveDescentEngine;
 
 impl RecursiveDescentEvaluator {

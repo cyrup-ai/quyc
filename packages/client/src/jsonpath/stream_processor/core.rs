@@ -14,7 +14,7 @@ impl<T> JsonStreamProcessor<T>
 where
     T: DeserializeOwned + ystream::prelude::MessageChunk + Default + Send + 'static,
 {
-    /// Create new JsonStreamProcessor with JSONPath expression
+    /// Create new `JsonStreamProcessor` with `JSONPath` expression
     #[must_use]
     pub fn new(jsonpath_expr: &str) -> Self {
         Self {
@@ -26,6 +26,7 @@ where
     }
 
     /// Get current processing statistics
+    #[must_use] 
     pub fn stats(&self) -> super::types::ProcessorStatsSnapshot {
         self.stats.snapshot()
     }
@@ -54,17 +55,17 @@ where
                         self.stats.record_chunk_processed(bytes.len());
 
                         match self.process_body_chunk(&sender, bytes) {
-                            Ok(_) => {
+                            Ok(()) => {
                                 self.record_success();
                             }
                             Err(e) => {
                                 self.stats.record_processing_error();
                                 let json_error = JsonPathError::new(
                                     crate::jsonpath::error::ErrorKind::Deserialization,
-                                    format!("Body chunk processing failed: {}", e),
+                                    format!("Body chunk processing failed: {e}"),
                                 );
                                 let http_error =
-                                    generic(format!("JSONPath processing error: {}", json_error));
+                                    generic(format!("JSONPath processing error: {json_error}"));
 
                                 if let Err(recovery_error) =
                                     self.handle_error_with_recovery(http_error)
@@ -81,7 +82,7 @@ where
                         self.stats.record_processing_error();
                         if let Err(recovery_error) = self.handle_error_with_recovery(
                             crate::error::Error::new(crate::error::Kind::Request)
-                                .with(std::io::Error::new(std::io::ErrorKind::Other, e)),
+                                .with(std::io::Error::other(e)),
                         ) {
                             handle_error!(recovery_error, "HTTP chunk error with recovery");
                         }
@@ -134,11 +135,10 @@ where
                         }
                         // Handle trailers and other frame types as needed
                         // Check if this is the last frame by checking if data is empty and this is a data frame
-                        if let Some(data_ref) = frame.data_ref() {
-                            if data_ref.is_empty() {
+                        if let Some(data_ref) = frame.data_ref()
+                            && data_ref.is_empty() {
                                 break;
                             }
-                        }
                     }
                     Poll::Ready(Some(Err(e))) => {
                         // Body error occurred

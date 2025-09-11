@@ -1,6 +1,6 @@
-//! Core types and structures for JSONPath function evaluation
+//! Core types and structures for `JSONPath` function evaluation
 //!
-//! Contains the main FunctionEvaluator struct and regex caching infrastructure
+//! Contains the main `FunctionEvaluator` struct and regex caching infrastructure
 //! for RFC 9535 function extensions.
 
 use crate::jsonpath::error::{JsonPathResult, invalid_expression_error};
@@ -21,22 +21,20 @@ impl RegexCache {
     /// Get compiled regex from cache or compile and cache if not present
     pub(super) fn get_or_compile(&self, pattern: &str) -> Result<regex::Regex, regex::Error> {
         // Try read lock first for fast path
-        if let Ok(cache) = self.cache.read() {
-            if let Some(regex) = cache.get(pattern) {
+        if let Ok(cache) = self.cache.read()
+            && let Some(regex) = cache.get(pattern) {
                 return Ok(regex.clone());
             }
-        }
 
         // Compile new regex
         let regex = regex::Regex::new(pattern)?;
 
         // Store in cache with write lock
-        if let Ok(mut cache) = self.cache.write() {
-            if cache.len() < 32 {
+        if let Ok(mut cache) = self.cache.write()
+            && cache.len() < 32 {
                 // Limit cache size for memory efficiency
                 cache.insert(pattern.to_string(), regex.clone());
             }
-        }
 
         Ok(regex)
     }
@@ -69,7 +67,7 @@ impl FunctionEvaluator {
             "value" => Self::evaluate_value_function(context, args, expression_evaluator),
             _ => Err(invalid_expression_error(
                 "",
-                &format!("unknown function: {}", name),
+                format!("unknown function: {name}"),
                 None,
             )),
         }
@@ -160,7 +158,7 @@ impl FunctionEvaluator {
         )
     }
 
-    /// Convert serde_json::Value to FilterValue
+    /// Convert `serde_json::Value` to `FilterValue`
     #[inline]
     pub(super) fn json_value_to_filter_value(value: &serde_json::Value) -> FilterValue {
         match value {

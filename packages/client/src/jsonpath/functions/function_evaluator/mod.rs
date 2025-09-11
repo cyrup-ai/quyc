@@ -1,6 +1,6 @@
-//! RFC 9535 JSONPath Function Extensions Implementation
+//! RFC 9535 `JSONPath` Function Extensions Implementation
 //!
-//! This module provides the complete implementation of all five built-in JSONPath functions
+//! This module provides the complete implementation of all five built-in `JSONPath` functions
 //! as specified in RFC 9535 Section 2.4, with comprehensive testing and production-quality code.
 
 // Re-export the main evaluator struct and core functionality

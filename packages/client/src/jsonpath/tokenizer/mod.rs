@@ -1,6 +1,6 @@
-//! JSONPath expression tokenizer implementation
+//! `JSONPath` expression tokenizer implementation
 //!
-//! Decomposed tokenizer for JSONPath expressions with RFC 9535 compliance.
+//! Decomposed tokenizer for `JSONPath` expressions with RFC 9535 compliance.
 //! Handles lexical analysis converting raw strings into structured token sequences.
 
 mod characters;

@@ -1,6 +1,6 @@
-//! Core JSONPath evaluator module
+//! Core `JSONPath` evaluator module
 //!
-//! This module provides the main JSONPath evaluation functionality decomposed into
+//! This module provides the main `JSONPath` evaluation functionality decomposed into
 //! logical submodules for maintainability and clarity.
 
 pub mod array_operations;

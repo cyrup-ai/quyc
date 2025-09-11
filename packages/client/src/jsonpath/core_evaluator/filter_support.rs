@@ -1,4 +1,4 @@
-//! Filter support utilities for JSONPath evaluation
+//! Filter support utilities for `JSONPath` evaluation
 //!
 //! This module provides helper functions for filter evaluation and context management.
 
@@ -12,6 +12,7 @@ pub struct FilterSupport;
 impl FilterSupport {
     /// Collect all property names that exist across items in an array
     /// This provides context for filter evaluation
+    #[must_use] 
     pub fn collect_existing_properties(arr: &[Value]) -> std::collections::HashSet<String> {
         let mut properties = HashSet::new();
 
@@ -27,6 +28,7 @@ impl FilterSupport {
     }
 
     /// Collect property names from a single object
+    #[must_use] 
     pub fn collect_object_properties(obj: &Value) -> HashSet<String> {
         let mut properties = HashSet::new();
 
@@ -40,6 +42,7 @@ impl FilterSupport {
     }
 
     /// Check if a property exists in a JSON object
+    #[must_use] 
     pub fn has_property(obj: &Value, property: &str) -> bool {
         match obj {
             Value::Object(map) => map.contains_key(property),
@@ -48,6 +51,7 @@ impl FilterSupport {
     }
 
     /// Get property value safely
+    #[must_use] 
     pub fn get_property<'a>(obj: &'a Value, property: &str) -> Option<&'a Value> {
         match obj {
             Value::Object(map) => map.get(property),
@@ -56,11 +60,13 @@ impl FilterSupport {
     }
 
     /// Check if an array contains objects with specific properties
+    #[must_use] 
     pub fn array_has_objects_with_property(arr: &[Value], property: &str) -> bool {
         arr.iter().any(|item| Self::has_property(item, property))
     }
 
     /// Count objects in array that have a specific property
+    #[must_use] 
     pub fn count_objects_with_property(arr: &[Value], property: &str) -> usize {
         arr.iter()
             .filter(|item| Self::has_property(item, property))
@@ -68,6 +74,7 @@ impl FilterSupport {
     }
 
     /// Get all unique values for a property across array items
+    #[must_use] 
     pub fn collect_property_values(arr: &[Value], property: &str) -> Vec<Value> {
         let mut values = Vec::new();
         let mut seen = HashSet::new();
@@ -86,6 +93,7 @@ impl FilterSupport {
     }
 
     /// Check if a value matches a type pattern
+    #[must_use] 
     pub fn matches_type(value: &Value, type_name: &str) -> bool {
         match type_name.to_lowercase().as_str() {
             "null" => value.is_null(),
@@ -99,6 +107,7 @@ impl FilterSupport {
     }
 
     /// Get the JSON type name for a value
+    #[must_use] 
     pub fn get_type_name(value: &Value) -> &'static str {
         match value {
             Value::Null => "null",
@@ -111,11 +120,12 @@ impl FilterSupport {
     }
 
     /// Check if a value is considered "truthy" in filter context
+    #[must_use] 
     pub fn is_truthy(value: &Value) -> bool {
         match value {
             Value::Null => false,
             Value::Bool(b) => *b,
-            Value::Number(n) => n.as_f64().map_or(false, |f| f != 0.0),
+            Value::Number(n) => n.as_f64().is_some_and(|f| f != 0.0),
             Value::String(s) => !s.is_empty(),
             Value::Array(arr) => !arr.is_empty(),
             Value::Object(obj) => !obj.is_empty(),
@@ -123,6 +133,7 @@ impl FilterSupport {
     }
 
     /// Compare two values for filter operations
+    #[must_use] 
     pub fn compare_values(left: &Value, right: &Value) -> Option<std::cmp::Ordering> {
         match (left, right) {
             (Value::Number(a), Value::Number(b)) => {
@@ -137,6 +148,7 @@ impl FilterSupport {
     }
 
     /// Check if a value contains another value (for arrays and objects)
+    #[must_use] 
     pub fn contains_value(container: &Value, target: &Value) -> bool {
         match container {
             Value::Array(arr) => arr.contains(target),

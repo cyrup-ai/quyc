@@ -1,6 +1,6 @@
-//! Value conversion functions for JSONPath function evaluator
+//! Value conversion functions for `JSONPath` function evaluator
 //!
-//! Provides type conversion operations for JSONPath expressions.
+//! Provides type conversion operations for `JSONPath` expressions.
 
 use serde_json::Value;
 

@@ -47,6 +47,7 @@ impl NormalizedPath {
 
     /// Get the parent path (all segments except the last)
     #[inline]
+    #[must_use] 
     pub fn parent(&self) -> Option<Self> {
         if self.segments.len() <= 1 {
             return None; // Root has no parent
@@ -63,6 +64,7 @@ impl NormalizedPath {
 
     /// Check if this path is a descendant of another path
     #[inline]
+    #[must_use] 
     pub fn is_descendant_of(&self, ancestor: &NormalizedPath) -> bool {
         if self.segments.len() <= ancestor.segments.len() {
             return false;
@@ -73,6 +75,7 @@ impl NormalizedPath {
 
     /// Check if this path is an ancestor of another path
     #[inline]
+    #[must_use] 
     pub fn is_ancestor_of(&self, descendant: &NormalizedPath) -> bool {
         descendant.is_descendant_of(self)
     }

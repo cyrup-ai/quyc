@@ -13,7 +13,7 @@ use http::Uri;
 use super::basic_connection::connect_to_address_list;
 use super::dns_resolution::resolve_host_sync;
 
-/// Establish HTTP connection using HttpConnector.
+/// Establish HTTP connection using `HttpConnector`.
 pub fn establish_http_connection(
     _connector: &hyper_util::client::legacy::connect::HttpConnector,
     uri: &Uri,

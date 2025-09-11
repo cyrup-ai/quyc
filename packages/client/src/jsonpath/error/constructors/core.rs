@@ -1,14 +1,14 @@
 //! Core error constructor functions
 //!
-//! Primary factory methods for creating JSONPath error types with proper context.
+//! Primary factory methods for creating `JSONPath` error types with proper context.
 
 use super::super::types::JsonPathError;
 
 impl JsonPathError {
-    /// Creates an invalid JSONPath expression error
+    /// Creates an invalid `JSONPath` expression error
     ///
     /// # Arguments
-    /// * `expression` - The invalid JSONPath expression
+    /// * `expression` - The invalid `JSONPath` expression
     /// * `reason` - Specific reason why the expression is invalid
     /// * `position` - Optional character position where error occurred
     ///
@@ -173,7 +173,7 @@ impl JsonPathError {
     /// Creates an unsupported feature error
     ///
     /// # Arguments
-    /// * `feature` - JSONPath feature description
+    /// * `feature` - `JSONPath` feature description
     /// * `alternative` - Optional suggested alternative or workaround
     ///
     /// # Examples

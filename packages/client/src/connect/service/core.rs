@@ -1,6 +1,6 @@
 //! Core connector service structure and configuration
 //!
-//! Contains the main ConnectorService struct with TLS and proxy configuration
+//! Contains the main `ConnectorService` struct with TLS and proxy configuration
 //! management for HTTP/3 connection establishment.
 
 #![allow(dead_code)]

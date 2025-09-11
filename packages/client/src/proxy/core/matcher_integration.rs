@@ -19,7 +19,7 @@ impl Proxy {
     /// Zero-allocation implementation with:
     /// - Const pattern slices for blazing-fast lookup
     /// - Move semantics for ownership transfer
-    /// - Lazy iterator evaluation for no_proxy parsing
+    /// - Lazy iterator evaluation for `no_proxy` parsing
     /// - Perfect error propagation without unwrap/expect
     #[inline(always)]
     pub(crate) fn into_matcher(self) -> Result<super::super::matcher::types::Matcher, crate::Error> {
@@ -72,10 +72,10 @@ impl Proxy {
 
         // Lazy no_proxy pattern processing with zero intermediate allocations
         let processed_inner = if let Some(no_proxy) = no_proxy_ref {
-            if !no_proxy.inner.is_empty() {
-                Self::apply_no_proxy_patterns_static(inner, &no_proxy.inner)?
-            } else {
+            if no_proxy.inner.is_empty() {
                 inner
+            } else {
+                Self::apply_no_proxy_patterns_static(inner, &no_proxy.inner)?
             }
         } else {
             inner

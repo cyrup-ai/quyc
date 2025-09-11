@@ -58,9 +58,9 @@ pub struct AtomicProtocolSupport {
     pub success_count: AtomicUsize,
     /// Failure count
     pub failure_count: AtomicUsize,
-    /// Last attempt timestamp (nanoseconds since UNIX_EPOCH)
+    /// Last attempt timestamp (nanoseconds since `UNIX_EPOCH`)
     pub last_attempt: AtomicU64,
-    /// Last success timestamp (nanoseconds since UNIX_EPOCH)
+    /// Last success timestamp (nanoseconds since `UNIX_EPOCH`)
     pub last_success: AtomicU64,
 }
 
@@ -136,7 +136,8 @@ pub struct AltSvcEndpoint {
 }
 
 impl AltSvcEndpoint {
-    /// Check if endpoint has expired based on max_age
+    /// Check if endpoint has expired based on `max_age`
+    #[must_use] 
     pub fn is_expired(&self) -> bool {
         match self.discovered_at.elapsed() {
             Ok(elapsed) => elapsed > self.max_age,
@@ -145,6 +146,7 @@ impl AltSvcEndpoint {
     }
     
     /// Check if endpoint is currently valid for use
+    #[must_use] 
     pub fn is_valid(&self) -> bool {
         !self.is_expired() && self.validation_status == AltSvcValidationStatus::Valid
     }
@@ -158,8 +160,15 @@ impl AltSvcEndpoint {
     }
 }
 
+impl Default for AtomicProtocolSupport {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AtomicProtocolSupport {
     /// Create new atomic protocol support tracker
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             is_supported: AtomicBool::new(false),
@@ -206,7 +215,9 @@ impl AtomicProtocolSupport {
         if total == 0 {
             0.0
         } else {
-            successes as f64 / total as f64
+            // Precision loss acceptable for protocol success rate statistics
+            #[allow(clippy::cast_precision_loss)]
+            { successes as f64 / total as f64 }
         }
     }
 
@@ -223,6 +234,7 @@ impl AtomicProtocolSupport {
 
 impl DomainCapabilities {
     /// Create new domain capabilities tracker
+    #[must_use] 
     pub fn new(domain: String) -> Self {
         Self {
             domain,
@@ -463,11 +475,10 @@ impl DomainCapabilities {
             if parts.len() > 1 {
                 for param in parts[1].split(';') {
                     let param = param.trim();
-                    if param.starts_with("ma=") {
-                        if let Ok(seconds) = param[3..].parse::<u64>() {
+                    if param.starts_with("ma=")
+                        && let Ok(seconds) = param[3..].parse::<u64>() {
                             max_age = Duration::from_secs(seconds);
                         }
-                    }
                 }
             }
             
@@ -501,11 +512,10 @@ impl DomainCapabilities {
         };
         
         // Parse endpoint - can be ":port" or "host:port"
-        if endpoint.starts_with(':') {
+        if let Some(port_str) = endpoint.strip_prefix(':') {
             // Same host, different port
-            let port_str = &endpoint[1..];
             let port = port_str.parse::<u16>()
-                .map_err(|_| format!("Invalid port in Alt-Svc: {}", port_str))?;
+                .map_err(|_| format!("Invalid port in Alt-Svc: {port_str}"))?;
             Ok((protocol, None, port))
         } else {
             // Different host and port
@@ -515,7 +525,7 @@ impl DomainCapabilities {
             let host = endpoint[..colon_pos].trim().to_string();
             let port_str = &endpoint[colon_pos + 1..];
             let port = port_str.parse::<u16>()
-                .map_err(|_| format!("Invalid port in Alt-Svc: {}", port_str))?;
+                .map_err(|_| format!("Invalid port in Alt-Svc: {port_str}"))?;
             
             Ok((protocol, Some(host), port))
         }
@@ -538,7 +548,7 @@ impl DomainCapabilities {
         
         // Set alternative port
         url.set_port(Some(endpoint.port))
-            .map_err(|_| "Failed to set alternative port for Alt-Svc test")?;
+            .map_err(|()| "Failed to set alternative port for Alt-Svc test")?;
         
         Ok(url.to_string())
     }
@@ -546,11 +556,13 @@ impl DomainCapabilities {
 
 impl ProtocolIntelligence {
     /// Create new protocol intelligence cache
+    #[must_use] 
     pub fn new() -> Self {
         Self::with_config(IntelligenceConfig::default())
     }
 
     /// Create protocol intelligence cache with custom configuration
+    #[must_use] 
     pub fn with_config(config: IntelligenceConfig) -> Self {
         Self {
             domains: Arc::new(RwLock::new(HashMap::new())),
@@ -661,6 +673,8 @@ impl ProtocolIntelligence {
     /// Evict oldest domains to maintain cache size limit
     fn evict_oldest_domains(&self, domains: &mut HashMap<String, Arc<DomainCapabilities>>) {
         // Remove 10% of cache when limit is exceeded
+        // Precision loss acceptable for cache size calculations
+        #[allow(clippy::cast_precision_loss)]
         let target_size = (self.config.max_domains as f64 * 0.9) as usize;
         let to_remove = domains.len().saturating_sub(target_size);
 
@@ -731,7 +745,7 @@ impl ProtocolIntelligence {
             }
         };
         
-        let key = format!("{}:{}", protocol, port);
+        let key = format!("{protocol}:{port}");
         
         if let Some(endpoint) = alt_svc_map.get_mut(&key) {
             endpoint.set_validation_status(status);
@@ -753,8 +767,7 @@ impl ProtocolIntelligence {
             Ok(())
         } else {
             Err(format!(
-                "Alt-Svc endpoint {}:{} not found for domain {}", 
-                protocol, port, domain
+                "Alt-Svc endpoint {protocol}:{port} not found for domain {domain}"
             ))
         }
     }
@@ -779,7 +792,7 @@ impl ProtocolIntelligence {
     }
 }
 
-/// Get current timestamp in nanoseconds since UNIX_EPOCH
+/// Get current timestamp in nanoseconds since `UNIX_EPOCH`
 fn current_timestamp_nanos() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)

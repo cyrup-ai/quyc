@@ -31,6 +31,7 @@ pub fn to_string<T: ToString>(value: T) -> String {
 
 /// Convert string to bytes
 #[inline]
+#[must_use] 
 pub fn string_to_bytes(s: String) -> Bytes {
     Bytes::from(s)
 }
@@ -43,12 +44,14 @@ pub fn bytes_to_string(bytes: Bytes) -> Result<String, crate::error::HttpError> 
 
 /// Convert slice to bytes
 #[inline]
+#[must_use] 
 pub fn slice_to_bytes(slice: &[u8]) -> Bytes {
     Bytes::copy_from_slice(slice)
 }
 
 /// Convert vector to bytes with zero-copy optimization
 #[inline]
+#[must_use] 
 pub fn vec_to_bytes(vec: Vec<u8>) -> Bytes {
     Bytes::from(vec)
 }
@@ -61,6 +64,7 @@ pub fn bytes_to_vec(bytes: Bytes) -> Vec<u8> {
 
 /// Convert string slice to bytes
 #[inline]
+#[must_use] 
 pub fn str_to_bytes(s: &str) -> Bytes {
     Bytes::copy_from_slice(s.as_bytes())
 }
@@ -69,7 +73,7 @@ pub fn str_to_bytes(s: &str) -> Bytes {
 #[inline]
 pub fn bytes_to_str(bytes: &Bytes) -> Result<&str, crate::error::HttpError> {
     std::str::from_utf8(bytes)
-        .map_err(|e| deserialization_error(format!("UTF-8 conversion failed: {}", e)))
+        .map_err(|e| deserialization_error(format!("UTF-8 conversion failed: {e}")))
 }
 
 /// Enhanced UTF-8 validation modes based on security requirements
@@ -93,7 +97,7 @@ pub fn bytes_to_string_secure(
     match mode {
         SecurityMode::Basic => {
             if let Err(e) = context.validate_utf8_basic(&bytes) {
-                return Err(deserialization_error(format!("UTF-8 validation failed: {}", e)));
+                return Err(deserialization_error(format!("UTF-8 validation failed: {e}")));
             }
             // Use high-performance SIMD validation
             match simdutf8::basic::from_utf8(&bytes) {
@@ -103,7 +107,7 @@ pub fn bytes_to_string_secure(
         }
         SecurityMode::Strict => {
             if let Err(e) = context.validate_utf8_strict(&bytes) {
-                return Err(deserialization_error(format!("UTF-8 validation failed: {}", e)));
+                return Err(deserialization_error(format!("UTF-8 validation failed: {e}")));
             }
             // Detect overlong encodings and invalid code points
             validate_strict_utf8(&bytes)?;
@@ -112,17 +116,17 @@ pub fn bytes_to_string_secure(
             // Safe conversion after comprehensive validation
             match String::from_utf8(bytes.to_vec()) {
                 Ok(s) => Ok(s),
-                Err(e) => Err(deserialization_error(format!("UTF-8 conversion failed after validation: {}", e)))
+                Err(e) => Err(deserialization_error(format!("UTF-8 conversion failed after validation: {e}")))
             }
         }
         SecurityMode::Paranoid => {
             if let Err(e) = context.validate_utf8_paranoid(&bytes) {
-                return Err(deserialization_error(format!("UTF-8 validation failed: {}", e)));
+                return Err(deserialization_error(format!("UTF-8 validation failed: {e}")));
             }
             // Convert to string for advanced checks (safe after strict validation)
             let text = match std::str::from_utf8(&bytes) {
                 Ok(s) => s,
-                Err(e) => return Err(deserialization_error(format!("UTF-8 conversion failed: {}", e)))
+                Err(e) => return Err(deserialization_error(format!("UTF-8 conversion failed: {e}")))
             };
             // Comprehensive Unicode normalization check - text must be in NFC form
             if !unicode_normalization::is_nfc(text) {
@@ -154,33 +158,33 @@ pub fn validate_strict_utf8(bytes: &[u8]) -> Result<(), crate::error::HttpError>
             0xC2..=0xDF => (2, 0x80),    // 2-byte sequence
             0xE0..=0xEF => (3, 0x800),   // 3-byte sequence  
             0xF0..=0xF4 => (4, 0x10000), // 4-byte sequence
-            _ => return Err(deserialization_error(format!("Invalid UTF-8 start byte: 0x{:02X} at position {}", ch, i))),
+            _ => return Err(deserialization_error(format!("Invalid UTF-8 start byte: 0x{ch:02X} at position {i}"))),
         };
         
         // Check sequence length
         if i + seq_len > bytes.len() {
-            return Err(deserialization_error(format!("Truncated UTF-8 sequence at position {}", i)));
+            return Err(deserialization_error(format!("Truncated UTF-8 sequence at position {i}")));
         }
         
         // Validate continuation bytes and extract code point
-        let mut code_point = (ch & match seq_len { 2 => 0x1F, 3 => 0x0F, 4 => 0x07, _ => 0 }) as u32;
+        let mut code_point = u32::from(ch & match seq_len { 2 => 0x1F, 3 => 0x0F, 4 => 0x07, _ => 0 });
         
         for j in 1..seq_len {
             let cont_byte = bytes[i + j];
             if cont_byte & 0xC0 != 0x80 {
-                return Err(deserialization_error(format!("Invalid UTF-8 continuation byte: 0x{:02X} at position {}", cont_byte, i + j)));
+                return Err(deserialization_error(format!("Invalid UTF-8 continuation byte: 0x{cont_byte:02X} at position {}", i + j)));
             }
-            code_point = (code_point << 6) | (cont_byte & 0x3F) as u32;
+            code_point = (code_point << 6) | u32::from(cont_byte & 0x3F);
         }
         
         // Check for overlong encodings
         if code_point < min_value {
-            return Err(deserialization_error(format!("Overlong UTF-8 encoding detected at position {}: codepoint U+{:04X} in {}-byte sequence", i, code_point, seq_len)));
+            return Err(deserialization_error(format!("Overlong UTF-8 encoding detected at position {i}: codepoint U+{code_point:04X} in {seq_len}-byte sequence")));
         }
         
         // Check for invalid code points
         if code_point > 0x0010_FFFF || (0xD800..=0xDFFF).contains(&code_point) {
-            return Err(deserialization_error(format!("Invalid UTF-8 code point: U+{:04X} at position {}", code_point, i)));
+            return Err(deserialization_error(format!("Invalid UTF-8 code point: U+{code_point:04X} at position {i}")));
         }
         
         i += seq_len;
@@ -254,7 +258,7 @@ fn get_security_scanner() -> Result<&'static AhoCorasick, crate::error::HttpErro
         
         match AhoCorasick::new(&patterns) {
             Ok(scanner) => Ok(scanner),
-            Err(e) => Err(format!("AhoCorasick security scanner creation failed: {}", e)),
+            Err(e) => Err(format!("AhoCorasick security scanner creation failed: {e}")),
         }
     });
     
@@ -267,7 +271,7 @@ fn get_security_scanner() -> Result<&'static AhoCorasick, crate::error::HttpErro
                 "Critical security scanner failure - requests will be blocked"
             );
             Err(crate::error::constructors::security_error(format!(
-                "Critical security scanner failure: {}. Request blocked for safety.", e
+                "Critical security scanner failure: {e}. Request blocked for safety."
             )))
         }
     }
@@ -296,8 +300,7 @@ pub fn scan_for_malicious_patterns(data: &[u8]) -> Result<(), crate::error::Http
         );
         
         return Err(deserialization_error(format!(
-            "Security threat detected: {} at position {}",
-            threat_type, position
+            "Security threat detected: {threat_type} at position {position}"
         )));
     }
     
@@ -305,6 +308,7 @@ pub fn scan_for_malicious_patterns(data: &[u8]) -> Result<(), crate::error::Http
 }
 
 /// Fast scan for common attack bytes using SIMD acceleration
+#[must_use] 
 pub fn fast_scan_malicious_bytes(data: &[u8]) -> Option<usize> {
     // Check for bidirectional override characters (most common attack)
     // UTF-8 encoding: U+202E = 0xE2 0x80 0xAE
@@ -335,5 +339,5 @@ where
 {
     value
         .try_into()
-        .map_err(|e| deserialization_error(format!("Type conversion failed: {}", e)))
+        .map_err(|e| deserialization_error(format!("Type conversion failed: {e}")))
 }

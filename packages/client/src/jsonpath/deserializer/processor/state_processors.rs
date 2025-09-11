@@ -9,24 +9,24 @@ use super::super::iterator::JsonPathIterator;
 use super::core::JsonProcessResult;
 use crate::jsonpath::error::JsonPathResult;
 
-impl<'iter, 'data, T> JsonPathIterator<'iter, 'data, T>
+impl<T> JsonPathIterator<'_, '_, T>
 where
     T: DeserializeOwned,
 {
     /// Process byte when parser is in initial state
     #[allow(dead_code)]
     #[inline]
-    pub(super) fn process_initial_byte(&mut self, byte: u8) -> JsonPathResult<JsonProcessResult> {
+    pub(super) fn process_initial_byte(&mut self, byte: u8) -> JsonProcessResult {
         match byte {
-            b' ' | b'\t' | b'\n' | b'\r' => Ok(JsonProcessResult::Continue), // Skip whitespace
+            b' ' | b'\t' | b'\n' | b'\r' => JsonProcessResult::Continue, // Skip whitespace
             b'{' => {
                 self.deserializer.transition_to_processing_object();
                 self.deserializer.object_nesting =
                     self.deserializer.object_nesting.saturating_add(1);
                 if self.matches_root_object_path() {
-                    Ok(JsonProcessResult::Continue)
+                    JsonProcessResult::Continue
                 } else {
-                    Ok(JsonProcessResult::Continue)
+                    JsonProcessResult::Continue
                 }
             }
             b'[' => {
@@ -40,9 +40,9 @@ where
                 if self.matches_root_array_path() {
                     self.deserializer.in_target_array = true;
                 }
-                Ok(JsonProcessResult::Continue)
+                JsonProcessResult::Continue
             }
-            _ => Ok(JsonProcessResult::Continue),
+            _ => JsonProcessResult::Continue,
         }
     }
 
@@ -127,18 +127,18 @@ where
     }
 
     /// Process byte when inside target array
-    pub(super) fn process_array_byte(&mut self, byte: u8) -> JsonPathResult<JsonProcessResult> {
+    pub(super) fn process_array_byte(&mut self, byte: u8) -> JsonProcessResult {
         match byte {
-            b' ' | b'\t' | b'\n' | b'\r' => Ok(JsonProcessResult::Continue), // Skip whitespace
+            b' ' | b'\t' | b'\n' | b'\r' => JsonProcessResult::Continue, // Skip whitespace
             b'{' => {
                 if self.deserializer.in_target_array && self.matches_current_path() {
                     self.deserializer.object_buffer.clear();
                     self.deserializer.object_buffer.push(byte);
                     self.deserializer.transition_to_processing_object();
                     self.deserializer.object_nesting = 1;
-                    Ok(JsonProcessResult::Continue)
+                    JsonProcessResult::Continue
                 } else {
-                    Ok(JsonProcessResult::Continue)
+                    JsonProcessResult::Continue
                 }
             }
             b'[' => {
@@ -149,7 +149,7 @@ where
                     .array_index_stack
                     .push(self.deserializer.current_array_index);
                 self.deserializer.current_array_index = 0; // Reset for new array
-                Ok(JsonProcessResult::Continue)
+                JsonProcessResult::Continue
             }
             b']' => {
                 // Check if we have a remaining object to process before closing array
@@ -163,7 +163,7 @@ where
                     if let Some(prev_index) = self.deserializer.array_index_stack.pop() {
                         self.deserializer.current_array_index = prev_index;
                     }
-                    return Ok(result);
+                    return result;
                 }
 
                 if self.deserializer.in_target_array {
@@ -176,28 +176,28 @@ where
                 }
                 if self.deserializer.current_depth == 0 {
                     self.deserializer.transition_to_complete();
-                    Ok(JsonProcessResult::Complete)
+                    JsonProcessResult::Complete
                 } else {
-                    Ok(JsonProcessResult::Continue)
+                    JsonProcessResult::Continue
                 }
             }
             b',' => {
                 if self.deserializer.in_target_array && !self.deserializer.object_buffer.is_empty()
                 {
                     // Complete object found - object_buffer contains a full JSON object
-                    Ok(JsonProcessResult::ObjectFound)
+                    JsonProcessResult::ObjectFound
                 } else {
                     // Increment array index for next element
                     self.deserializer.current_array_index =
                         self.deserializer.current_array_index.saturating_add(1);
-                    Ok(JsonProcessResult::Continue)
+                    JsonProcessResult::Continue
                 }
             }
             _ => {
                 if self.deserializer.in_target_array {
                     self.deserializer.object_buffer.push(byte);
                 }
-                Ok(JsonProcessResult::Continue)
+                JsonProcessResult::Continue
             }
         }
     }

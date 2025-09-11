@@ -50,6 +50,7 @@ impl RetryPolicy {
     /// Uses faster retry cycles with more attempts for operations
     /// that must succeed and can tolerate increased retry overhead.
     #[inline]
+    #[must_use] 
     pub fn aggressive() -> Self {
         Self {
             max_attempts: 5,
@@ -66,6 +67,7 @@ impl RetryPolicy {
     /// Uses longer delays and fewer attempts to minimize resource
     /// consumption for operations that can tolerate failure.
     #[inline]
+    #[must_use] 
     pub fn conservative() -> Self {
         Self {
             max_attempts: 2,
@@ -82,6 +84,7 @@ impl RetryPolicy {
     /// Disables retry logic entirely for operations that should
     /// fail fast without consuming additional resources.
     #[inline]
+    #[must_use] 
     pub fn no_retry() -> Self {
         Self {
             max_attempts: 1,
@@ -99,16 +102,20 @@ impl RetryPolicy {
     /// with random jitter to prevent thundering herd effects. Uses zero-allocation
     /// calculations for maximum performance.
     #[inline]
+    #[must_use] 
     pub fn calculate_delay(&self, attempt: u32) -> Duration {
         if attempt == 0 {
             return Duration::from_millis(0);
         }
 
         // Calculate exponential backoff delay
+        // Precision loss acceptable for retry delay calculations
+        #[allow(clippy::cast_precision_loss)]
         let base_delay =
             self.initial_delay_ms as f64 * self.backoff_multiplier.powi((attempt - 1) as i32);
 
-        // Cap at maximum delay
+        // Cap at maximum delay  
+        #[allow(clippy::cast_precision_loss)]
         let capped_delay = base_delay.min(self.max_delay_ms as f64);
 
         // Add jitter to prevent thundering herd
@@ -126,6 +133,7 @@ impl RetryPolicy {
     /// an error should trigger a retry attempt. Network errors and server
     /// errors (5xx) are generally retryable, while client errors (4xx) are not.
     #[inline]
+    #[must_use] 
     pub fn is_retryable_error(&self, error: &HttpError) -> bool {
         match &error.inner.kind {
             crate::error::types::Kind::Builder => false,     // Client configuration errors not retryable

@@ -1,4 +1,4 @@
-//! Unified byte processing module for JSONPath deserializer
+//! Unified byte processing module for `JSONPath` deserializer
 //!
 //! Consolidates duplicate byte processing functionality
 

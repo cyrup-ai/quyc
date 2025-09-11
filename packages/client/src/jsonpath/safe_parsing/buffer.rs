@@ -15,6 +15,7 @@ pub struct SafeStringBuffer {
 impl SafeStringBuffer {
     /// Create new safe string buffer with size limit
     #[inline]
+    #[must_use] 
     pub fn with_capacity(max_size: usize) -> Self {
         Self {
             buffer: Vec::new(),
@@ -45,12 +46,14 @@ impl SafeStringBuffer {
 
     /// Get current buffer size
     #[inline]
+    #[must_use] 
     pub fn len(&self) -> usize {
         self.buffer.len()
     }
 
     /// Check if buffer is empty
     #[inline]
+    #[must_use] 
     pub fn is_empty(&self) -> bool {
         self.buffer.is_empty()
     }

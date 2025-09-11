@@ -8,6 +8,7 @@ use super::core::PropertyOperations;
 
 impl PropertyOperations {
     /// Find property recursively in JSON structure
+    #[must_use] 
     pub fn find_property_recursive(json: &Value, property: &str) -> Vec<Value> {
         let mut results = Vec::new();
         Self::find_property_recursive_impl(json, property, &mut results);
@@ -40,6 +41,7 @@ impl PropertyOperations {
     }
 
     /// Check if a property exists at any depth
+    #[must_use] 
     pub fn has_property_recursive(json: &Value, property: &str) -> bool {
         match json {
             Value::Object(obj) => {
@@ -64,6 +66,7 @@ impl PropertyOperations {
     }
 
     /// Count occurrences of a property at any depth
+    #[must_use] 
     pub fn count_property_occurrences(json: &Value, property: &str) -> usize {
         let results = Self::find_property_recursive(json, property);
         results.len()

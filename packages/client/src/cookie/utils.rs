@@ -16,6 +16,7 @@ pub(crate) fn add_cookie_header(
 }
 
 /// Format cookie key-value pairs into a cookie header string
+#[must_use] 
 pub fn format_cookie(cookies: &HashMap<String, String>) -> String {
     cookies
         .iter()
@@ -25,6 +26,7 @@ pub fn format_cookie(cookies: &HashMap<String, String>) -> String {
 }
 
 /// Parse cookie header string into key-value pairs
+#[must_use] 
 pub fn parse_cookie(cookie_header: &str) -> HashMap<String, String> {
     let mut cookies = HashMap::new();
 

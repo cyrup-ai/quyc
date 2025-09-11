@@ -1,7 +1,7 @@
-//! Utility methods and support types for JsonArrayStream
+//! Utility methods and support types for `JsonArrayStream`
 //!
 //! Contains helper methods, statistics tracking, and support types
-//! for JSONPath streaming functionality.
+//! for `JSONPath` streaming functionality.
 
 use super::core::JsonArrayStream;
 
@@ -11,6 +11,7 @@ impl<T> JsonArrayStream<T> {
     /// Returns `true` when the entire JSON structure has been parsed and all matching
     /// array elements have been yielded.
     #[inline]
+    #[must_use] 
     pub fn is_complete(&self) -> bool {
         self.state.is_complete()
     }
@@ -18,6 +19,7 @@ impl<T> JsonArrayStream<T> {
     /// Get current parsing statistics for monitoring and debugging
     ///
     /// Returns metrics including bytes processed, objects yielded, and parsing errors.
+    #[must_use] 
     pub fn stats(&self) -> StreamStats {
         StreamStats {
             bytes_processed: self.buffer.total_bytes_processed(),
@@ -27,9 +29,9 @@ impl<T> JsonArrayStream<T> {
         }
     }
 
-    /// Get the JSONPath expression string
+    /// Get the `JSONPath` expression string
     ///
-    /// Returns the original JSONPath expression used to create this stream processor.
+    /// Returns the original `JSONPath` expression used to create this stream processor.
     #[must_use]
     pub fn jsonpath_expr(&self) -> &str {
         self.path_expression.original()

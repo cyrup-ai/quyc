@@ -92,7 +92,7 @@ fn parse_certificate_from_der(der_data: &[u8]) -> Result<ParsedCertificate, TlsE
     use x509_cert::{Certificate, der::Decode};
 
     let cert = Certificate::from_der(der_data).map_err(|e| {
-        TlsError::CertificateParsing(format!("Failed to parse DER certificate: {}", e))
+        TlsError::CertificateParsing(format!("Failed to parse DER certificate: {e}"))
     })?;
 
     // Convert X509 certificate to ParsedCertificate format

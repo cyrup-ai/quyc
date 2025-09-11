@@ -1,7 +1,7 @@
 //! JSON streaming state machine with zero-allocation parsing
 //!
 //! This module implements a high-performance state machine for streaming JSON parsing
-//! and JSONPath evaluation. Optimized for scenarios where JSON arrives in chunks
+//! and `JSONPath` evaluation. Optimized for scenarios where JSON arrives in chunks
 //! and needs incremental processing with minimal memory allocation.
 //!
 //! # Architecture
@@ -33,7 +33,7 @@
 //! - Zero-allocation streaming parsing
 //! - Single-pass byte processing
 //! - Minimal branching in hot paths
-//! - Incremental JSONPath evaluation
+//! - Incremental `JSONPath` evaluation
 //! - Memory-efficient state tracking
 
 #![allow(dead_code)]

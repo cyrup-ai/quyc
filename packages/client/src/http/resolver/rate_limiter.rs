@@ -1,6 +1,6 @@
 //! Rate limiting implementation for DNS resolver
 //!
-//! Uses sliding window algorithm with DashMap for thread-safe rate limiting
+//! Uses sliding window algorithm with `DashMap` for thread-safe rate limiting
 
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -29,6 +29,7 @@ struct RateLimitState {
 }
 
 impl RateLimiter {
+    #[must_use] 
     pub fn new(max_requests_per_second: u32) -> Self {
         Self {
             limits: Arc::new(DashMap::new()),
@@ -38,6 +39,7 @@ impl RateLimiter {
         }
     }
     
+    #[must_use] 
     pub fn with_window(mut self, window: Duration) -> Self {
         self.window = window;
         self
@@ -48,9 +50,10 @@ impl RateLimiter {
             return Ok(());
         }
         
-        let key = format!("{}:{}", hostname, query_type);
+        let key = format!("{hostname}:{query_type}");
         let now = Instant::now();
-        let window_start = now - self.window;
+        let window_start = now.checked_sub(self.window)
+            .ok_or_else(|| format!("Rate limiter window duration ({:?}) exceeds current time", self.window))?;
         
         // Get or create rate limit state
         let mut entry = self.limits.entry(key.clone()).or_insert_with(|| {
@@ -69,8 +72,7 @@ impl RateLimiter {
         if state.timestamps.len() >= self.max_requests as usize {
             let retry_after = state.timestamps[0] + self.window - now;
             return Err(format!(
-                "Rate limit exceeded for {}. Retry after {:?}",
-                key, retry_after
+                "Rate limit exceeded for {key}. Retry after {retry_after:?}"
             ));
         }
         
@@ -82,7 +84,7 @@ impl RateLimiter {
     }
     
     pub fn reset(&self, hostname: &str, query_type: &str) {
-        let key = format!("{}:{}", hostname, query_type);
+        let key = format!("{hostname}:{query_type}");
         self.limits.remove(&key);
     }
     
@@ -90,12 +92,25 @@ impl RateLimiter {
         self.limits.clear();
     }
     
+    #[must_use] 
     pub fn get_metrics(&self, hostname: &str, query_type: &str) -> Option<RateLimitMetrics> {
-        let key = format!("{}:{}", hostname, query_type);
+        let key = format!("{hostname}:{query_type}");
         self.limits.get(&key).map(|entry| {
             let state = entry.value();
+            let current_requests = match u32::try_from(state.timestamps.len()) {
+                Ok(count) => count,
+                Err(_) => {
+                    tracing::warn!(
+                        target: "quyc::rate_limiter",
+                        timestamps_len = state.timestamps.len(),
+                        max_u32 = u32::MAX,
+                        "Timestamp count exceeds u32 limits, clamping to max"
+                    );
+                    u32::MAX
+                }
+            };
             RateLimitMetrics {
-                current_requests: state.timestamps.len() as u32,
+                current_requests,
                 total_requests: state.total_requests.load(Ordering::Relaxed),
                 max_requests: self.max_requests,
                 window: self.window,

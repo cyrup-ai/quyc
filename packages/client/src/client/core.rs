@@ -1,6 +1,6 @@
 //! Core HTTP client implementation
 //!
-//! Provides the main HttpClient with connection pooling, protocol strategy,
+//! Provides the main `HttpClient` with connection pooling, protocol strategy,
 //! comprehensive telemetry, and enterprise-grade error handling.
 
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -55,6 +55,7 @@ pub struct ClientStats {
 impl ClientStats {
     /// Create new client statistics
     #[inline]
+    #[must_use] 
     pub fn new() -> Self {
         Self::default()
     }
@@ -62,14 +63,20 @@ impl ClientStats {
     /// Create a snapshot of current statistics
     pub fn snapshot(&self) -> crate::telemetry::ClientStatsSnapshot {
         crate::telemetry::ClientStatsSnapshot {
+            #[allow(clippy::cast_possible_truncation)]
             request_count: self.total_requests.load(Ordering::Relaxed) as usize,
+            #[allow(clippy::cast_possible_truncation)]
             connection_count: self.connection_pool_size.load(Ordering::Relaxed) as usize,
             total_bytes_sent: self.bytes_sent.load(Ordering::Relaxed),
             total_bytes_received: self.bytes_received.load(Ordering::Relaxed),
             total_response_time_nanos: 0, // Not tracked in this implementation
+            #[allow(clippy::cast_possible_truncation)]
             successful_requests: self.successful_requests.load(Ordering::Relaxed) as usize,
+            #[allow(clippy::cast_possible_truncation)]
             failed_requests: self.failed_requests.load(Ordering::Relaxed) as usize,
+            #[allow(clippy::cast_possible_truncation)]
             cache_hits: self.cache_hits.load(Ordering::Relaxed) as usize,
+            #[allow(clippy::cast_possible_truncation)]
             cache_misses: self.cache_misses.load(Ordering::Relaxed) as usize,
         }
     }
@@ -77,7 +84,7 @@ impl ClientStats {
 
 /// HTTP client with connection pooling and intelligent protocol strategy
 ///
-/// This is the CANONICAL HttpClient that consolidates all HTTP functionality
+/// This is the CANONICAL `HttpClient` that consolidates all HTTP functionality
 /// into a single, performant, zero-allocation client with comprehensive telemetry.
 #[derive(Debug, Clone)]
 pub struct HttpClient {
@@ -90,8 +97,9 @@ pub struct HttpClient {
 // Default implementation moved to configuration.rs
 
 impl HttpClient {
-    /// Create HttpClient with default configuration
+    /// Create `HttpClient` with default configuration
     #[inline]
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             config: HttpConfig::default(),
@@ -101,8 +109,9 @@ impl HttpClient {
         }
     }
 
-    /// Create HttpClient with custom configuration
+    /// Create `HttpClient` with custom configuration
     #[inline]
+    #[must_use] 
     pub fn with_config(config: HttpConfig) -> Self {
         Self {
             config,
@@ -112,7 +121,7 @@ impl HttpClient {
         }
     }
 
-    /// Create HttpClient with custom configuration and pre-allocated stats
+    /// Create `HttpClient` with custom configuration and pre-allocated stats
     /// Used for advanced initialization scenarios with shared statistics
     #[inline]
     pub fn new_direct(config: HttpConfig, stats: ClientStats) -> Self {
@@ -126,8 +135,9 @@ impl HttpClient {
 
 
 
-    /// Create HttpClient with custom configuration and strategy
+    /// Create `HttpClient` with custom configuration and strategy
     #[inline]
+    #[must_use] 
     pub fn with_config_and_strategy(config: HttpConfig, strategy: HttpProtocolStrategy) -> Self {
         Self {
             config,
@@ -141,50 +151,61 @@ impl HttpClient {
 
     /// Get client statistics for monitoring and telemetry
     #[inline]
+    #[must_use] 
     pub fn stats(&self) -> Arc<ClientStats> {
         self.stats.clone()
     }
 
     /// Get current configuration
     #[inline]
+    #[must_use] 
     pub fn config(&self) -> &HttpConfig {
         &self.config
     }
 
     /// Get current strategy
     #[inline]
+    #[must_use] 
     pub fn strategy(&self) -> &HttpProtocolStrategy {
         &self.strategy
     }
 
     /// Get client uptime
     #[inline]
+    #[must_use] 
     pub fn uptime(&self) -> std::time::Duration {
         self.created_at.elapsed()
     }
 
     /// Get connection pool size
     #[inline]
+    #[must_use] 
     pub fn connection_pool_size(&self) -> u64 {
         self.stats.connection_pool_size.load(Ordering::Relaxed)
     }
 
     /// Get active connections count
     #[inline]
+    #[must_use] 
     pub fn active_connections(&self) -> u64 {
         self.stats.active_connections.load(Ordering::Relaxed)
     }
 
     /// Get average response time in milliseconds
     #[inline]
+    #[must_use] 
     pub fn avg_response_time_ms(&self) -> u64 {
         self.stats.avg_response_time_ms.load(Ordering::Relaxed)
     }
 
     /// Get cache hit rate (0.0 to 1.0)
     #[inline]
+    #[must_use] 
     pub fn cache_hit_rate(&self) -> f64 {
+        // Precision loss acceptable for cache hit rate statistics
+        #[allow(clippy::cast_precision_loss)]
         let hits = self.stats.cache_hits.load(Ordering::Relaxed) as f64;
+        #[allow(clippy::cast_precision_loss)]
         let misses = self.stats.cache_misses.load(Ordering::Relaxed) as f64;
         let total = hits + misses;
         if total == 0.0 { 0.0 } else { hits / total }
@@ -192,8 +213,12 @@ impl HttpClient {
 
     /// Get success rate (0.0 to 1.0)
     #[inline]
+    #[must_use] 
     pub fn success_rate(&self) -> f64 {
+        // Precision loss acceptable for success rate statistics
+        #[allow(clippy::cast_precision_loss)]
         let successful = self.stats.successful_requests.load(Ordering::Relaxed) as f64;
+        #[allow(clippy::cast_precision_loss)]
         let failed = self.stats.failed_requests.load(Ordering::Relaxed) as f64;
         let total = successful + failed;
         if total == 0.0 { 1.0 } else { successful / total }
@@ -201,6 +226,7 @@ impl HttpClient {
 
     /// Get total bytes transferred (sent + received)
     #[inline]
+    #[must_use] 
     pub fn total_bytes_transferred(&self) -> u64 {
         self.stats.bytes_sent.load(Ordering::Relaxed) + 
         self.stats.bytes_received.load(Ordering::Relaxed)
@@ -208,6 +234,7 @@ impl HttpClient {
 
     /// Check if client has metrics available
     #[inline]
+    #[must_use] 
     pub fn has_metrics(&self) -> bool {
         self.stats.total_requests.load(Ordering::Relaxed) > 0
     }
@@ -229,6 +256,7 @@ impl HttpClient {
 
     /// Check if client is closed (always false for canonical client)
     #[inline]
+    #[must_use] 
     pub fn is_closed(&self) -> bool {
         false
     }
@@ -244,217 +272,14 @@ impl HttpClient {
         // Track request
         stats.total_requests.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         
-        // Apply compression headers based on configuration
-        let mut modified_request = request;
-        crate::http::headers::add_compression_headers(modified_request.headers_mut(), &self.config);
-        
-        // Apply request body compression if enabled and appropriate
-        if self.config.request_compression {
-            let content_type = modified_request.headers()
-                .get("content-type")
-                .and_then(|v| v.to_str().ok());
-                
-            if crate::http::compression::should_compress_content_type(content_type, &self.config) {
-                if let Some(body) = modified_request.body().cloned() {
-                    let start_time = std::time::Instant::now();
-                    
-                    match body {
-                        crate::http::request::RequestBody::Bytes(data) => {
-                            // Determine best compression algorithm based on config
-                            let algorithm = if self.config.brotli_enabled {
-                                crate::http::headers::CompressionAlgorithm::Brotli
-                            } else if self.config.gzip_enabled {
-                                crate::http::headers::CompressionAlgorithm::Gzip
-                            } else if self.config.deflate {
-                                crate::http::headers::CompressionAlgorithm::Deflate
-                            } else {
-                                crate::http::headers::CompressionAlgorithm::Identity
-                            };
-                            
-                            if algorithm != crate::http::headers::CompressionAlgorithm::Identity {
-                                // Get the appropriate compression level from config
-                                let compression_level = match algorithm {
-                                    crate::http::headers::CompressionAlgorithm::Brotli => self.config.brotli_level,
-                                    crate::http::headers::CompressionAlgorithm::Gzip => self.config.gzip_level,
-                                    crate::http::headers::CompressionAlgorithm::Deflate => self.config.deflate_level,
-                                    crate::http::headers::CompressionAlgorithm::Identity => None,
-                                };
-                                
-                                match crate::http::compression::compress_bytes_with_metrics(
-                                    &data,
-                                    algorithm,
-                                    compression_level,
-                                    Some(&stats)
-                                ) {
-                                    Ok(compressed_data) => {
-                                        // Only use compression if it's worthwhile
-                                        if compressed_data.len() < data.len() {
-                                            modified_request = modified_request.body_bytes(
-                                                bytes::Bytes::from(compressed_data.clone())
-                                            );
-                                            
-                                            // Add Content-Encoding header
-                                            if let Ok(encoding_header) = http::HeaderValue::from_str(algorithm.encoding_name()) {
-                                                modified_request.headers_mut().insert(
-                                                    http::header::CONTENT_ENCODING,
-                                                    encoding_header
-                                                );
-                                            }
-                                            
-                                            // Update compression metrics
-                                            let compression_time_ms = start_time.elapsed().as_millis() as u64;
-                                            stats.bytes_sent.fetch_add(compressed_data.len() as u64, std::sync::atomic::Ordering::Relaxed);
-                                            
-                                            tracing::debug!(
-                                                target: "quyc::client",
-                                                algorithm = %algorithm.encoding_name(),
-                                                original_size = data.len(),
-                                                compressed_size = compressed_data.len(),
-                                                compression_time_ms = compression_time_ms,
-                                                "Request body compressed"
-                                            );
-                                        }
-                                    },
-                                    Err(e) => {
-                                        tracing::warn!(
-                                            target: "quyc::client",
-                                            error = %e,
-                                            "Request body compression failed, sending uncompressed"
-                                        );
-                                    }
-                                }
-                            }
-                        },
-                        crate::http::request::RequestBody::Text(text) => {
-                            let data = text.as_bytes();
-                            let algorithm = if self.config.brotli_enabled {
-                                crate::http::headers::CompressionAlgorithm::Brotli
-                            } else if self.config.gzip_enabled {
-                                crate::http::headers::CompressionAlgorithm::Gzip
-                            } else if self.config.deflate {
-                                crate::http::headers::CompressionAlgorithm::Deflate
-                            } else {
-                                crate::http::headers::CompressionAlgorithm::Identity
-                            };
-                            
-                            if algorithm != crate::http::headers::CompressionAlgorithm::Identity {
-                                // Get the appropriate compression level from config
-                                let compression_level = match algorithm {
-                                    crate::http::headers::CompressionAlgorithm::Brotli => self.config.brotli_level,
-                                    crate::http::headers::CompressionAlgorithm::Gzip => self.config.gzip_level,
-                                    crate::http::headers::CompressionAlgorithm::Deflate => self.config.deflate_level,
-                                    crate::http::headers::CompressionAlgorithm::Identity => None,
-                                };
-                                
-                                match crate::http::compression::compress_bytes_with_metrics(data, algorithm, compression_level, Some(&stats)) {
-                                    Ok(compressed_data) => {
-                                        if compressed_data.len() < data.len() {
-                                            modified_request = modified_request.body_bytes(
-                                                bytes::Bytes::from(compressed_data.clone())
-                                            );
-                                            
-                                            if let Ok(encoding_header) = http::HeaderValue::from_str(algorithm.encoding_name()) {
-                                                modified_request.headers_mut().insert(
-                                                    http::header::CONTENT_ENCODING,
-                                                    encoding_header
-                                                );
-                                            }
-                                            
-                                            stats.bytes_sent.fetch_add(compressed_data.len() as u64, std::sync::atomic::Ordering::Relaxed);
-                                            
-                                            tracing::debug!(
-                                                target: "quyc::client",
-                                                algorithm = %algorithm.encoding_name(),
-                                                original_size = data.len(),
-                                                compressed_size = compressed_data.len(),
-                                                "Request text body compressed"
-                                            );
-                                        }
-                                    },
-                                    Err(e) => {
-                                        tracing::warn!(
-                                            target: "quyc::client",
-                                            error = %e,
-                                            "Request text body compression failed, sending uncompressed"
-                                        );
-                                    }
-                                }
-                            }
-                        },
-                        crate::http::request::RequestBody::Json(json_value) => {
-                            if let Ok(json_text) = serde_json::to_string(&json_value) {
-                                let data = json_text.as_bytes();
-                                let algorithm = if self.config.brotli_enabled {
-                                    crate::http::headers::CompressionAlgorithm::Brotli
-                                } else if self.config.gzip_enabled {
-                                    crate::http::headers::CompressionAlgorithm::Gzip
-                                } else if self.config.deflate {
-                                    crate::http::headers::CompressionAlgorithm::Deflate
-                                } else {
-                                    crate::http::headers::CompressionAlgorithm::Identity
-                                };
-                                
-                                if algorithm != crate::http::headers::CompressionAlgorithm::Identity {
-                                    // Get the appropriate compression level from config
-                                    let compression_level = match algorithm {
-                                        crate::http::headers::CompressionAlgorithm::Brotli => self.config.brotli_level,
-                                        crate::http::headers::CompressionAlgorithm::Gzip => self.config.gzip_level,
-                                        crate::http::headers::CompressionAlgorithm::Deflate => self.config.deflate_level,
-                                        crate::http::headers::CompressionAlgorithm::Identity => None,
-                                    };
-                                    
-                                    match crate::http::compression::compress_bytes(data, algorithm, compression_level) {
-                                        Ok(compressed_data) => {
-                                            if compressed_data.len() < data.len() {
-                                                modified_request = modified_request.body_bytes(
-                                                    bytes::Bytes::from(compressed_data.clone())
-                                                );
-                                                
-                                                if let Ok(encoding_header) = http::HeaderValue::from_str(algorithm.encoding_name()) {
-                                                    modified_request.headers_mut().insert(
-                                                        http::header::CONTENT_ENCODING,
-                                                        encoding_header
-                                                    );
-                                                }
-                                                
-                                                stats.bytes_sent.fetch_add(compressed_data.len() as u64, std::sync::atomic::Ordering::Relaxed);
-                                                
-                                                tracing::debug!(
-                                                    target: "quyc::client",
-                                                    algorithm = %algorithm.encoding_name(),
-                                                    original_size = data.len(),
-                                                    compressed_size = compressed_data.len(),
-                                                    "Request JSON body compressed"
-                                                );
-                                            }
-                                        },
-                                        Err(e) => {
-                                            tracing::warn!(
-                                                target: "quyc::client",
-                                                error = %e,
-                                                "Request JSON body compression failed, sending uncompressed"
-                                            );
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        // For other body types (Form, Multipart, Stream), compression is handled
-                        // at the protocol level or not applied due to complexity
-                        _ => {
-                            tracing::debug!(
-                                target: "quyc::client",
-                                "Skipping compression for complex body type"
-                            );
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Build and execute strategy
+        // Add Accept-Encoding headers for response decompression
+        let mut headers = request.headers().clone();
+        crate::http::headers::add_compression_headers(&mut headers, &self.config);
+        let request_with_headers = request.with_headers(headers);
+
+        // Build and execute strategy - compression handled transparently at protocol layer
         let strategy = self.strategy.build();
-        let response = strategy.execute(modified_request);
+        let response = strategy.execute(request_with_headers);
         
         // Track result
         if response.is_success() {

@@ -45,7 +45,8 @@ impl Default for HttpProtocolStrategy {
 }
 
 impl HttpProtocolStrategy {
-    /// Build the appropriate ProtocolStrategy implementation
+    /// Build the appropriate `ProtocolStrategy` implementation
+    #[must_use] 
     pub fn build(&self) -> Box<dyn crate::protocols::strategy_trait::ProtocolStrategy> {
         use crate::protocols::h2::strategy::H2Strategy;
         use crate::protocols::h3::strategy::H3Strategy;
@@ -77,6 +78,7 @@ impl HttpProtocolStrategy {
     }
     
     /// Create AI-optimized strategy for streaming workloads
+    #[must_use] 
     pub fn ai_optimized() -> Self {
         Self::Auto {
             prefer: vec![HttpVersion::Http3],
@@ -90,11 +92,13 @@ impl HttpProtocolStrategy {
     }
 
     /// Create streaming-optimized strategy for real-time data
+    #[must_use] 
     pub fn streaming_optimized() -> Self {
         Self::Http3(H3Config::streaming_optimized())
     }
 
     /// Create low-latency strategy for interactive applications
+    #[must_use] 
     pub fn low_latency() -> Self {
         Self::Quiche(QuicheConfig::low_latency())
     }
@@ -105,21 +109,13 @@ impl HttpProtocolStrategy {
 
 /// Configuration bundle for all protocols
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct ProtocolConfigs {
     pub h2: H2Config,
     pub h3: H3Config,
     pub quiche: QuicheConfig,
 }
 
-impl Default for ProtocolConfigs {
-    fn default() -> Self {
-        Self {
-            h2: H2Config::default(),
-            h3: H3Config::default(),
-            quiche: QuicheConfig::default(),
-        }
-    }
-}
 
 /// Strategy-specific protocol configuration
 #[derive(Debug, Clone)]
@@ -160,6 +156,7 @@ impl Default for H2Config {
 }
 
 impl H2Config {
+    #[must_use] 
     pub fn ai_optimized() -> Self {
         Self {
             max_concurrent_streams: 1000,
@@ -238,6 +235,7 @@ impl Default for H3Config {
 }
 
 impl H3Config {
+    #[must_use] 
     pub fn ai_optimized() -> Self {
         Self {
             max_idle_timeout: Duration::from_secs(60),
@@ -254,6 +252,7 @@ impl H3Config {
         }
     }
 
+    #[must_use] 
     pub fn streaming_optimized() -> Self {
         Self {
             max_idle_timeout: Duration::from_secs(300),
@@ -323,56 +322,58 @@ impl Default for QuicheConfig {
     fn default() -> Self {
         Self {
             max_idle_timeout: Duration::from_secs(30),
-            initial_max_data: 10485760,                   // 10MB
-            initial_max_stream_data_bidi_local: 1048576,  // 1MB
-            initial_max_stream_data_bidi_remote: 1048576, // 1MB
-            initial_max_stream_data_uni: 1048576,         // 1MB
+            initial_max_data: 10_485_760,                   // 10MB
+            initial_max_stream_data_bidi_local: 1_048_576,  // 1MB
+            initial_max_stream_data_bidi_remote: 1_048_576, // 1MB
+            initial_max_stream_data_uni: 1_048_576,         // 1MB
             initial_max_streams_bidi: 100,
             initial_max_streams_uni: 100,
             max_udp_payload_size: 1452,
             enable_early_data: true,
             enable_hystart: true,
             congestion_control: CongestionControl::Cubic,
-            max_connection_window: 25165824, // 24MB
-            max_stream_window: 16777216,     // 16MB
+            max_connection_window: 25_165_824, // 24MB
+            max_stream_window: 16_777_216,     // 16MB
         }
     }
 }
 
 impl QuicheConfig {
+    #[must_use] 
     pub fn ai_optimized() -> Self {
         Self {
             max_idle_timeout: Duration::from_secs(60),
-            initial_max_data: 104857600,                   // 100MB
-            initial_max_stream_data_bidi_local: 10485760,  // 10MB
-            initial_max_stream_data_bidi_remote: 10485760, // 10MB
-            initial_max_stream_data_uni: 10485760,         // 10MB
+            initial_max_data: 104_857_600,                   // 100MB
+            initial_max_stream_data_bidi_local: 10_485_760,  // 10MB
+            initial_max_stream_data_bidi_remote: 10_485_760, // 10MB
+            initial_max_stream_data_uni: 10_485_760,         // 10MB
             initial_max_streams_bidi: 1000,
             initial_max_streams_uni: 1000,
             max_udp_payload_size: 1452,
             enable_early_data: true,
             enable_hystart: true,
             congestion_control: CongestionControl::Bbr,
-            max_connection_window: 268435456, // 256MB
-            max_stream_window: 134217728,     // 128MB
+            max_connection_window: 268_435_456, // 256MB
+            max_stream_window: 134_217_728,     // 128MB
         }
     }
 
+    #[must_use] 
     pub fn low_latency() -> Self {
         Self {
             max_idle_timeout: Duration::from_secs(15),
-            initial_max_data: 52428800,                   // 50MB
-            initial_max_stream_data_bidi_local: 5242880,  // 5MB
-            initial_max_stream_data_bidi_remote: 5242880, // 5MB
-            initial_max_stream_data_uni: 5242880,         // 5MB
+            initial_max_data: 52_428_800,                   // 50MB
+            initial_max_stream_data_bidi_local: 5_242_880,  // 5MB
+            initial_max_stream_data_bidi_remote: 5_242_880, // 5MB
+            initial_max_stream_data_uni: 5_242_880,         // 5MB
             initial_max_streams_bidi: 500,
             initial_max_streams_uni: 500,
             max_udp_payload_size: 1200, // Conservative for low latency
             enable_early_data: true,
             enable_hystart: false, // Disable for predictable latency
             congestion_control: CongestionControl::Bbr,
-            max_connection_window: 67108864, // 64MB
-            max_stream_window: 33554432,     // 32MB
+            max_connection_window: 67_108_864, // 64MB
+            max_stream_window: 33_554_432,     // 32MB
         }
     }
 }
@@ -420,10 +421,10 @@ impl Default for CongestionControl {
     }
 }
 
-/// Convert H3Config to quiche::Config for HTTP/3 connections
+/// Convert `H3Config` to `quiche::Config` for HTTP/3 connections
 fn convert_h3_config_to_quiche(h3_config: &H3Config) -> Result<quiche::Config, String> {
     let mut config = quiche::Config::new(quiche::PROTOCOL_VERSION)
-        .map_err(|e| format!("Failed to create quiche config: {}", e))?;
+        .map_err(|e| format!("Failed to create quiche config: {e}"))?;
 
     // Set transport parameters from H3Config
     config.set_initial_max_data(h3_config.initial_max_data);
@@ -455,15 +456,15 @@ fn convert_h3_config_to_quiche(h3_config: &H3Config) -> Result<quiche::Config, S
     }
 
     // Set HTTP/3 application protocol
-    config.set_application_protos(&[b"h3"]).map_err(|e| format!("Failed to set application protos: {}", e))?;
+    config.set_application_protos(&[b"h3"]).map_err(|e| format!("Failed to set application protos: {e}"))?;
 
     Ok(config)
 }
 
-/// Convert QuicheConfig to quiche::Config for HTTP/3 connections  
+/// Convert `QuicheConfig` to `quiche::Config` for HTTP/3 connections  
 fn convert_quiche_config_to_quiche(quiche_config: &QuicheConfig) -> Result<quiche::Config, String> {
     let mut config = quiche::Config::new(quiche::PROTOCOL_VERSION)
-        .map_err(|e| format!("Failed to create quiche config: {}", e))?;
+        .map_err(|e| format!("Failed to create quiche config: {e}"))?;
 
     // Set transport parameters from QuicheConfig
     config.set_initial_max_data(quiche_config.initial_max_data);
@@ -494,7 +495,7 @@ fn convert_quiche_config_to_quiche(quiche_config: &QuicheConfig) -> Result<quich
     }
 
     // Set HTTP/3 application protocol
-    config.set_application_protos(&[b"h3"]).map_err(|e| format!("Failed to set application protos: {}", e))?;
+    config.set_application_protos(&[b"h3"]).map_err(|e| format!("Failed to set application protos: {e}"))?;
 
     Ok(config)
 }

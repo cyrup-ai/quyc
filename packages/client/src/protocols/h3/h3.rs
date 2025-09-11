@@ -60,7 +60,7 @@ pub fn execute_h3_request(
             let url = match url::Url::parse(&uri) {
                 Ok(url) => url,
                 Err(e) => {
-                    emit!(sender, H3Chunk::bad_chunk(format!("Invalid URI: {}", e)));
+                    emit!(sender, H3Chunk::bad_chunk(format!("Invalid URI: {e}")));
                     return;
                 }
             };

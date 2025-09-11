@@ -1,6 +1,6 @@
 //! HTTP request types and builders
 //!
-//! This module provides the CANONICAL HttpRequest implementation that consolidates
+//! This module provides the CANONICAL `HttpRequest` implementation that consolidates
 //! all previous Request variants into a single, comprehensive request type.
 
 use std::collections::HashMap;
@@ -17,7 +17,7 @@ use crate::protocols::core::HttpMethod;
 
 /// HTTP request structure with comprehensive functionality
 ///
-/// This is the CANONICAL HttpRequest implementation that consolidates all
+/// This is the CANONICAL `HttpRequest` implementation that consolidates all
 /// previous Request variants into a single, feature-complete request type.
 #[derive(Debug, Clone)]
 pub struct HttpRequest {
@@ -118,13 +118,13 @@ impl RequestBody {
             RequestBody::Form(form) => serde_urlencoded::to_string(form)
                 .map(|s| s.len())
                 .unwrap_or(0),
-            RequestBody::Multipart(fields) => self.calculate_multipart_size(fields),
+            RequestBody::Multipart(fields) => Self::calculate_multipart_size(fields),
             RequestBody::Stream(_) => 0,    // Streaming body size is unknown
         }
     }
 
     /// Calculate multipart form body size without building the actual body
-    fn calculate_multipart_size(&self, fields: &[MultipartField]) -> usize {
+    fn calculate_multipart_size(fields: &[MultipartField]) -> usize {
         // Fixed boundary format: "----formdata-fluent-" + 16 hex chars = 36 chars
         let boundary_len = 36;
         let mut total_size = 0;
@@ -206,7 +206,7 @@ pub enum RequestAuth {
     Custom(HeaderMap),
 }
 
-/// HTTP request builder that implements the HttpRequestBuilder trait
+/// HTTP request builder that implements the `HttpRequestBuilder` trait
 #[derive(Debug, Clone)]
 pub struct HttpRequestBuilder {
     method: HttpMethod,
@@ -218,6 +218,7 @@ pub struct HttpRequestBuilder {
 
 impl HttpRequestBuilder {
     /// Create a new request builder
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             method: HttpMethod::Get,
@@ -256,7 +257,7 @@ impl HttpRequestBuilder {
         self
     }
 
-    /// Build the final HttpRequest
+    /// Build the final `HttpRequest`
     pub fn build(self) -> HttpRequest {
         // Safe fallback URL that will always parse successfully
         const FALLBACK_URL: &str = "http://localhost/";
@@ -265,11 +266,11 @@ impl HttpRequestBuilder {
             Some(uri_str) => uri_str
                 .parse()
                 .unwrap_or_else(|_| FALLBACK_URL.parse().unwrap_or_else(|parse_error| {
-                    log::error!("Fallback URL failed to parse: {}", parse_error);
+                    log::error!("Fallback URL failed to parse: {parse_error}");
                     url::Url::parse("http://localhost/").expect("localhost URL must parse")
                 })),
             None => FALLBACK_URL.parse().unwrap_or_else(|parse_error| {
-                log::error!("Fallback URL failed to parse: {}", parse_error);
+                log::error!("Fallback URL failed to parse: {parse_error}");
                 url::Url::parse("http://localhost/").expect("localhost URL must parse")
             }),
         };
@@ -300,12 +301,14 @@ impl Default for HttpRequestBuilder {
 impl HttpRequest {
     /// Create a new request builder
     #[inline]
+    #[must_use] 
     pub fn builder() -> HttpRequestBuilder {
         HttpRequestBuilder::default()
     }
 
     /// Creates a new `HttpRequest`
     #[inline]
+    #[must_use] 
     pub fn new(
         method: Method,
         url: Url,
@@ -343,127 +346,106 @@ impl HttpRequest {
     /// Create GET request
     #[inline]
     pub fn get<U: TryInto<Url>>(url: U) -> Self {
-        match url.try_into() {
-            Ok(parsed_url) => Self::new(Method::GET, parsed_url, None, None, None),
-            Err(_) => {
-                // Create a request with error state - use safe dummy URL
-                const INVALID_URL: &str = "http://invalid.localhost/";
-                let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
-                    log::error!("GET dummy URL parsing failed: {}", parse_error);
-                    url::Url::parse("http://localhost/").expect("localhost URL must parse")
-                });
-                let mut request = Self::new(Method::GET, dummy_url, None, None, None);
-                request.error = Some("Invalid URL provided".to_string());
-                request
-            }
+        if let Ok(parsed_url) = url.try_into() { Self::new(Method::GET, parsed_url, None, None, None) } else {
+            // Create a request with error state - use safe dummy URL
+            const INVALID_URL: &str = "http://invalid.localhost/";
+            let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
+                log::error!("GET dummy URL parsing failed: {parse_error}");
+                url::Url::parse("http://localhost/").expect("localhost URL must parse")
+            });
+            let mut request = Self::new(Method::GET, dummy_url, None, None, None);
+            request.error = Some("Invalid URL provided".to_string());
+            request
         }
     }
 
     /// Create POST request
     #[inline]
     pub fn post<U: TryInto<Url>>(url: U) -> Self {
-        match url.try_into() {
-            Ok(parsed_url) => Self::new(Method::POST, parsed_url, None, None, None),
-            Err(_) => {
-                const INVALID_URL: &str = "http://invalid.localhost/";
-                let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
-                    log::error!("POST dummy URL parsing failed: {}", parse_error);
-                    url::Url::parse("http://localhost/").expect("localhost URL must parse")
-                });
-                let mut request = Self::new(Method::POST, dummy_url, None, None, None);
-                request.error = Some("Invalid URL provided".to_string());
-                request
-            }
+        if let Ok(parsed_url) = url.try_into() { Self::new(Method::POST, parsed_url, None, None, None) } else {
+            const INVALID_URL: &str = "http://invalid.localhost/";
+            let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
+                log::error!("POST dummy URL parsing failed: {parse_error}");
+                url::Url::parse("http://localhost/").expect("localhost URL must parse")
+            });
+            let mut request = Self::new(Method::POST, dummy_url, None, None, None);
+            request.error = Some("Invalid URL provided".to_string());
+            request
         }
     }
 
     /// Create PUT request
     #[inline]
     pub fn put<U: TryInto<Url>>(url: U) -> Self {
-        match url.try_into() {
-            Ok(parsed_url) => Self::new(Method::PUT, parsed_url, None, None, None),
-            Err(_) => {
-                const INVALID_URL: &str = "http://invalid.localhost/";
-                let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
-                    log::error!("PUT dummy URL parsing failed: {}", parse_error);
-                    url::Url::parse("http://localhost/").expect("localhost URL must parse")
-                });
-                let mut request = Self::new(Method::PUT, dummy_url, None, None, None);
-                request.error = Some("Invalid URL provided".to_string());
-                request
-            }
+        if let Ok(parsed_url) = url.try_into() { Self::new(Method::PUT, parsed_url, None, None, None) } else {
+            const INVALID_URL: &str = "http://invalid.localhost/";
+            let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
+                log::error!("PUT dummy URL parsing failed: {parse_error}");
+                url::Url::parse("http://localhost/").expect("localhost URL must parse")
+            });
+            let mut request = Self::new(Method::PUT, dummy_url, None, None, None);
+            request.error = Some("Invalid URL provided".to_string());
+            request
         }
     }
 
     /// Create DELETE request
     #[inline]
     pub fn delete<U: TryInto<Url>>(url: U) -> Self {
-        match url.try_into() {
-            Ok(parsed_url) => Self::new(Method::DELETE, parsed_url, None, None, None),
-            Err(_) => {
-                const INVALID_URL: &str = "http://invalid.localhost/";
-                let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
-                    log::error!("DELETE dummy URL parsing failed: {}", parse_error);
-                    url::Url::parse("http://localhost/").expect("localhost URL must parse")
-                });
-                let mut request = Self::new(Method::DELETE, dummy_url, None, None, None);
-                request.error = Some("Invalid URL provided".to_string());
-                request
-            }
+        if let Ok(parsed_url) = url.try_into() { Self::new(Method::DELETE, parsed_url, None, None, None) } else {
+            const INVALID_URL: &str = "http://invalid.localhost/";
+            let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
+                log::error!("DELETE dummy URL parsing failed: {parse_error}");
+                url::Url::parse("http://localhost/").expect("localhost URL must parse")
+            });
+            let mut request = Self::new(Method::DELETE, dummy_url, None, None, None);
+            request.error = Some("Invalid URL provided".to_string());
+            request
         }
     }
 
     /// Create PATCH request
     #[inline]
     pub fn patch<U: TryInto<Url>>(url: U) -> Self {
-        match url.try_into() {
-            Ok(parsed_url) => Self::new(Method::PATCH, parsed_url, None, None, None),
-            Err(_) => {
-                const INVALID_URL: &str = "http://invalid.localhost/";
-                let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
-                    log::error!("PATCH dummy URL parsing failed: {}", parse_error);
-                    url::Url::parse("http://localhost/").expect("localhost URL must parse")
-                });
-                let mut request = Self::new(Method::PATCH, dummy_url, None, None, None);
-                request.error = Some("Invalid URL provided".to_string());
-                request
-            }
+        if let Ok(parsed_url) = url.try_into() { Self::new(Method::PATCH, parsed_url, None, None, None) } else {
+            const INVALID_URL: &str = "http://invalid.localhost/";
+            let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
+                log::error!("PATCH dummy URL parsing failed: {parse_error}");
+                url::Url::parse("http://localhost/").expect("localhost URL must parse")
+            });
+            let mut request = Self::new(Method::PATCH, dummy_url, None, None, None);
+            request.error = Some("Invalid URL provided".to_string());
+            request
         }
     }
 
     /// Create HEAD request
     #[inline]
     pub fn head<U: TryInto<Url>>(url: U) -> Self {
-        match url.try_into() {
-            Ok(parsed_url) => Self::new(Method::HEAD, parsed_url, None, None, None),
-            Err(_) => {
-                const INVALID_URL: &str = "http://invalid.localhost/";
-                let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
-                    log::error!("HEAD dummy URL parsing failed: {}", parse_error);
-                    url::Url::parse("http://localhost/").expect("localhost URL must parse")
-                });
-                let mut request = Self::new(Method::HEAD, dummy_url, None, None, None);
-                request.error = Some("Invalid URL provided".to_string());
-                request
-            }
+        if let Ok(parsed_url) = url.try_into() { Self::new(Method::HEAD, parsed_url, None, None, None) } else {
+            const INVALID_URL: &str = "http://invalid.localhost/";
+            let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
+                log::error!("HEAD dummy URL parsing failed: {parse_error}");
+                url::Url::parse("http://localhost/").expect("localhost URL must parse")
+            });
+            let mut request = Self::new(Method::HEAD, dummy_url, None, None, None);
+            request.error = Some("Invalid URL provided".to_string());
+            request
         }
     }
 
     /// Create OPTIONS request
     #[inline]
     pub fn options<U: TryInto<Url>>(url: U) -> Self {
-        match url.try_into() {
-            Ok(parsed_url) => Self::new(Method::OPTIONS, parsed_url, None, None, None),
-            Err(_) => {
-                const INVALID_URL: &str = "http://invalid.localhost/";
-                let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
-                    log::error!("OPTIONS dummy URL parsing failed: {}", parse_error);
-                    url::Url::parse("http://localhost/").expect("localhost URL must parse")
-                });
-                let mut request = Self::new(Method::OPTIONS, dummy_url, None, None, None);
-                request.error = Some("Invalid URL provided".to_string());
-                request
-            }
+        if let Ok(parsed_url) = url.try_into() { Self::new(Method::OPTIONS, parsed_url, None, None, None) } else {
+            const INVALID_URL: &str = "http://invalid.localhost/";
+            let dummy_url = INVALID_URL.parse().unwrap_or_else(|parse_error| {
+                log::error!("OPTIONS dummy URL parsing failed: {parse_error}");
+                url::Url::parse("http://localhost/").expect("localhost URL must parse")
+            });
+            let mut request = Self::new(Method::OPTIONS, dummy_url, None, None, None);
+            request.error = Some("Invalid URL provided".to_string());
+            request
         }
     }
 
@@ -534,6 +516,7 @@ impl HttpRequest {
 
     /// Set the HTTP method
     #[inline]
+    #[must_use]
     pub fn with_method(mut self, method: Method) -> Self {
         self.method = method;
         self
@@ -541,6 +524,7 @@ impl HttpRequest {
 
     /// Set the URL
     #[inline]
+    #[must_use]
     pub fn with_url(mut self, url: Url) -> Self {
         self.url = url;
         self
@@ -548,6 +532,7 @@ impl HttpRequest {
 
     /// Set HTTP version
     #[inline]
+    #[must_use]
     pub fn with_version(mut self, version: Version) -> Self {
         self.version = version;
         self
@@ -555,6 +540,7 @@ impl HttpRequest {
 
     /// Add a header
     #[inline]
+    #[must_use]
     pub fn header<K, V>(mut self, key: K, value: V) -> Self
     where
         K: TryInto<HeaderName>,
@@ -568,6 +554,7 @@ impl HttpRequest {
 
     /// Extend headers
     #[inline]
+    #[must_use]
     pub fn with_headers(mut self, headers: HeaderMap) -> Self {
         self.headers.extend(headers);
         self
@@ -575,6 +562,7 @@ impl HttpRequest {
 
     /// Set body as bytes
     #[inline]
+    #[must_use]
     pub fn body_bytes<B: Into<Bytes>>(mut self, body: B) -> Self {
         self.body = Some(RequestBody::Bytes(body.into()));
         self
@@ -582,6 +570,7 @@ impl HttpRequest {
 
     /// Set body as text
     #[inline]
+    #[must_use]
     pub fn body_text<S: Into<String>>(mut self, body: S) -> Self {
         self.body = Some(RequestBody::Text(body.into()));
         self
@@ -600,7 +589,7 @@ impl HttpRequest {
                 self
             }
             Err(e) => {
-                self.error = Some(format!("JSON serialization failed: {}", e));
+                self.error = Some(format!("JSON serialization failed: {e}"));
                 self
             }
         }

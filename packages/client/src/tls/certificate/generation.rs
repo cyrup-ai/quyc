@@ -95,14 +95,14 @@ async fn generate_ca(
         fs::set_permissions(cert_dir.join("ca.key"), perms).await?;
     }
 
-    let cert_der = cert.der();
+    let certificate_der = cert.der();
     let key_der = key_pair.serialize_der();
 
     // Create issuer for signing other certificates
     let issuer = Issuer::<'static>::new(params, key_pair);
 
     Ok((
-        CertificateDer::from(cert_der.to_vec()),
+        CertificateDer::from(certificate_der.to_vec()),
         PrivatePkcs8KeyDer::from(key_der),
         issuer,
     ))
@@ -122,10 +122,10 @@ async fn load_ca(
     let encrypted_key_data = fs::read(cert_dir.join("ca.key")).await?;
     let decrypted_key = decrypt_private_key(&encrypted_key_data).await?;
     let key_pem = String::from_utf8(decrypted_key.as_bytes().to_vec())
-        .map_err(|e| TlsError::KeyProtection(format!("Invalid UTF-8 in decrypted key: {}", e)))?;
+        .map_err(|e| TlsError::KeyProtection(format!("Invalid UTF-8 in decrypted key: {e}")))?;
 
     // Parse certificate
-    let cert_der = rustls_pemfile::certs(&mut cert_pem.as_bytes())
+    let ca_cert_der = rustls_pemfile::certs(&mut cert_pem.as_bytes())
         .next()
         .ok_or_else(|| anyhow::anyhow!("No certificate in CA file"))??;
 
@@ -192,8 +192,8 @@ async fn load_ca(
     let issuer = Issuer::<'static>::new(params, ca_key_pair);
 
     Ok((
-        CertificateDer::from(cert_der.to_vec()),
-        PrivatePkcs8KeyDer::from(key_der),
+        CertificateDer::from(ca_cert_der.to_vec()),
+        key_der,
         issuer,
     ))
 }
@@ -213,13 +213,12 @@ async fn generate_server_cert(
     ];
 
     // Add hostname if available
-    if let Ok(hostname) = hostname::get() {
-        if let Some(hostname_str) = hostname.to_str() {
+    if let Ok(hostname) = hostname::get()
+        && let Some(hostname_str) = hostname.to_str() {
             params
                 .subject_alt_names
                 .push(SanType::DnsName(hostname_str.try_into()?));
         }
-    }
 
     let mut dn = DistinguishedName::new();
     dn.push(DnType::OrganizationName, "SweetMCP");
@@ -249,7 +248,7 @@ async fn generate_server_cert(
         fs::set_permissions(cert_dir.join("server.key"), perms).await?;
     }
 
-    let cert_der = rustls_pemfile::certs(&mut cert_pem.as_bytes())
+    let server_cert_der = rustls_pemfile::certs(&mut cert_pem.as_bytes())
         .next()
         .ok_or_else(|| anyhow::anyhow!("No certificate generated"))??;
 
@@ -257,5 +256,5 @@ async fn generate_server_cert(
         .next()
         .ok_or_else(|| anyhow::anyhow!("No private key generated"))??;
 
-    Ok((cert_der.into(), key_der.into()))
+    Ok((server_cert_der, key_der))
 }

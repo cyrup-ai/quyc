@@ -132,7 +132,6 @@ impl CrlCache {
                 }
                 Err(e) => {
                     tracing::warn!("CRL validation failed for URL {}: {}", crl_url, e);
-                    continue;
                 }
             }
         }
@@ -149,13 +148,12 @@ impl CrlCache {
         let cache_key = crl_url.to_string();
 
         // Check cache first
-        if let Some(cached_crl) = self.get_cached_crl(&cache_key) {
-            if !Self::is_crl_cache_expired(&cached_crl) {
+        if let Some(cached_crl) = self.get_cached_crl(&cache_key)
+            && !Self::is_crl_cache_expired(&cached_crl) {
                 self.cache_hits.fetch_add(1, Ordering::Relaxed);
                 tracing::debug!("CRL cache hit for URL: {}", crl_url);
                 return Ok(cached_crl.revoked_serials.contains(serial_number));
             }
-        }
 
         // Cache miss - increment counter
         self.cache_misses.fetch_add(1, Ordering::Relaxed);
@@ -215,7 +213,7 @@ impl CrlCache {
         
         // Parse URL
         let url = Url::parse(crl_url)
-            .map_err(|e| TlsError::NetworkError(format!("Invalid CRL URL: {}", e)))?;
+            .map_err(|e| TlsError::NetworkError(format!("Invalid CRL URL: {e}")))?;
         
         // Download CRL using execute()
         let client = crate::client::HttpClient::default();
@@ -273,11 +271,10 @@ impl CrlCache {
                 if line.contains("-----END") && line.contains("CRL") {
                     break;
                 }
-                if in_crl {
-                    if let Ok(decoded) = base64::engine::general_purpose::STANDARD.decode(line) {
+                if in_crl
+                    && let Ok(decoded) = base64::engine::general_purpose::STANDARD.decode(line) {
                         der_data.extend(decoded);
                     }
-                }
             }
 
             if der_data.is_empty() {
@@ -294,7 +291,7 @@ impl CrlCache {
 
         // Parse X.509 CRL using x509-parser
         let (_, crl) = parse_x509_crl(&der_bytes)
-            .map_err(|e| TlsError::CrlValidation(format!("CRL parsing failed: {}", e)))?;
+            .map_err(|e| TlsError::CrlValidation(format!("CRL parsing failed: {e}")))?;
 
         // Extract revoked certificate serial numbers
         let mut revoked_serials = HashSet::new();

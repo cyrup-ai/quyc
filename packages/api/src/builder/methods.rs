@@ -53,7 +53,7 @@ impl Http3Builder<BodyNotSet> {
             Err(parse_error) => {
                 // Return parse error stream for invalid URLs
                 return AsyncStream::with_channel(move |sender| {
-                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{}': {}", url_string, parse_error)));
+                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{url_string}': {parse_error}")));
                 });
             }
         };
@@ -64,7 +64,7 @@ impl Http3Builder<BodyNotSet> {
             .with_url(parsed_url);
 
         if self.debug_enabled {
-            log::debug!("HTTP3 Builder: GET {}", url_string);
+            log::debug!("HTTP3 Builder: GET {url_string}");
         }
 
         // Execute request and delegate to JSON response processor
@@ -95,7 +95,7 @@ impl Http3Builder<BodyNotSet> {
             Err(parse_error) => {
                 let url_string = url.to_string();
                 return AsyncStream::with_channel(move |sender| {
-                    ystream::emit!(sender, HttpChunk::Error(format!("Invalid URL '{}': {}", url_string, parse_error)));
+                    ystream::emit!(sender, HttpChunk::Error(format!("Invalid URL '{url_string}': {parse_error}")));
                 });
             }
         };
@@ -143,7 +143,7 @@ impl Http3Builder<BodyNotSet> {
                 let url_string = url.to_string();
                 let error_stream = ystream::AsyncStream::with_channel(move |sender| {
                     use quyc_client::http::response::HttpDownloadChunk;
-                    ystream::emit!(sender, HttpDownloadChunk::Error { message: format!("Invalid URL '{}': {}", url_string, parse_error) });
+                    ystream::emit!(sender, HttpDownloadChunk::Error { message: format!("Invalid URL '{url_string}': {parse_error}") });
                 });
                 return DownloadBuilder::new(error_stream);
             }
@@ -174,14 +174,11 @@ impl Http3Builder<BodyNotSet> {
             
             let body_stream = response.into_body_stream();
             for chunk in body_stream {
-                let download_chunk = match chunk.is_final {
-                    true => HttpDownloadChunk::Complete,
-                    false => HttpDownloadChunk::Data {
-                        chunk: chunk.data.to_vec(),
-                        downloaded: chunk.offset + chunk.data.len() as u64,
-                        total_size,
-                    }
-                };
+                let download_chunk = if chunk.is_final { HttpDownloadChunk::Complete } else { HttpDownloadChunk::Data {
+                    chunk: chunk.data.to_vec(),
+                    downloaded: chunk.offset + chunk.data.len() as u64,
+                    total_size,
+                } };
                 
                 ystream::emit!(sender, download_chunk);
                 
@@ -244,7 +241,7 @@ impl Http3Builder<BodySet> {
             Err(parse_error) => {
                 // Return parse error stream for invalid URLs
                 return AsyncStream::with_channel(move |sender| {
-                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{}': {}", url_string, parse_error)));
+                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{url_string}': {parse_error}")));
                 });
             }
         };
@@ -255,7 +252,7 @@ impl Http3Builder<BodySet> {
             .with_url(parsed_url);
 
         if self.debug_enabled {
-            log::debug!("HTTP3 Builder: POST {}", url);
+            log::debug!("HTTP3 Builder: POST {url}");
             if let Some(body) = self.request.body() {
                 log::debug!("HTTP3 Builder: Request body size: {} bytes", body.len());
             }
@@ -307,7 +304,7 @@ impl Http3Builder<BodySet> {
             Err(parse_error) => {
                 // Return parse error stream for invalid URLs
                 return AsyncStream::with_channel(move |sender| {
-                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{}': {}", url_string, parse_error)));
+                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{url_string}': {parse_error}")));
                 });
             }
         };
@@ -318,7 +315,7 @@ impl Http3Builder<BodySet> {
             .with_url(parsed_url);
 
         if self.debug_enabled {
-            log::debug!("HTTP3 Builder: PUT {}", url);
+            log::debug!("HTTP3 Builder: PUT {url}");
             if let Some(body) = self.request.body() {
                 log::debug!("HTTP3 Builder: Request body size: {} bytes", body.len());
             }
@@ -362,7 +359,7 @@ impl Http3Builder<BodySet> {
             Err(parse_error) => {
                 let url_string = url.to_string();
                 return AsyncStream::with_channel(move |sender| {
-                    ystream::emit!(sender, HttpChunk::Error(format!("Invalid URL '{}': {}", url_string, parse_error)));
+                    ystream::emit!(sender, HttpChunk::Error(format!("Invalid URL '{url_string}': {parse_error}")));
                 });
             }
         };
@@ -373,7 +370,7 @@ impl Http3Builder<BodySet> {
             .with_url(parsed_url);
 
         if self.debug_enabled {
-            log::debug!("HTTP3 Builder: PATCH {}", url);
+            log::debug!("HTTP3 Builder: PATCH {url}");
             if let Some(body) = self.request.body() {
                 log::debug!("HTTP3 Builder: Request body size: {} bytes", body.len());
             }
@@ -387,9 +384,9 @@ impl Http3Builder<BodySet> {
 
 // Terminal methods for JsonPathStreaming state
 impl Http3Builder<JsonPathStreaming> {
-    /// Execute a GET request with JSONPath streaming
+    /// Execute a GET request with `JSONPath` streaming
     ///
-    /// Returns a stream of deserialized objects matching the JSONPath expression.
+    /// Returns a stream of deserialized objects matching the `JSONPath` expression.
     ///
     /// # Type Parameters
     /// * `T` - Type to deserialize each matching JSON object into
@@ -422,7 +419,7 @@ impl Http3Builder<JsonPathStreaming> {
             Err(parse_error) => {
                 // Return parse error stream for invalid URLs
                 return AsyncStream::with_channel(move |sender| {
-                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{}': {}", url_string, parse_error)));
+                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{url_string}': {parse_error}")));
                 });
             }
         };
@@ -435,7 +432,7 @@ impl Http3Builder<JsonPathStreaming> {
         let jsonpath_expr = &self.state.jsonpath_expr;
 
         if self.debug_enabled {
-            log::debug!("HTTP3 Builder: GET {} (JSONPath: {})", url, jsonpath_expr);
+            log::debug!("HTTP3 Builder: GET {url} (JSONPath: {jsonpath_expr})");
         }
 
         // Terse delegation to JSONPath infrastructure
@@ -443,7 +440,7 @@ impl Http3Builder<JsonPathStreaming> {
         quyc_client::jsonpath::process_response(response, jsonpath_expr)
     }
 
-    /// Execute a POST request with JSONPath streaming
+    /// Execute a POST request with `JSONPath` streaming
     ///
     /// # Type Parameters
     /// * `T` - Type to deserialize each matching JSON object into
@@ -460,7 +457,7 @@ impl Http3Builder<JsonPathStreaming> {
             Err(parse_error) => {
                 // Return parse error stream for invalid URLs
                 return AsyncStream::with_channel(move |sender| {
-                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{}': {}", url_string, parse_error)));
+                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{url_string}': {parse_error}")));
                 });
             }
         };
@@ -473,7 +470,7 @@ impl Http3Builder<JsonPathStreaming> {
         let jsonpath_expr = &self.state.jsonpath_expr;
 
         if self.debug_enabled {
-            log::debug!("HTTP3 Builder: POST {} (JSONPath: {})", url, jsonpath_expr);
+            log::debug!("HTTP3 Builder: POST {url} (JSONPath: {jsonpath_expr})");
             if let Some(body) = self.request.body() {
                 log::debug!("HTTP3 Builder: Request body size: {} bytes", body.len());
             }
@@ -484,7 +481,7 @@ impl Http3Builder<JsonPathStreaming> {
         quyc_client::jsonpath::process_response(response, jsonpath_expr)
     }
 
-    /// Execute a PUT request with JSONPath streaming
+    /// Execute a PUT request with `JSONPath` streaming
     ///
     /// # Type Parameters
     /// * `T` - Type to deserialize each matching JSON object into
@@ -501,7 +498,7 @@ impl Http3Builder<JsonPathStreaming> {
             Err(parse_error) => {
                 // Return parse error stream for invalid URLs
                 return AsyncStream::with_channel(move |sender| {
-                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{}': {}", url_string, parse_error)));
+                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{url_string}': {parse_error}")));
                 });
             }
         };
@@ -514,7 +511,7 @@ impl Http3Builder<JsonPathStreaming> {
         let jsonpath_expr = &self.state.jsonpath_expr;
 
         if self.debug_enabled {
-            log::debug!("HTTP3 Builder: PUT {} (JSONPath: {})", url, jsonpath_expr);
+            log::debug!("HTTP3 Builder: PUT {url} (JSONPath: {jsonpath_expr})");
             if let Some(body) = self.request.body() {
                 log::debug!("HTTP3 Builder: Request body size: {} bytes", body.len());
             }
@@ -525,7 +522,7 @@ impl Http3Builder<JsonPathStreaming> {
         quyc_client::jsonpath::process_response(response, jsonpath_expr)
     }
 
-    /// Execute a PATCH request with JSONPath streaming
+    /// Execute a PATCH request with `JSONPath` streaming
     ///
     /// # Type Parameters
     /// * `T` - Type to deserialize each matching JSON object into
@@ -542,7 +539,7 @@ impl Http3Builder<JsonPathStreaming> {
             Err(parse_error) => {
                 // Return parse error stream for invalid URLs
                 return AsyncStream::with_channel(move |sender| {
-                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{}': {}", url_string, parse_error)));
+                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{url_string}': {parse_error}")));
                 });
             }
         };
@@ -555,7 +552,7 @@ impl Http3Builder<JsonPathStreaming> {
         let jsonpath_expr = &self.state.jsonpath_expr;
 
         if self.debug_enabled {
-            log::debug!("HTTP3 Builder: PATCH {} (JSONPath: {})", url, jsonpath_expr);
+            log::debug!("HTTP3 Builder: PATCH {url} (JSONPath: {jsonpath_expr})");
             if let Some(body) = self.request.body() {
                 log::debug!("HTTP3 Builder: Request body size: {} bytes", body.len());
             }
@@ -566,7 +563,7 @@ impl Http3Builder<JsonPathStreaming> {
         quyc_client::jsonpath::process_response(response, jsonpath_expr)
     }
 
-    /// Execute a DELETE request with JSONPath streaming
+    /// Execute a DELETE request with `JSONPath` streaming
     ///
     /// # Type Parameters
     /// * `T` - Type to deserialize each matching JSON object into
@@ -583,7 +580,7 @@ impl Http3Builder<JsonPathStreaming> {
             Err(parse_error) => {
                 // Return parse error stream for invalid URLs
                 return AsyncStream::with_channel(move |sender| {
-                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{}': {}", url_string, parse_error)));
+                    ystream::emit!(sender, T::bad_chunk(format!("Invalid URL '{url_string}': {parse_error}")));
                 });
             }
         };
@@ -596,7 +593,7 @@ impl Http3Builder<JsonPathStreaming> {
         let jsonpath_expr = &self.state.jsonpath_expr;
 
         if self.debug_enabled {
-            log::debug!("HTTP3 Builder: DELETE {} (JSONPath: {})", url, jsonpath_expr);
+            log::debug!("HTTP3 Builder: DELETE {url} (JSONPath: {jsonpath_expr})");
         }
 
         // Terse delegation to JSONPath infrastructure

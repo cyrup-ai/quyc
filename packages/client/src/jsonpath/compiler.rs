@@ -1,6 +1,6 @@
-//! JSONPath expression compiler and entry point
+//! `JSONPath` expression compiler and entry point
 //!
-//! Provides the main parser interface for compiling JSONPath expressions
+//! Provides the main parser interface for compiling `JSONPath` expressions
 //! into optimized AST structures.
 
 use crate::jsonpath::{
@@ -10,15 +10,15 @@ use crate::jsonpath::{
     tokenizer::ExpressionParser,
 };
 
-/// JSONPath expression parser and compiler
+/// `JSONPath` expression parser and compiler
 pub struct JsonPathParser;
 
 impl JsonPathParser {
-    /// Compile JSONPath expression into optimized selector chain
+    /// Compile `JSONPath` expression into optimized selector chain
     ///
     /// # Arguments
     ///
-    /// * `expression` - JSONPath expression string (e.g., "$.data[*]", "$.items[?(@.active)]")
+    /// * `expression` - `JSONPath` expression string (e.g., "$.data[*]", "$.items[?(@.active)]")
     ///
     /// # Returns
     ///
@@ -91,8 +91,8 @@ impl JsonPathParser {
         // RFC 9535: Check for invalid patterns like "$.property..property"
         // Valid: "$..property" (recursive descent from root)
         // Invalid: "$.property..property" (property followed by recursive descent followed by property)
-        if let Some(double_dot_pos) = expression.find("..") {
-            if double_dot_pos > 2 {
+        if let Some(double_dot_pos) = expression.find("..")
+            && double_dot_pos > 2 {
                 // More than just "$."
                 let before_double_dot = &expression[..double_dot_pos];
                 let after_double_dot = &expression[double_dot_pos + 2..];
@@ -112,7 +112,6 @@ impl JsonPathParser {
                     ));
                 }
             }
-        }
 
         // RFC 9535: descendant-segment = ".." S bracket-segment
         // According to RFC 9535, ".." can be followed by bracket-segment, wildcard '*', or identifier
@@ -142,7 +141,7 @@ impl JsonPathParser {
         ))
     }
 
-    /// Validate JSONPath expression syntax without compilation
+    /// Validate `JSONPath` expression syntax without compilation
     ///
     /// Faster than full compilation when only validation is needed.
     pub fn validate(expression: &str) -> JsonPathResult<()> {

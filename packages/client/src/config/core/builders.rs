@@ -1,6 +1,6 @@
 //! Builder methods for HTTP configuration
 //!
-//! This module provides fluent builder methods for configuring HttpConfig
+//! This module provides fluent builder methods for configuring `HttpConfig`
 //! instances with common settings and optimizations.
 
 use super::types::HttpConfig;
@@ -23,6 +23,7 @@ impl HttpConfig {
     ///     .with_http3(true);
     /// assert!(config.http3_enabled);
     /// ```
+    #[must_use] 
     pub fn with_http3(mut self, enabled: bool) -> Self {
         self.http3_enabled = enabled;
         self
@@ -44,6 +45,7 @@ impl HttpConfig {
     ///     .with_compression(true);
     /// assert!(config.gzip && config.brotli && config.deflate);
     /// ```
+    #[must_use] 
     pub fn with_compression(mut self, enabled: bool) -> Self {
         self.gzip_enabled = enabled;
         self.brotli_enabled = enabled;
@@ -67,6 +69,7 @@ impl HttpConfig {
     ///     .with_metrics(true);
     /// assert!(config.metrics_enabled);
     /// ```
+    #[must_use] 
     pub fn with_metrics(mut self, enabled: bool) -> Self {
         self.metrics_enabled = enabled;
         self
@@ -89,6 +92,7 @@ impl HttpConfig {
     ///     .with_tracing(true);
     /// assert!(config.tracing_enabled);
     /// ```
+    #[must_use] 
     pub fn with_tracing(mut self, enabled: bool) -> Self {
         self.tracing_enabled = enabled;
         self

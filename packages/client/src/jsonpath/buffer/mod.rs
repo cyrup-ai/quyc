@@ -37,12 +37,14 @@ impl StreamBuffer {
 
     /// Get current buffer size in bytes
     #[inline]
+    #[must_use] 
     pub fn current_size(&self) -> usize {
         self.buffer.len()
     }
 
     /// Get current buffer capacity in bytes
     #[inline]
+    #[must_use] 
     pub fn capacity(&self) -> usize {
         self.buffer.capacity()
     }
@@ -52,12 +54,14 @@ impl StreamBuffer {
     /// Returns a byte slice view of the current buffer contents.
     /// Useful for direct parsing operations.
     #[inline]
+    #[must_use] 
     pub fn as_bytes(&self) -> &[u8] {
         &self.buffer[..]
     }
 
     /// Get total bytes processed since creation
     #[inline]
+    #[must_use] 
     pub fn total_bytes_processed(&self) -> u64 {
         self.total_processed
     }
@@ -70,6 +74,7 @@ impl StreamBuffer {
     ///
     /// Returns `true` if buffer contains at least `min_bytes` of data.
     #[inline]
+    #[must_use] 
     pub fn has_data(&self, min_bytes: usize) -> bool {
         self.buffer.len() >= min_bytes
     }
@@ -78,6 +83,7 @@ impl StreamBuffer {
     ///
     /// Scans for complete JSON objects (balanced braces) to optimize parsing attempts.
     /// Returns positions of potential object boundaries for batch processing.
+    #[must_use] 
     pub fn find_object_boundaries(&self) -> Vec<usize> {
         let mut boundaries = Vec::new();
         let mut brace_depth = 0;
@@ -112,33 +118,40 @@ impl StreamBuffer {
     ///
     /// Returns None if position is beyond buffer length
     #[inline]
+    #[must_use] 
     pub fn get_byte_at(&self, position: usize) -> Option<u8> {
         self.buffer.get(position).copied()
     }
 
     /// Get current buffer length for bounds checking
     #[inline]
+    #[must_use] 
     pub fn len(&self) -> usize {
         self.buffer.len()
     }
 
     /// Check if buffer is empty
     #[inline]
+    #[must_use] 
     pub fn is_empty(&self) -> bool {
         self.buffer.is_empty()
     }
 
     /// Get buffer utilization statistics for monitoring
+    #[must_use] 
     pub fn stats(&self) -> BufferStats {
         BufferStats {
             current_size: self.buffer.len(),
             capacity: self.buffer.capacity(),
             total_processed: self.total_processed,
+            // Precision loss acceptable for buffer utilization statistics
+            #[allow(clippy::cast_precision_loss)]
             utilization_ratio: self.buffer.len() as f64 / self.buffer.capacity() as f64,
         }
     }
 
     /// Get detailed capacity management statistics for advanced monitoring
+    #[must_use] 
     pub fn capacity_stats(&self) -> CapacityStats {
         CapacityStats {
             initial_capacity: self.capacity_manager.initial_capacity,

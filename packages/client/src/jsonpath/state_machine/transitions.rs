@@ -20,7 +20,7 @@ pub fn transition_to_navigating(machine: &mut StreamStateMachine) {
     machine.stats.state_transitions += 1;
 }
 
-/// Transition from Navigating to StreamingArray state
+/// Transition from Navigating to `StreamingArray` state
 pub fn transition_to_streaming(machine: &mut StreamStateMachine) {
     machine.state = JsonStreamState::StreamingArray {
         target_depth: machine.stats.current_depth,
@@ -31,7 +31,7 @@ pub fn transition_to_streaming(machine: &mut StreamStateMachine) {
     machine.stats.state_transitions += 1;
 }
 
-/// Transition to ProcessingObject state
+/// Transition to `ProcessingObject` state
 pub fn transition_to_processing_object(machine: &mut StreamStateMachine) {
     machine.state = JsonStreamState::ProcessingObject {
         depth: machine.stats.current_depth,
@@ -112,6 +112,7 @@ pub enum StateType {
 }
 
 /// Get current state type
+#[must_use] 
 pub fn get_state_type(state: &JsonStreamState) -> StateType {
     match state {
         JsonStreamState::Initial => StateType::Initial,
@@ -135,9 +136,8 @@ pub fn validate_transition(
         Ok(())
     } else {
         Err(crate::jsonpath::error::stream_error(
-            &format!(
-                "invalid state transition from {:?} to {:?}",
-                current_type, target_state
+            format!(
+                "invalid state transition from {current_type:?} to {target_state:?}"
             ),
             "state_validation",
             false,
@@ -160,6 +160,7 @@ pub fn reset_to_initial(machine: &mut StreamStateMachine) {
 }
 
 /// Check if state machine is in a terminal state
+#[must_use] 
 pub fn is_terminal_state(state: &JsonStreamState) -> bool {
     matches!(
         state,
@@ -172,6 +173,7 @@ pub fn is_terminal_state(state: &JsonStreamState) -> bool {
 }
 
 /// Get state machine readiness for processing
+#[must_use] 
 pub fn is_ready_for_processing(machine: &StreamStateMachine) -> bool {
     match &machine.state {
         JsonStreamState::Initial => machine.path_expression.is_some(),

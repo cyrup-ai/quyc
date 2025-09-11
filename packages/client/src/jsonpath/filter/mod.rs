@@ -1,10 +1,10 @@
-//! JSONPath Filter Expression Evaluation
+//! `JSONPath` Filter Expression Evaluation
 //!
 //! Handles evaluation of filter expressions including:
 //! - Property access (@.property, @.nested.property)
 //! - Comparisons (==, !=, <, <=, >, >=)
 //! - Logical operations (&&, ||)
-//! - Function calls (length(), count(), match(), search(), value())
+//! - Function calls (`length()`, `count()`, `match()`, `search()`, `value()`)
 
 #![allow(dead_code)]
 

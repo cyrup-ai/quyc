@@ -1,14 +1,14 @@
-//! Core DescendantOperations struct and basic traversal methods
+//! Core `DescendantOperations` struct and basic traversal methods
 //!
 //! Contains the main struct definition and fundamental recursive descent operations
-//! for JSONPath processing with RFC 9535 compliance.
+//! for `JSONPath` processing with RFC 9535 compliance.
 
 use serde_json::Value;
 
 use super::super::core_types::JsonPathResult;
 use crate::jsonpath::parser::JsonSelector;
 
-/// Operations for handling descendant traversal in JSONPath expressions
+/// Operations for handling descendant traversal in `JSONPath` expressions
 pub struct DescendantOperations;
 
 impl DescendantOperations {
@@ -60,6 +60,7 @@ impl DescendantOperations {
     }
 
     /// Check if a value has any descendants
+    #[must_use] 
     pub fn has_descendants(node: &Value) -> bool {
         match node {
             Value::Object(obj) => !obj.is_empty(),

@@ -2,7 +2,7 @@ use serde::de::DeserializeOwned;
 
 use super::types::JsonPathDeserializer;
 
-impl<'a, T> JsonPathDeserializer<'a, T>
+impl<T> JsonPathDeserializer<'_, T>
 where
     T: DeserializeOwned,
 {
@@ -19,7 +19,7 @@ where
             Ok(s) => s,
             Err(e) => {
                 let error = crate::jsonpath::error::json_parse_error(
-                    format!("Invalid UTF-8 in JSON object: {}", e),
+                    format!("Invalid UTF-8 in JSON object: {e}"),
                     self.buffer_position,
                     "object deserialization".to_string(),
                 );
@@ -32,7 +32,7 @@ where
             Ok(obj) => obj,
             Err(e) => {
                 let error = crate::jsonpath::error::json_parse_error(
-                    format!("Failed to deserialize JSON: {}", e),
+                    format!("Failed to deserialize JSON: {e}"),
                     self.buffer_position,
                     "object deserialization".to_string(),
                 );

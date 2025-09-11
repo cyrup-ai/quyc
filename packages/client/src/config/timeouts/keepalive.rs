@@ -24,6 +24,7 @@ impl HttpConfig {
     ///     .with_tcp_keepalive(Some(Duration::from_secs(30)));
     /// assert_eq!(config.tcp_keepalive, Some(Duration::from_secs(30)));
     /// ```
+    #[must_use] 
     pub fn with_tcp_keepalive(mut self, duration: Option<Duration>) -> Self {
         self.tcp_keepalive = duration;
         self
@@ -46,6 +47,7 @@ impl HttpConfig {
     ///     .with_http2_keep_alive_interval(Some(Duration::from_secs(20)));
     /// assert_eq!(config.http2_keep_alive_interval, Some(Duration::from_secs(20)));
     /// ```
+    #[must_use] 
     pub fn with_http2_keep_alive_interval(mut self, interval: Option<Duration>) -> Self {
         self.http2_keep_alive_interval = interval;
         self
@@ -68,6 +70,7 @@ impl HttpConfig {
     ///     .with_http2_keep_alive_timeout(Some(Duration::from_secs(10)));
     /// assert_eq!(config.http2_keep_alive_timeout, Some(Duration::from_secs(10)));
     /// ```
+    #[must_use] 
     pub fn with_http2_keep_alive_timeout(mut self, timeout: Option<Duration>) -> Self {
         self.http2_keep_alive_timeout = timeout;
         self

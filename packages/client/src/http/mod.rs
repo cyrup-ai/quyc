@@ -14,6 +14,7 @@ pub mod resolver;
 pub mod response;
 pub mod url;
 
+pub use compression::*;
 pub use conversions::*;
 pub use escape::*;
 pub use headers::*;

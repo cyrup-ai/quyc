@@ -1,4 +1,4 @@
-//! NoProxy implementation and environment parsing
+//! `NoProxy` implementation and environment parsing
 //!
 //! Handles no-proxy configuration from environment variables and string parsing
 //! with comprehensive pattern matching for proxy exclusion rules.
@@ -8,7 +8,8 @@ use super::types::NoProxy;
 
 impl NoProxy {
     /// Returns a new no-proxy configuration based on environment variables (or `None` if no variables are set)
-    /// see [self::NoProxy::from_string()] for the string format
+    /// see [`self::NoProxy::from_string()`] for the string format
+    #[must_use] 
     pub fn from_env() -> Option<NoProxy> {
         let raw = std::env::var("NO_PROXY")
             .or_else(|_| std::env::var("no_proxy"))
@@ -35,6 +36,7 @@ impl NoProxy {
     /// * `http://192.168.1.42/`
     ///
     /// The URL `http://notgoogle.com/` would not match.
+    #[must_use] 
     pub fn from_string(no_proxy_list: &str) -> Option<Self> {
         if no_proxy_list.trim().is_empty() {
             return None;
@@ -46,6 +48,7 @@ impl NoProxy {
     }
 
     /// Check if a host should bypass the proxy based on no-proxy rules
+    #[must_use] 
     pub fn matches(&self, host: &str) -> bool {
         for pattern in self.inner.split(',') {
             let pattern = pattern.trim();
@@ -59,7 +62,7 @@ impl NoProxy {
             }
 
             // Exact match or subdomain match
-            if host == pattern || host.ends_with(&format!(".{}", pattern)) {
+            if host == pattern || host.ends_with(&format!(".{pattern}")) {
                 return true;
             }
 
@@ -71,18 +74,16 @@ impl NoProxy {
             // Try to parse as IP address or CIDR notation
             if let Some((network_addr, prefix_len)) = parse_cidr_pattern(pattern) {
                 // Parse the host as an IP address
-                if let Ok(host_ip) = host.parse::<IpAddr>() {
-                    if ip_in_subnet(host_ip, network_addr, prefix_len) {
+                if let Ok(host_ip) = host.parse::<IpAddr>()
+                    && ip_in_subnet(host_ip, network_addr, prefix_len) {
                         return true;
                     }
-                }
             } else if let Ok(pattern_ip) = pattern.parse::<IpAddr>() {
                 // Direct IP address match (no CIDR)
-                if let Ok(host_ip) = host.parse::<IpAddr>() {
-                    if host_ip == pattern_ip {
+                if let Ok(host_ip) = host.parse::<IpAddr>()
+                    && host_ip == pattern_ip {
                         return true;
                     }
-                }
             }
         }
 
@@ -90,13 +91,14 @@ impl NoProxy {
     }
 
     /// Get the raw no-proxy string
+    #[must_use] 
     pub fn as_str(&self) -> &str {
         &self.inner
     }
 }
 
-/// Parse a CIDR pattern (e.g., "192.168.1.0/24" or "2001:db8::/32")
-/// Returns Some((network_address, prefix_length)) if valid CIDR notation, None otherwise
+/// Parse a CIDR pattern (e.g., "192.168.1.0/24" or "`2001:db8::/32`")
+/// Returns `Some((network_address`, `prefix_length`)) if valid CIDR notation, None otherwise
 fn parse_cidr_pattern(pattern: &str) -> Option<(IpAddr, u8)> {
     let parts: Vec<&str> = pattern.split('/').collect();
     if parts.len() != 2 {

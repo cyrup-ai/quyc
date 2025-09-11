@@ -1,4 +1,4 @@
-//! Property access operations for JSONPath evaluation
+//! Property access operations for `JSONPath` evaluation
 //!
 //! Contains methods for property path evaluation and recursive property finding.
 
@@ -20,11 +20,10 @@ impl CoreJsonPathEvaluator {
 
             let mut next = Vec::new();
             for value in current {
-                if let Value::Object(obj) = value {
-                    if let Some(prop_value) = obj.get(property) {
+                if let Value::Object(obj) = value
+                    && let Some(prop_value) = obj.get(property) {
                         next.push(prop_value.clone());
                     }
-                }
             }
             current = next;
         }
@@ -33,6 +32,7 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Find property recursively in JSON structure
+    #[must_use] 
     pub fn find_property_recursive(&self, json: &Value, property: &str) -> Vec<Value> {
         let mut results = Vec::new();
         self.find_property_recursive_impl(json, property, &mut results);

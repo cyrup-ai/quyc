@@ -1,6 +1,6 @@
-//! High-performance streaming JSON deserializer with JSONPath navigation
+//! High-performance streaming JSON deserializer with `JSONPath` navigation
 //!
-//! This module provides the core streaming deserializer that combines JSONPath expression
+//! This module provides the core streaming deserializer that combines `JSONPath` expression
 //! evaluation with incremental JSON parsing to yield individual objects from nested arrays
 //! as HTTP response bytes arrive.
 

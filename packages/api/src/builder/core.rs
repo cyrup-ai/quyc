@@ -1,6 +1,6 @@
-//! Core Http3Builder structures and base functionality
+//! Core `Http3Builder` structures and base functionality
 //!
-//! Contains the main Http3Builder struct, state types, and foundational methods
+//! Contains the main `Http3Builder` struct, state types, and foundational methods
 //! for building HTTP requests with zero allocation and elegant fluent interface.
 
 use std::fmt;
@@ -68,13 +68,13 @@ pub struct BodyNotSet;
 #[derive(Debug, Clone, Copy)]
 pub struct BodySet;
 
-/// JSONPath streaming configuration state
+/// `JSONPath` streaming configuration state
 /// 
-/// This state indicates the builder is configured for JSONPath streaming,
+/// This state indicates the builder is configured for `JSONPath` streaming,
 /// where responses will be processed to extract matching JSON objects.
 #[derive(Debug, Clone)]
 pub struct JsonPathStreaming {
-    /// JSONPath expression for filtering JSON array responses
+    /// `JSONPath` expression for filtering JSON array responses
     pub jsonpath_expr: String,
 }
 
@@ -83,7 +83,7 @@ pub struct JsonPathStreaming {
 /// Type parameter `S` tracks the body state:
 /// - `BodyNotSet`: Default state, body methods available
 /// - `BodySet`: Body has been set, only execution methods available
-/// - `JsonPathStreaming`: Configured for JSONPath array streaming
+/// - `JsonPathStreaming`: Configured for `JSONPath` array streaming
 #[derive(Clone)]
 pub struct Http3Builder<S = BodyNotSet> {
     /// HTTP client instance for making requests
@@ -113,65 +113,56 @@ impl Http3Builder<BodyNotSet> {
         } else {
             // This should never happen with valid hardcoded URLs, but handle gracefully
             // Try additional safe fallback URLs
-            match "http://0.0.0.0".parse::<Url>() {
-                Ok(url) => url,
-                Err(_) => {
-                    log::error!("All URL parsing attempts failed - using data URL fallback");
-                    // Use a data URL as absolute final fallback - this should always parse
-                    match Url::parse("data:text/plain,initialization-error") {
+            if let Ok(url) = "http://0.0.0.0".parse::<Url>() { url } else {
+                log::error!("All URL parsing attempts failed - using data URL fallback");
+                // Use a data URL as absolute final fallback - this should always parse
+                if let Ok(url) = Url::parse("data:text/plain,initialization-error") { url } else {
+                    // If even data URL fails, there's a fundamental issue with the url crate
+                    // Use manual URL construction as last resort
+                    log::error!("Data URL parsing failed - constructing minimal URL");
+                    // Create a basic URL structure manually
+                    // This approach avoids panic while handling the impossible case
+                    match format!("http://{}:80", "127.0.0.1").parse::<Url>() {
                         Ok(url) => url,
                         Err(_) => {
-                            // If even data URL fails, there's a fundamental issue with the url crate
-                            // Use manual URL construction as last resort
-                            log::error!("Data URL parsing failed - constructing minimal URL");
-                            // Create a basic URL structure manually
-                            // This approach avoids panic while handling the impossible case
-                            match format!("http://{}:80", "127.0.0.1").parse::<Url>() {
-                                Ok(url) => url,
-                                Err(_) => {
-                                    // This is the absolute final fallback - if this fails, URL parsing is broken
-                                    // Return the first URL we tried, letting any subsequent errors surface naturally
-                                    if let Ok(url) = Url::parse("http://localhost") {
-                                        url
-                                    } else {
-                                        // Last resort: minimal URL that might work
-                                        Url::parse("data:,").unwrap_or_else(|_| {
-                                            // This should be impossible - data URLs should always parse
-                                            // At this point, we've exhausted all options
-                                            log::error!("Complete URL parsing failure - system may be compromised");
-                                            // This should be impossible but handle gracefully without panic
-                                            // Create the most minimal possible URL without unwrap/panic
-                                            // Even if broken, it won't crash the application
-                                            match "data:,".parse::<Url>() {
+                            // This is the absolute final fallback - if this fails, URL parsing is broken
+                            // Return the first URL we tried, letting any subsequent errors surface naturally
+                            if let Ok(url) = Url::parse("http://localhost") {
+                                url
+                            } else {
+                                // Last resort: minimal URL that might work
+                                Url::parse("data:,").unwrap_or_else(|_| {
+                                    // This should be impossible - data URLs should always parse
+                                    // At this point, we've exhausted all options
+                                    log::error!("Complete URL parsing failure - system may be compromised");
+                                    // This should be impossible but handle gracefully without panic
+                                    // Create the most minimal possible URL without unwrap/panic
+                                    // Even if broken, it won't crash the application
+                                    if let Ok(url) = "data:,".parse::<Url>() { url } else {
+                                        // Absolute final fallback - construct URL manually
+                                        // This approach never panics
+                                        log::error!("Complete URL system failure");
+                                        // If URL parsing is completely broken, try one more time
+                                        // with an even simpler URL
+                                        if let Ok(url) = Url::parse("http://localhost") {
+                                            url
+                                        } else {
+                                            // This should be impossible, but handle it gracefully
+                                            // Create a URL with minimal components
+                                            match Url::parse("http://127.0.0.1:80") {
                                                 Ok(url) => url,
                                                 Err(_) => {
-                                                    // Absolute final fallback - construct URL manually
-                                                    // This approach never panics
-                                                    log::error!("Complete URL system failure");
-                                                    // If URL parsing is completely broken, try one more time
-                                                    // with an even simpler URL
-                                                    if let Ok(url) = Url::parse("http://localhost") {
-                                                        url
-                                                    } else {
-                                                        // This should be impossible, but handle it gracefully
-                                                        // Create a URL with minimal components
-                                                        match Url::parse("http://127.0.0.1:80") {
-                                                            Ok(url) => url,
-                                                            Err(_) => {
-                                                                // Final fallback - create the first URL we found that worked
-                                                                Url::parse("https://example.com").unwrap_or_else(|_| {
-                                                                    // If we reach here, use a guaranteed valid URL
-                                                                    // This should never fail unless URL crate is broken
-                                                                    Url::parse("http://127.0.0.1").expect("Basic URL parsing failed - URL crate may be corrupted")
-                                                                })
-                                                            }
-                                                        }
-                                                    }
+                                                    // Final fallback - create the first URL we found that worked
+                                                    Url::parse("https://example.com").unwrap_or_else(|_| {
+                                                        // If we reach here, use a guaranteed valid URL
+                                                        // This should never fail unless URL crate is broken
+                                                        Url::parse("http://127.0.0.1").expect("Basic URL parsing failed - URL crate may be corrupted")
+                                                    })
                                                 }
                                             }
-                                        })
+                                        }
                                     }
-                                }
+                                })
                             }
                         }
                     }
@@ -206,13 +197,13 @@ impl Http3Builder<BodyNotSet> {
         Self::new(&client).content_type(ContentType::ApplicationFormUrlEncoded)
     }
 
-    /// Configure JSONPath streaming for array responses
+    /// Configure `JSONPath` streaming for array responses
     ///
     /// Transforms the builder to stream individual objects from JSON arrays
-    /// matching the provided JSONPath expression.
+    /// matching the provided `JSONPath` expression.
     ///
     /// # Arguments
-    /// * `jsonpath` - JSONPath expression to filter array elements
+    /// * `jsonpath` - `JSONPath` expression to filter array elements
     ///
     /// # Returns
     /// `Http3Builder<JsonPathStreaming>` for streaming operations
@@ -275,7 +266,7 @@ impl<S> Http3Builder<S> {
             Ok(parsed) => parsed,
             Err(parse_error) => {
                 // Invalid URL provided - log error and keep existing URL
-                log::warn!("Invalid URL provided '{}': {}. Keeping existing URL.", url, parse_error);
+                log::warn!("Invalid URL provided '{url}': {parse_error}. Keeping existing URL.");
                 // Return current URL unchanged rather than risk unwrap()
                 self.request.url().clone()
             }
@@ -284,7 +275,7 @@ impl<S> Http3Builder<S> {
         self
     }
 
-    /// Set content type using the ContentType enum
+    /// Set content type using the `ContentType` enum
     ///
     /// # Arguments
     /// * `content_type` - The content type to set for the request
@@ -357,7 +348,7 @@ impl<S> Http3Builder<S> {
 
 }
 
-/// Implement ChunkHandler trait for Http3Builder to support cyrup_sugars on_chunk pattern
+/// Implement `ChunkHandler` trait for `Http3Builder` to support `cyrup_sugars` `on_chunk` pattern
 impl<S> ChunkHandler<HttpChunk, HttpError> for Http3Builder<S> {
     fn on_chunk<F>(mut self, handler: F) -> Self
     where

@@ -1,7 +1,7 @@
 //! Type conversion rules and validation logic for RFC 9535
 //!
 //! Contains type conversion implementations and validation methods
-//! for the JSONPath function type system.
+//! for the `JSONPath` function type system.
 
 use super::core::{FunctionType, TypeSystem, TypedValue};
 use crate::jsonpath::{
@@ -13,8 +13,8 @@ impl TypeSystem {
     /// RFC 9535 Section 2.4.2: Type Conversion Rules
     ///
     /// Performs type conversion according to RFC 9535 specifications:
-    /// - ValueType can be converted to LogicalType using test expression conversion
-    /// - NodesType can be converted to ValueType if nodelist has exactly one node
+    /// - `ValueType` can be converted to `LogicalType` using test expression conversion
+    /// - `NodesType` can be converted to `ValueType` if nodelist has exactly one node
     #[inline]
     pub fn convert_type(
         value: TypedValue,
@@ -46,7 +46,7 @@ impl TypeSystem {
                 } else {
                     Err(invalid_expression_error(
                         "",
-                        &format!(
+                        format!(
                             "NodesType to ValueType conversion requires exactly one node, found {}",
                             nodes.len()
                         ),
@@ -98,14 +98,14 @@ impl TypeSystem {
     ) -> JsonPathResult<super::core::FunctionSignature> {
         // 1. Check if function is known
         let signature = Self::get_function_signature(function_name).ok_or_else(|| {
-            invalid_expression_error("", &format!("unknown function: {}", function_name), None)
+            invalid_expression_error("", format!("unknown function: {function_name}"), None)
         })?;
 
         // 2. Check argument count
         if arguments.len() != signature.parameter_types.len() {
             return Err(invalid_expression_error(
                 "",
-                &format!(
+                format!(
                     "function {} expects {} arguments, got {}",
                     function_name,
                     signature.parameter_types.len(),
@@ -148,9 +148,8 @@ impl TypeSystem {
             (FunctionType::NodesType, FunctionType::ValueType) => Ok(()),
             _ => Err(invalid_expression_error(
                 "",
-                &format!(
-                    "type mismatch: expected {:?}, found {:?}",
-                    expected_type, actual_type
+                format!(
+                    "type mismatch: expected {expected_type:?}, found {actual_type:?}"
                 ),
                 None,
             )),

@@ -26,8 +26,15 @@ pub struct ClientStats {
     pub created_at: Instant,
 }
 
+impl Default for ClientStats {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ClientStats {
     /// Create new client statistics
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             requests_total: AtomicU64::new(0),
@@ -90,7 +97,9 @@ impl ClientStats {
             0.0
         } else {
             let successful = self.requests_successful.load(Ordering::Relaxed);
-            successful as f64 / total as f64
+            // Precision loss acceptable for success rate statistics
+            #[allow(clippy::cast_precision_loss)]
+            { successful as f64 / total as f64 }
         }
     }
 

@@ -1,4 +1,4 @@
-//! Public API methods for JsonPathDeserializer
+//! Public API methods for `JsonPathDeserializer`
 //!
 //! Contains the main public interface methods for streaming JSON deserialization
 //! and buffer management operations.
@@ -20,7 +20,7 @@ where
     ///
     /// # Returns
     ///
-    /// Iterator over deserialized values matching the JSONPath expression
+    /// Iterator over deserialized values matching the `JSONPath` expression
     pub fn process_chunk(&mut self, chunk: &[u8]) -> JsonPathIterator<'_, 'a, T> {
         self.buffer
             .append_chunk(bytes::Bytes::copy_from_slice(chunk));

@@ -1,4 +1,4 @@
-//! RFC 9535 Section 2.4.8: value() function implementation
+//! RFC 9535 Section 2.4.8: `value()` function implementation
 //!
 //! Converts single-node nodelist to value (errors on multi-node or empty)
 
@@ -7,7 +7,7 @@ use crate::jsonpath::functions::jsonpath_nodelist::JsonPathNodelistEvaluator;
 use crate::jsonpath::error::{JsonPathResult, constructors::invalid_expression_error};
 use crate::jsonpath::parser::{FilterExpression, FilterValue};
 
-/// RFC 9535 Section 2.4.8: value() function
+/// RFC 9535 Section 2.4.8: `value()` function
 /// Converts single-node nodelist to value (errors on multi-node or empty)
 #[inline]
 pub fn evaluate_value_function(
@@ -40,7 +40,7 @@ pub fn evaluate_value_function(
     }
 }
 
-/// Evaluate JSONPath expression and validate nodelist size
+/// Evaluate `JSONPath` expression and validate nodelist size
 fn evaluate_jsonpath_expression(
     context: &serde_json::Value,
     selectors: &[crate::jsonpath::parser::JsonSelector],

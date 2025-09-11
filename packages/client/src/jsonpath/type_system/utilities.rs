@@ -1,7 +1,7 @@
 //! Utility methods and helper functions for the type system
 //!
 //! Contains conversion helpers, value creation utilities, and other
-//! support functions for the JSONPath function type system.
+//! support functions for the `JSONPath` function type system.
 
 use super::core::{TypeSystem, TypedValue};
 use crate::jsonpath::{
@@ -10,11 +10,12 @@ use crate::jsonpath::{
 };
 
 impl TypeSystem {
-    /// Convert FilterValue to TypedValue
+    /// Convert `FilterValue` to `TypedValue`
     ///
-    /// Bridges the gap between FilterValue (used in existing code)
-    /// and TypedValue (used in the new type system).
+    /// Bridges the gap between `FilterValue` (used in existing code)
+    /// and `TypedValue` (used in the new type system).
     #[inline]
+    #[must_use] 
     pub fn filter_value_to_typed_value(value: &FilterValue) -> TypedValue {
         match value {
             FilterValue::String(s) => TypedValue::Value(serde_json::Value::String(s.clone())),
@@ -26,9 +27,9 @@ impl TypeSystem {
         }
     }
 
-    /// Convert TypedValue to FilterValue
+    /// Convert `TypedValue` to `FilterValue`
     ///
-    /// Converts from the new type system back to the existing FilterValue
+    /// Converts from the new type system back to the existing `FilterValue`
     /// for compatibility with existing code.
     #[inline]
     pub fn typed_value_to_filter_value(value: &TypedValue) -> JsonPathResult<FilterValue> {
@@ -61,17 +62,18 @@ impl TypeSystem {
         }
     }
 
-    /// Create a nodelist TypedValue from a vector of JSON values
+    /// Create a nodelist `TypedValue` from a vector of JSON values
     ///
-    /// Helper function for creating NodesType values from JSONPath evaluation results.
+    /// Helper function for creating `NodesType` values from `JSONPath` evaluation results.
     #[inline]
+    #[must_use] 
     pub fn create_nodes_value(nodes: Vec<serde_json::Value>) -> TypedValue {
         TypedValue::Nodes(nodes)
     }
 
-    /// Extract nodes from a TypedValue
+    /// Extract nodes from a `TypedValue`
     ///
-    /// Returns the underlying node vector if the value is NodesType,
+    /// Returns the underlying node vector if the value is `NodesType`,
     /// otherwise returns an error.
     #[inline]
     pub fn extract_nodes(value: &TypedValue) -> JsonPathResult<&[serde_json::Value]> {
@@ -85,10 +87,11 @@ impl TypeSystem {
         }
     }
 
-    /// Check if a TypedValue is empty (for NodesType) or falsy (for other types)
+    /// Check if a `TypedValue` is empty (for `NodesType`) or falsy (for other types)
     ///
     /// Used for optimizing filter expressions and short-circuit evaluation.
     #[inline]
+    #[must_use] 
     pub fn is_empty_or_falsy(value: &TypedValue) -> bool {
         match value {
             TypedValue::Value(json_val) => !Self::value_to_logical(json_val),
@@ -99,12 +102,13 @@ impl TypeSystem {
 
     /// Convert JSON value to logical type using test expression conversion
     ///
-    /// RFC 9535: ValueType to LogicalType conversion uses the "truthiness" rules:
+    /// RFC 9535: `ValueType` to `LogicalType` conversion uses the "truthiness" rules:
     /// - false and null are false
     /// - Numbers: zero is false, all others are true  
     /// - Strings: empty string is false, all others are true
     /// - Arrays and objects: always true (even if empty)
     #[inline]
+    #[must_use] 
     pub fn value_to_logical(value: &serde_json::Value) -> bool {
         match value {
             serde_json::Value::Null => false,

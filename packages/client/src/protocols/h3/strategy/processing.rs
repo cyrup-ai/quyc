@@ -4,6 +4,7 @@
 //! multipart forms, streaming, and response parsing.
 
 use std::net::{SocketAddr, UdpSocket};
+use std::sync::atomic::Ordering;
 // HashMap import removed - not used
 
 use crossbeam_utils::Backoff;
@@ -26,6 +27,10 @@ pub(crate) struct H3RequestProcessor {
     compression_algorithm: Option<crate::http::headers::CompressionAlgorithm>,
     /// Configuration for compression handling
     config: Option<H3Config>,
+    /// Client statistics for metrics recording
+    stats: Option<std::sync::Arc<crate::client::core::ClientStats>>,
+    /// Byte offset counter for progress tracking
+    bytes_received: std::sync::atomic::AtomicU64,
 }
 
 impl H3RequestProcessor {
@@ -34,6 +39,8 @@ impl H3RequestProcessor {
         Self {
             compression_algorithm: None,
             config: None,
+            stats: None,
+            bytes_received: std::sync::atomic::AtomicU64::new(0),
         }
     }
 
@@ -53,12 +60,14 @@ impl H3RequestProcessor {
         _headers: HeaderMap,
         body_data: Option<crate::http::request::RequestBody>,
         config: H3Config,
+        stats: std::sync::Arc<crate::client::core::ClientStats>,
         headers_tx: AsyncStreamSender<HttpHeader, 256>,
         body_tx: AsyncStreamSender<HttpBodyChunk, 1024>,
         _trailers_tx: AsyncStreamSender<HttpHeader, 64>,
     ) {
-        // Store config for compression handling
+        // Store config and stats for compression handling
         self.config = Some(config.clone());
+        self.stats = Some(stats);
         // Build H3 headers
         let h3_headers = vec![
             quiche::h3::Header::new(b":method", method.as_str().as_bytes()),
@@ -120,35 +129,80 @@ impl H3RequestProcessor {
         );
     }
 
-    /// Prepare request body from various body types
+    /// Prepare request body from various body types with transparent compression
     pub(crate) fn prepare_request_body(
         &self,
         body_data: crate::http::request::RequestBody,
         config: &H3Config,
         body_tx: &AsyncStreamSender<HttpBodyChunk>,
     ) -> Result<Vec<u8>, crate::error::HttpError> {
-        match body_data {
-            crate::http::request::RequestBody::Bytes(bytes) => Ok(bytes.to_vec()),
-            crate::http::request::RequestBody::Text(text) => Ok(text.into_bytes()),
+        // 1. Detect content type before moving body_data
+        let content_type = self.detect_content_type(&body_data);
+        
+        // 2. Serialize body to bytes (existing logic)
+        let body_bytes = match body_data {
+            crate::http::request::RequestBody::Bytes(bytes) => bytes.to_vec(),
+            crate::http::request::RequestBody::Text(text) => text.into_bytes(),
             crate::http::request::RequestBody::Json(json) => {
                 serde_json::to_string(&json)
-                    .map(|s| s.into_bytes())
+                    .map(std::string::String::into_bytes)
                     .map_err(|e| crate::error::HttpError::new(crate::error::types::Kind::Request)
-                        .with(format!("JSON serialization failed: {e}")))
+                        .with(format!("JSON serialization failed: {e}")))?
             }
             crate::http::request::RequestBody::Form(form) => {
                 serde_urlencoded::to_string(&form)
-                    .map(|s| s.into_bytes())
+                    .map(std::string::String::into_bytes)
                     .map_err(|e| crate::error::HttpError::new(crate::error::types::Kind::Request)
-                        .with(format!("Form serialization failed: {e}")))
+                        .with(format!("Form serialization failed: {e}")))?
             }
             crate::http::request::RequestBody::Multipart(fields) => {
-                Ok(self.prepare_multipart_body(fields, body_tx))
+                self.prepare_multipart_body(fields, body_tx)
             }
             crate::http::request::RequestBody::Stream(stream) => {
-                Ok(self.prepare_stream_body(stream, config, body_tx))
+                self.prepare_stream_body(stream, config, body_tx)
             }
-        }
+        };
+        
+        // 3. Apply compression if configured and worthwhile
+        let http_config = config.to_http_config();
+        if http_config.request_compression
+            && crate::http::compression::should_compress_content_type(content_type, &http_config) {
+                let algorithm = self.select_compression_algorithm(&http_config);
+                let level = self.get_compression_level(algorithm, &http_config);
+                
+                if let Some(stats) = &self.stats {
+                    match crate::http::compression::compress_bytes_with_metrics(
+                        &body_bytes, algorithm, level, Some(stats)
+                    ) {
+                        Ok(compressed) if compressed.len() < body_bytes.len() => {
+                            tracing::debug!(
+                                target: "quyc::protocols::h3",
+                                algorithm = %algorithm.encoding_name(),
+                                original_size = body_bytes.len(),
+                                compressed_size = compressed.len(),
+                                "Request body compressed at protocol layer"
+                            );
+                            return Ok(compressed);
+                        }
+                        Ok(_) => {
+                            tracing::debug!(
+                                target: "quyc::protocols::h3",
+                                "Compression not beneficial, using original body"
+                            );
+                        }
+                        Err(e) => {
+                            tracing::warn!(
+                                target: "quyc::protocols::h3",
+                                error = %e,
+                                "Request compression failed, using original body"
+                            );
+                        }
+                    }
+                }
+            }
+        
+        // 4. Return original bytes if compression not beneficial or failed
+        Ok(body_bytes)
     }
 
     /// Prepare multipart form body with security limits
@@ -163,7 +217,7 @@ impl H3RequestProcessor {
         
         for field in fields {
             // Pre-calculate sizes to prevent memory exhaustion attacks
-            let boundary_sep = format!("--{}\r\n", boundary);
+            let boundary_sep = format!("--{boundary}\r\n");
             let boundary_sep_bytes = boundary_sep.as_bytes();
             
             // SECURITY: Check size before allocation
@@ -202,7 +256,7 @@ impl H3RequestProcessor {
         }
         
         // Add final boundary with size checking
-        let final_boundary = format!("--{}--\r\n", boundary);
+        let final_boundary = format!("--{boundary}--\r\n");
         if body.len() + final_boundary.len() <= MAX_MULTIPART_SIZE {
             body.extend_from_slice(final_boundary.as_bytes());
         } else {
@@ -229,7 +283,7 @@ impl H3RequestProcessor {
         match (&field.filename, &field.content_type) {
             (Some(filename), Some(content_type)) => {
                 let header1 = format!("Content-Disposition: form-data; name=\"{}\"; filename=\"{}\"\r\n", field.name, filename);
-                let header2 = format!("Content-Type: {}\r\n\r\n", content_type);
+                let header2 = format!("Content-Type: {content_type}\r\n\r\n");
                 
                 if body.len() + header1.len() + header2.len() <= max_size {
                     body.extend_from_slice(header1.as_bytes());
@@ -247,7 +301,7 @@ impl H3RequestProcessor {
             }
             (None, Some(content_type)) => {
                 let header1 = format!("Content-Disposition: form-data; name=\"{}\"\r\n", field.name);
-                let header2 = format!("Content-Type: {}\r\n\r\n", content_type);
+                let header2 = format!("Content-Type: {content_type}\r\n\r\n");
                 
                 if body.len() + header1.len() + header2.len() <= max_size {
                     body.extend_from_slice(header1.as_bytes());
@@ -402,9 +456,10 @@ impl H3RequestProcessor {
                 }
                 Ok((_stream_id, quiche::h3::Event::Finished)) => {
                     // Stream finished
+                    let final_byte_offset = self.bytes_received.load(Ordering::SeqCst);
                     emit!(body_tx, HttpBodyChunk {
                         data: Bytes::new(),
-                        offset: 0,
+                        offset: final_byte_offset,
                         is_final: true,
                         timestamp: std::time::Instant::now(),
                     });
@@ -433,9 +488,10 @@ impl H3RequestProcessor {
         }
         
         // Signal completion
+        let final_byte_offset = self.bytes_received.load(Ordering::SeqCst);
         emit!(body_tx, HttpBodyChunk {
             data: Bytes::new(),
-            offset: 0,
+            offset: final_byte_offset,
             is_final: true,
             timestamp: std::time::Instant::now(),
         });
@@ -503,7 +559,7 @@ impl H3RequestProcessor {
                     
                     // Apply decompression if needed
                     let processed_data = if let Some(algorithm) = self.compression_algorithm {
-                        match crate::http::compression::decompress_bytes_with_metrics(raw_data, algorithm, None) {
+                        match crate::http::compression::decompress_bytes_with_metrics(raw_data, algorithm, self.stats.as_deref()) {
                             Ok(decompressed) => {
                                 tracing::debug!(
                                     target: "quyc::protocols::h3",
@@ -530,9 +586,11 @@ impl H3RequestProcessor {
                         Bytes::from(raw_data.to_vec())
                     };
                     
+                    // Track actual byte position for proper progress reporting
+                    let byte_offset = self.bytes_received.fetch_add(processed_data.len() as u64, Ordering::SeqCst);
                     emit!(*body_tx, HttpBodyChunk {
                         data: processed_data,
-                        offset: 0,
+                        offset: byte_offset,
                         is_final: false,
                         timestamp: std::time::Instant::now(),
                     });
@@ -613,6 +671,40 @@ impl H3RequestProcessor {
                     break;
                 }
             }
+        }
+    }
+
+    /// Detect content type from request body for compression decisions
+    fn detect_content_type(&self, body_data: &crate::http::request::RequestBody) -> Option<&str> {
+        match body_data {
+            crate::http::request::RequestBody::Json(_) => Some("application/json"),
+            crate::http::request::RequestBody::Form(_) => Some("application/x-www-form-urlencoded"),
+            crate::http::request::RequestBody::Text(_) => Some("text/plain"),
+            crate::http::request::RequestBody::Multipart(_) => Some("multipart/form-data"),
+            _ => None,
+        }
+    }
+
+    /// Select compression algorithm based on configuration
+    fn select_compression_algorithm(&self, config: &crate::config::HttpConfig) -> crate::http::headers::CompressionAlgorithm {
+        if config.brotli_enabled {
+            crate::http::headers::CompressionAlgorithm::Brotli
+        } else if config.gzip_enabled {
+            crate::http::headers::CompressionAlgorithm::Gzip
+        } else if config.deflate {
+            crate::http::headers::CompressionAlgorithm::Deflate
+        } else {
+            crate::http::headers::CompressionAlgorithm::Identity
+        }
+    }
+
+    /// Get compression level for the given algorithm
+    fn get_compression_level(&self, algorithm: crate::http::headers::CompressionAlgorithm, config: &crate::config::HttpConfig) -> Option<u32> {
+        match algorithm {
+            crate::http::headers::CompressionAlgorithm::Brotli => config.brotli_level,
+            crate::http::headers::CompressionAlgorithm::Gzip => config.gzip_level,
+            crate::http::headers::CompressionAlgorithm::Deflate => config.deflate_level,
+            crate::http::headers::CompressionAlgorithm::Identity => None,
         }
     }
 }

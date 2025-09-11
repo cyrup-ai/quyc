@@ -1,9 +1,9 @@
-//! Property access evaluation for value() function
+//! Property access evaluation for `value()` function
 
 use super::super::core::FunctionEvaluator;
 use crate::jsonpath::parser::FilterValue;
 
-/// Property access evaluator for value() function
+/// Property access evaluator for `value()` function
 pub struct PropertyAccessEvaluator;
 
 impl PropertyAccessEvaluator {

@@ -25,7 +25,7 @@ use crate::protocols::{
 
 static CONNECTION_COUNTER: AtomicU64 = AtomicU64::new(0);
 
-/// Create a thread-safe noop waker for use in AsyncStream contexts
+/// Create a thread-safe noop waker for use in `AsyncStream` contexts
 fn create_thread_safe_noop_waker() -> Waker {
     futures::task::noop_waker()
 }
@@ -51,7 +51,14 @@ impl std::fmt::Debug for H2Connection {
     }
 }
 
+impl Default for H2Connection {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl H2Connection {
+    #[must_use] 
     pub fn new() -> Self {
         Self::with_config(H2Config::default())
     }
@@ -161,7 +168,7 @@ impl H2Connection {
                         match send_request.poll_ready(&mut cx) {
                             Poll::Ready(Ok(())) => break, // Ready to send request
                             Poll::Ready(Err(e)) => {
-                                emit!(sender, HttpChunk::Error(format!("Send readiness error: {}", e)));
+                                emit!(sender, HttpChunk::Error(format!("Send readiness error: {e}")));
                                 return;
                             }
                             Poll::Pending => {
@@ -174,18 +181,16 @@ impl H2Connection {
                     match send_request.send_request(request, body.is_none()) {
                         Ok((response_future, mut request_stream)) => {
                             // Send body if provided (SendStream doesn't have poll_ready, use direct send)
-                            if let Some(body_data) = body {
-                                if let Err(e) = request_stream.send_data(body_data, true) {
+                            if let Some(body_data) = body
+                                && let Err(e) = request_stream.send_data(body_data, true) {
                                     emit!(
                                         sender,
                                         HttpChunk::Error(format!(
-                                            "Send body error: {}",
-                                            e
+                                            "Send body error: {e}"
                                         ))
                                     );
                                     return;
                                 }
-                            }
 
                             // Poll response future using Future trait with proper pinning
                             let mut response_future = response_future;
@@ -210,7 +215,7 @@ impl H2Connection {
                                                     let _ = body_stream.flow_control().release_capacity(data_len);
                                                 }
                                                 Poll::Ready(Some(Err(e))) => {
-                                                    emit!(sender, HttpChunk::Error(format!("Body stream error: {}", e)));
+                                                    emit!(sender, HttpChunk::Error(format!("Body stream error: {e}")));
                                                     break;
                                                 }
                                                 Poll::Ready(None) => {
@@ -226,7 +231,7 @@ impl H2Connection {
                                                                 break;
                                                             }
                                                             Poll::Ready(Err(e)) => {
-                                                                emit!(sender, HttpChunk::Error(format!("Trailers error: {}", e)));
+                                                                emit!(sender, HttpChunk::Error(format!("Trailers error: {e}")));
                                                                 break;
                                                             }
                                                             Poll::Pending => {
@@ -244,7 +249,7 @@ impl H2Connection {
                                         break;
                                     }
                                     Poll::Ready(Err(e)) => {
-                                        emit!(sender, HttpChunk::Error(format!("Response error: {}", e)));
+                                        emit!(sender, HttpChunk::Error(format!("Response error: {e}")));
                                         break;
                                     }
                                     Poll::Pending => {
@@ -256,13 +261,13 @@ impl H2Connection {
                         Err(e) => {
                             emit!(
                                 sender,
-                                HttpChunk::Error(format!("Send request error: {}", e))
+                                HttpChunk::Error(format!("Send request error: {e}"))
                             );
                         }
                     }
                 }
                 Err(e) => {
-                    emit!(sender, HttpChunk::Error(format!("Handshake error: {}", e)));
+                    emit!(sender, HttpChunk::Error(format!("Handshake error: {e}")));
                 }
             }
         })
@@ -284,17 +289,18 @@ impl H2Connection {
 
 impl H2Connection {}
 
-/// HTTP/2 stream wrapper that bridges h2::RecvStream to AsyncStream
+/// HTTP/2 stream wrapper that bridges `h2::RecvStream` to `AsyncStream`
 pub struct H2Stream {
     stream: AsyncStream<HttpChunk, 1024>,
 }
 
 impl H2Stream {
-    /// Create a new H2Stream from h2::RecvStream using pure streams architecture
+    /// Create a new `H2Stream` from `h2::RecvStream` using pure streams architecture
     ///
     /// Note: This method currently delegates to an empty stream as recv-only streams
     /// are not the primary use case for this HTTP client library. The main pattern
-    /// is request-response via send_request_stream().
+    /// is request-response via `send_request_stream()`.
+    #[must_use] 
     pub fn from_recv_stream(_recv_stream: h2::RecvStream) -> Self {
         // Create an empty stream for recv-only scenario
         // Most HTTP client usage goes through send_request_stream() which handles the full lifecycle
@@ -307,12 +313,14 @@ impl H2Stream {
         Self { stream }
     }
 
-    /// Get the underlying AsyncStream
+    /// Get the underlying `AsyncStream`
+    #[must_use] 
     pub fn into_stream(self) -> AsyncStream<HttpChunk, 1024> {
         self.stream
     }
 
     /// Collect all chunks from the stream
+    #[must_use] 
     pub fn collect(self) -> Vec<HttpChunk> {
         self.stream.collect()
     }

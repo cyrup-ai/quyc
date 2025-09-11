@@ -12,6 +12,7 @@ pub struct Connection {
 }
 
 impl Connection {
+    #[must_use] 
     pub fn new(
         conn: quiche::Connection,
         socket: std::net::UdpSocket,

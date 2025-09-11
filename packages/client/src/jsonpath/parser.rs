@@ -1,7 +1,7 @@
-//! High-performance JSONPath expression parser and compiler
+//! High-performance `JSONPath` expression parser and compiler
 //!
-//! This module provides compile-time optimization of JSONPath expressions into
-//! efficient runtime selectors. Supports the full JSONPath specification with
+//! This module provides compile-time optimization of `JSONPath` expressions into
+//! efficient runtime selectors. Supports the full `JSONPath` specification with
 //! zero-allocation execution paths.
 
 // Re-export main types for backward compatibility

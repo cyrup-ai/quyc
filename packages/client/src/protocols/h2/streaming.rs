@@ -31,6 +31,7 @@ pub struct H2ConnectionManager {
 impl H2ConnectionManager {
     /// Create a new H2 connection manager
     #[inline]
+    #[must_use] 
     pub const fn new() -> Self {
         Self {
             is_connected: AtomicBool::new(false),
@@ -42,8 +43,8 @@ impl H2ConnectionManager {
 
     /// Create H2 connection establishment stream using direct poll-based primitives
     ///
-    /// Integrates h2::client::handshake with direct polling
-    /// within AsyncStream::with_channel pattern.
+    /// Integrates `h2::client::handshake` with direct polling
+    /// within `AsyncStream::with_channel` pattern.
     #[inline]
     pub fn establish_connection_stream<T>(
         &self,
@@ -87,7 +88,7 @@ impl H2ConnectionManager {
                                     // Connection lost
                                     emit!(
                                         sender,
-                                        H2ConnectionChunk::bad_chunk(format!("Connection lost: {}", e))
+                                        H2ConnectionChunk::bad_chunk(format!("Connection lost: {e}"))
                                     );
                                     break;
                                 }
@@ -102,7 +103,7 @@ impl H2ConnectionManager {
                     Poll::Ready(Err(e)) => {
                         emit!(
                             sender,
-                            H2ConnectionChunk::bad_chunk(format!("Handshake failed: {}", e))
+                            H2ConnectionChunk::bad_chunk(format!("Handshake failed: {e}"))
                         );
                         break;
                     }
@@ -119,8 +120,9 @@ impl H2ConnectionManager {
     /// Create multiplexed H2 receive stream for multiple streams
     ///
     /// Handles multiple H2 receive streams using
-    /// direct poll-based primitives within AsyncStream::with_channel.
+    /// direct poll-based primitives within `AsyncStream::with_channel`.
     #[inline]
+    #[must_use] 
     pub fn multiplexed_receive_stream(
         recv_streams: Vec<h2::RecvStream>,
     ) -> AsyncStream<H2DataChunk, 1024> {
@@ -143,7 +145,7 @@ impl H2ConnectionManager {
                             emit!(sender, H2DataChunk::from_bytes(data));
                         }
                         Poll::Ready(Some(Err(e))) => {
-                            emit!(sender, H2DataChunk::bad_chunk(format!("Data error: {}", e)));
+                            emit!(sender, H2DataChunk::bad_chunk(format!("Data error: {e}")));
                             completed_indices.push(index);
                         }
                         Poll::Ready(None) => {
@@ -170,9 +172,10 @@ impl H2ConnectionManager {
 
     /// Create flow-controlled H2 send stream with backpressure
     ///
-    /// Implements flow control using h2's direct poll_ready primitive
-    /// within AsyncStream::with_channel pattern.
+    /// Implements flow control using h2's direct `poll_ready` primitive
+    /// within `AsyncStream::with_channel` pattern.
     #[inline]
+    #[must_use] 
     pub fn flow_controlled_send_stream(
         send_stream: h2::SendStream<bytes::Bytes>,
         data_chunks: Vec<bytes::Bytes>,
@@ -203,7 +206,7 @@ impl H2ConnectionManager {
                     Err(e) => {
                         emit!(
                             sender,
-                            H2SendResult::bad_chunk(format!("Send error: {}", e))
+                            H2SendResult::bad_chunk(format!("Send error: {e}"))
                         );
                         break;
                     }

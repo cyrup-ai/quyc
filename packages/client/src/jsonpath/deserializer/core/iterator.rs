@@ -1,13 +1,13 @@
-//! Iterator implementation for JSONPath deserializer
+//! Iterator implementation for `JSONPath` deserializer
 //!
 //! Provides iterator interface for streaming JSON deserialization
-//! with JSONPath expression evaluation.
+//! with `JSONPath` expression evaluation.
 
 use serde_json::Value;
 
 use crate::jsonpath::error::JsonPathResult;
 
-/// Iterator for JSONPath deserialization results
+/// Iterator for `JSONPath` deserialization results
 pub struct JsonPathIterator<'a, T> {
     buffer: Vec<Value>,
     position: usize,
@@ -15,7 +15,7 @@ pub struct JsonPathIterator<'a, T> {
     _phantom: std::marker::PhantomData<(&'a (), T)>,
 }
 
-impl<'a, T> JsonPathIterator<'a, T> {
+impl<T> JsonPathIterator<'_, T> {
     /// Create a new iterator with initial buffer
     pub fn new(initial_buffer: Vec<Value>) -> Self {
         Self {
@@ -83,7 +83,7 @@ impl<'a, T> JsonPathIterator<'a, T> {
     }
 }
 
-impl<'a, T> Iterator for JsonPathIterator<'a, T> {
+impl<T> Iterator for JsonPathIterator<'_, T> {
     type Item = JsonPathResult<Value>;
 
     fn next(&mut self) -> Option<Self::Item> {

@@ -32,6 +32,7 @@ impl fmt::Display for Via {
 
 impl Intercept {
     /// Create new HTTP intercept configuration
+    #[must_use] 
     pub fn http(proxy_uri: Url) -> Self {
         Self {
             proxy_uri,
@@ -40,6 +41,7 @@ impl Intercept {
     }
 
     /// Create new HTTPS intercept configuration
+    #[must_use] 
     pub fn https(proxy_uri: Url) -> Self {
         Self {
             proxy_uri,
@@ -48,11 +50,13 @@ impl Intercept {
     }
 
     /// Get proxy URI
+    #[must_use] 
     pub fn proxy_uri(&self) -> &Url {
         &self.proxy_uri
     }
 
     /// Get connection method
+    #[must_use] 
     pub fn via(&self) -> &Via {
         &self.via
     }

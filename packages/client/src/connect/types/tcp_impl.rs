@@ -1,7 +1,7 @@
-//! TCP connection implementations with MessageChunk support
+//! TCP connection implementations with `MessageChunk` support
 //!
 //! Provides TCP stream wrappers and connection implementations
-//! with comprehensive error handling and MessageChunk compliance.
+//! with comprehensive error handling and `MessageChunk` compliance.
 
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpStream};
@@ -10,7 +10,7 @@ use ystream::prelude::MessageChunk;
 
 use super::connection::ConnectionTrait;
 
-/// Wrapper for TcpStream to implement MessageChunk safely
+/// Wrapper for `TcpStream` to implement `MessageChunk` safely
 #[derive(Debug)]
 pub enum TcpStreamWrapper {
     Connected(TcpStream),
@@ -37,6 +37,7 @@ impl Default for TcpStreamWrapper {
 }
 
 impl BrokenStream {
+    #[must_use] 
     pub fn new(error: String) -> Self {
         Self { error }
     }
@@ -68,6 +69,7 @@ impl Write for BrokenStream {
 }
 
 impl TcpStreamWrapper {
+    #[must_use] 
     pub fn new(stream: TcpStream) -> Self {
         Self::Connected(stream)
     }
@@ -116,7 +118,7 @@ impl Write for TcpStreamWrapper {
     }
 }
 
-/// TCP connection implementation for async I/O (ConnectionTrait)
+/// TCP connection implementation for async I/O (`ConnectionTrait`)
 #[derive(Debug)]
 pub struct TcpConnection {
     pub stream: tokio::net::TcpStream,

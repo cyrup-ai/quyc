@@ -25,7 +25,7 @@ mod tests {
         
         // Test basic properties
         assert_eq!(strategy.protocol_name(), "HTTP/2");
-        assert_eq!(strategy.supports_push(), false);
+        assert!(!strategy.supports_push());
         assert_eq!(strategy.max_concurrent_streams(), 100);
         
         println!("✅ H2Strategy creation test passed!");

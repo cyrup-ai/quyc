@@ -137,9 +137,8 @@ pub fn validate_implementation() -> JsonPathResult<()> {
         if result != expected {
             return Err(invalid_expression_error(
                 "",
-                &format!(
-                    "null semantics validation failed: expected {:?}, got {:?}",
-                    expected, result
+                format!(
+                    "null semantics validation failed: expected {expected:?}, got {result:?}"
                 ),
                 None,
             ));

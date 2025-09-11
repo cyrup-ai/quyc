@@ -16,6 +16,7 @@ pub struct SystemProxy;
 
 impl SystemProxy {
     /// Get HTTP proxy from environment variables
+    #[must_use] 
     pub fn http_proxy() -> Option<Url> {
         env::var("HTTP_PROXY")
             .or_else(|_| env::var("http_proxy"))
@@ -24,6 +25,7 @@ impl SystemProxy {
     }
 
     /// Get HTTPS proxy from environment variables
+    #[must_use] 
     pub fn https_proxy() -> Option<Url> {
         env::var("HTTPS_PROXY")
             .or_else(|_| env::var("https_proxy"))
@@ -31,7 +33,8 @@ impl SystemProxy {
             .and_then(|url_str| url_str.parse().ok())
     }
 
-    /// Get NO_PROXY patterns from environment
+    /// Get `NO_PROXY` patterns from environment
+    #[must_use] 
     pub fn no_proxy_patterns() -> Vec<String> {
         env::var("NO_PROXY")
             .or_else(|_| env::var("no_proxy"))
@@ -43,6 +46,7 @@ impl SystemProxy {
     }
 
     /// Create system-configured matcher
+    #[must_use] 
     pub fn create_system_matcher() -> Matcher {
         let no_proxy_patterns = Self::no_proxy_patterns();
         Matcher::new(no_proxy_patterns)
@@ -57,13 +61,13 @@ impl SystemProxy {
 
 /// Utility functions for proxy configuration
 pub mod utils {
-    use super::*;
+    use super::Url;
 
     /// Normalize proxy URL for consistent handling
     pub fn normalize_proxy_url(url_str: &str) -> Result<Url, String> {
         let url = url_str
             .parse::<Url>()
-            .map_err(|e| format!("Invalid proxy URL: {}", e))?;
+            .map_err(|e| format!("Invalid proxy URL: {e}"))?;
 
         // Ensure proxy URL has proper scheme
         if url.scheme() != "http" && url.scheme() != "https" {
@@ -73,7 +77,8 @@ pub mod utils {
         Ok(url)
     }
 
-    /// Extract host patterns from NO_PROXY environment variable
+    /// Extract host patterns from `NO_PROXY` environment variable
+    #[must_use] 
     pub fn extract_no_proxy_hosts(no_proxy: &str) -> Vec<String> {
         no_proxy
             .split(',')

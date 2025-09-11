@@ -1,4 +1,4 @@
-//! TLS configuration methods for ConnectorBuilder
+//! TLS configuration methods for `ConnectorBuilder`
 //!
 //! Provides TLS-specific constructors and configuration for both native-tls and rustls.
 
@@ -15,6 +15,12 @@ use crate::error::BoxError;
 impl ConnectorBuilder {
 
     /// Create new connector with Rustls TLS
+    ///
+    /// # Errors
+    ///
+    /// Currently this function does not return errors, but the `Result` return type
+    /// is used for API consistency and future extensibility. May return errors in
+    /// future versions if TLS configuration validation is added.
     #[cfg(feature = "__rustls")]
     pub fn new_rustls_tls(
         http: HttpConnector,
@@ -57,6 +63,12 @@ impl ConnectorBuilder {
     }
 
     /// Creates a connector from pre-built Rustls TLS components.
+    ///
+    /// # Errors
+    ///
+    /// Currently this function does not return errors, but the `Result` return type
+    /// is used for API consistency and future extensibility. May return errors in
+    /// future versions if TLS configuration validation is added.
     #[cfg(feature = "__rustls")]
     pub fn from_built_rustls_tls(
         http: HttpConnector,

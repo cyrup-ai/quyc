@@ -1,4 +1,4 @@
-//! Core ConnectorBuilder struct and basic configuration methods
+//! Core `ConnectorBuilder` struct and basic configuration methods
 //!
 //! Provides the main builder struct and fundamental configuration options.
 
@@ -31,6 +31,7 @@ pub struct ConnectorBuilder {
 
 impl ConnectorBuilder {
     /// Create a new connector builder with default settings
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             #[cfg(feature = "__tls")]
@@ -64,30 +65,35 @@ impl ConnectorBuilder {
     }
 
     /// Sets the connection timeout for HTTP connections.
+    #[must_use]
     pub fn connect_timeout(mut self, timeout: Option<Duration>) -> Self {
         self.connect_timeout = timeout;
         self
     }
 
-    /// Enables or disables TCP_NODELAY for connections.
+    /// Enables or disables `TCP_NODELAY` for connections.
+    #[must_use]
     pub fn nodelay(mut self, nodelay: bool) -> Self {
         self.nodelay = nodelay;
         self
     }
 
     /// Sets the happy eyeballs timeout for dual-stack connections.
+    #[must_use]
     pub fn happy_eyeballs_timeout(mut self, timeout: Duration) -> Self {
         self.happy_eyeballs_timeout = Some(timeout);
         self
     }
 
-    /// Sets TCP_NODELAY option for connections.
+    /// Sets `TCP_NODELAY` option for connections.
+    #[must_use]
     pub fn tcp_nodelay(mut self, nodelay: bool) -> Self {
         self.nodelay = nodelay;
         self
     }
 
     /// Enforce HTTP-only connections (disable HTTPS)
+    #[must_use]
     pub fn enforce_http(mut self, enforce: bool) -> Self {
         self.enforce_http = enforce;
         self
@@ -95,6 +101,7 @@ impl ConnectorBuilder {
 
     /// Enable HTTPS or HTTP connections
     #[cfg(feature = "__tls")]
+    #[must_use]
     pub fn https_or_http(mut self) -> Self {
         self.tls_built = true;
         self

@@ -40,6 +40,7 @@ impl MessageChunk for H2ConnectionChunk {
 
 impl H2ConnectionChunk {
     #[inline]
+    #[must_use] 
     pub fn ready() -> Self {
         H2ConnectionChunk::Ready
     }
@@ -81,6 +82,7 @@ impl MessageChunk for H2RequestChunk {
 
 impl H2RequestChunk {
     #[inline]
+    #[must_use] 
     pub fn sent(stream_id: u32, connection_id: Arc<str>) -> Self {
         H2RequestChunk::Sent {
             stream_id,
@@ -132,6 +134,7 @@ impl H2DataChunk {
     }
 
     #[inline]
+    #[must_use] 
     pub fn stream_complete() -> Self {
         H2DataChunk::StreamComplete
     }
@@ -173,11 +176,13 @@ impl MessageChunk for H2SendResult {
 
 impl H2SendResult {
     #[inline]
+    #[must_use] 
     pub fn data_sent() -> Self {
         H2SendResult::DataSent
     }
 
     #[inline]
+    #[must_use] 
     pub fn send_complete() -> Self {
         H2SendResult::SendComplete
     }

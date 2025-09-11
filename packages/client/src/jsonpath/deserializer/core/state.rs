@@ -1,4 +1,4 @@
-//! State transition methods for JsonPathDeserializer
+//! State transition methods for `JsonPathDeserializer`
 //!
 //! Contains internal state transition methods that manage the deserializer's
 //! parsing state during JSON processing.
@@ -7,7 +7,7 @@ use serde::de::DeserializeOwned;
 
 use super::types::{DeserializerState, JsonPathDeserializer};
 
-impl<'a, T> JsonPathDeserializer<'a, T>
+impl<T> JsonPathDeserializer<'_, T>
 where
     T: DeserializeOwned,
 {

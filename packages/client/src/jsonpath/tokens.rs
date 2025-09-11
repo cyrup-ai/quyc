@@ -1,9 +1,9 @@
-//! Token definitions for JSONPath lexical analysis
+//! Token definitions for `JSONPath` lexical analysis
 //!
-//! Defines the token types used in JSONPath expression parsing and provides
+//! Defines the token types used in `JSONPath` expression parsing and provides
 //! utility functions for token comparison and matching.
 
-/// Tokens for JSONPath expression lexical analysis
+/// Tokens for `JSONPath` expression lexical analysis
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     // Structural tokens
@@ -76,6 +76,7 @@ pub enum Token {
 impl Token {
     /// Check if token is a comparison operator
     #[inline]
+    #[must_use] 
     pub fn is_comparison_operator(&self) -> bool {
         matches!(
             self,
@@ -90,12 +91,14 @@ impl Token {
 
     /// Check if token is a logical operator
     #[inline]
+    #[must_use] 
     pub fn is_logical_operator(&self) -> bool {
         matches!(self, Token::LogicalAnd | Token::LogicalOr)
     }
 
     /// Check if token is a literal value
     #[inline]
+    #[must_use] 
     pub fn is_literal(&self) -> bool {
         matches!(
             self,
@@ -110,6 +113,7 @@ impl Token {
 
     /// Check if token represents a structural element
     #[inline]
+    #[must_use] 
     pub fn is_structural(&self) -> bool {
         matches!(
             self,
@@ -129,6 +133,7 @@ impl Token {
     }
 
     /// Get string representation for debugging
+    #[must_use] 
     pub fn as_debug_str(&self) -> &'static str {
         match self {
             Token::Root => "$",
@@ -169,6 +174,7 @@ pub struct TokenMatcher;
 impl TokenMatcher {
     /// Check if two tokens match (handles different variants with same discriminant)
     #[inline]
+    #[must_use] 
     pub fn tokens_match(actual: &Token, expected: &Token) -> bool {
         match (actual, expected) {
             (Token::RightBracket, Token::RightBracket) => true,
@@ -206,6 +212,7 @@ impl TokenMatcher {
 
     /// Get precedence level for operators (higher number = higher precedence)
     #[inline]
+    #[must_use] 
     pub fn operator_precedence(token: &Token) -> u8 {
         match token {
             Token::LogicalOr => 1,
@@ -218,6 +225,7 @@ impl TokenMatcher {
 
     /// Check if token can start a primary expression
     #[inline]
+    #[must_use] 
     pub fn can_start_primary(token: &Token) -> bool {
         matches!(
             token,

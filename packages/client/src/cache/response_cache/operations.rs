@@ -36,15 +36,15 @@ impl ResponseCache {
             self.entries.insert(hash_key, entry.clone());
 
             // Convert cached entry back to HttpResponse
-            Some(Self::entry_to_response(entry))
+            Some(Self::entry_to_response(&entry))
         } else {
             self.stats.misses.fetch_add(1, Ordering::Relaxed);
             None
         }
     }
 
-    /// Convert cached entry back to streaming HttpResponse
-    fn entry_to_response(entry: CacheEntry) -> crate::HttpResponse {
+    /// Convert cached entry back to streaming `HttpResponse`
+    fn entry_to_response(entry: &CacheEntry) -> crate::HttpResponse {
         use ystream::AsyncStream;
 
         use crate::http::response::{HttpBodyChunk, HttpHeader};
@@ -56,7 +56,7 @@ impl ResponseCache {
         let body = entry.body.clone();
 
         let headers_stream = AsyncStream::with_channel(move |sender| {
-            for (name, value) in headers.iter() {
+            for (name, value) in &headers {
                 ystream::emit!(
                     sender,
                     HttpHeader {
@@ -125,7 +125,22 @@ impl ResponseCache {
         }
 
         // Check entry count limits
-        let current_entries = self.entry_count.load(Ordering::Relaxed) as usize;
+        let current_entries_u64 = self.entry_count.load(Ordering::Relaxed);
+        let current_entries = match usize::try_from(current_entries_u64) {
+            Ok(entries) => entries,
+            Err(_) => {
+                // u64 value is too large for usize on this platform
+                // This can only happen if we have more than 2^32-1 entries on 32-bit platforms
+                tracing::warn!(
+                    target: "quyc::cache",
+                    current_entries_u64 = current_entries_u64,
+                    max_usize = usize::MAX,
+                    "Entry count exceeds platform usize limits, using max_entries for comparison"
+                );
+                // Use max_entries as a safe fallback to trigger eviction
+                self.config.max_entries
+            }
+        };
         if current_entries >= self.config.max_entries {
             let evicted = self.evict_lru_entries();
             if evicted > 0 {
@@ -145,8 +160,7 @@ impl ResponseCache {
             // Get existing entry size before replacement
             self.entries
                 .get(&hash_key)
-                .map(|e| e.value().size_bytes)
-                .unwrap_or(0)
+                .map_or(0, |e| e.value().size_bytes)
         } else {
             0
         };
@@ -154,16 +168,16 @@ impl ResponseCache {
         // Insert new entry (always succeeds)
         self.entries.insert(hash_key, entry.clone());
 
-        if !had_existing {
-            // New entry
-            self.entry_count.fetch_add(1, Ordering::Relaxed);
-            self.memory_usage
-                .fetch_add(entry.size_bytes, Ordering::Relaxed);
-        } else {
+        if had_existing {
             // Replaced existing entry - adjust memory usage
             self.memory_usage
                 .fetch_add(entry.size_bytes, Ordering::Relaxed);
             self.memory_usage.fetch_sub(old_size, Ordering::Relaxed);
+        } else {
+            // New entry
+            self.entry_count.fetch_add(1, Ordering::Relaxed);
+            self.memory_usage
+                .fetch_add(entry.size_bytes, Ordering::Relaxed);
         }
     }
 
@@ -235,11 +249,11 @@ impl ResponseCache {
                 );
             }
 
-            if !headers.is_empty() {
+            if headers.is_empty() {
+                None
+            } else {
                 self.stats.validations.fetch_add(1, Ordering::Relaxed);
                 Some(headers)
-            } else {
-                None
             }
         } else {
             None

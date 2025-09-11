@@ -1,9 +1,9 @@
 //! Core HTTP configuration types and default implementations
 //!
-//! This module provides the main HttpConfig struct and related enums for HTTP client configuration.
+//! This module provides the main `HttpConfig` struct and related enums for HTTP client configuration.
 //! The configuration is organized into logical modules:
 //!
-//! - `types`: Core HttpConfig struct definition with all configuration fields
+//! - `types`: Core `HttpConfig` struct definition with all configuration fields
 //! - `enums`: Connection reuse strategies, retry policies, and error classifications
 //! - `defaults`: Sensible default values optimized for HTTP/3 usage patterns
 //! - `builders`: Fluent builder methods for common configuration scenarios

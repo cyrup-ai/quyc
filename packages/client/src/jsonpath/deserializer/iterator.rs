@@ -1,6 +1,6 @@
 //! Iterator implementation for streaming JSON objects
 //!
-//! Provides the JsonPathIterator that yields deserialized objects as they
+//! Provides the `JsonPathIterator` that yields deserialized objects as they
 //! become available during streaming JSON parsing.
 
 use serde::de::DeserializeOwned;
@@ -9,7 +9,7 @@ use serde_json::{StreamDeserializer, de::IoRead};
 use super::{core::JsonPathDeserializer, processor::JsonProcessResult};
 use crate::jsonpath::{buffer::BufferReader, error::JsonPathResult};
 
-/// Iterator over streaming JSON objects matching JSONPath expression
+/// Iterator over streaming JSON objects matching `JSONPath` expression
 pub struct JsonPathIterator<'iter, 'data, T> {
     pub(super) deserializer: &'iter mut JsonPathDeserializer<'data, T>,
     pub(super) stream_deserializer:
@@ -31,9 +31,9 @@ where
         }
     }
 
-    /// Advance to next complete JSON object matching JSONPath
+    /// Advance to next complete JSON object matching `JSONPath`
     ///
-    /// Incrementally parses JSON structure while evaluating JSONPath expressions
+    /// Incrementally parses JSON structure while evaluating `JSONPath` expressions
     /// to identify individual array elements for deserialization.
     #[inline]
     fn advance_to_next_object(&mut self) -> JsonPathResult<Option<T>> {
@@ -45,7 +45,7 @@ where
                     // Reset stream deserializer on error and continue parsing
                     self.stream_deserializer = None;
                     return Err(crate::jsonpath::error::json_parse_error(
-                        format!("JSON deserialization failed: {}", e),
+                        format!("JSON deserialization failed: {e}"),
                         self.bytes_consumed,
                         "streaming array element".to_string(),
                     ));
@@ -101,7 +101,7 @@ where
     }
 }
 
-impl<'iter, 'data, T> Iterator for JsonPathIterator<'iter, 'data, T>
+impl<T> Iterator for JsonPathIterator<'_, '_, T>
 where
     T: DeserializeOwned,
 {

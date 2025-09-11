@@ -36,7 +36,12 @@ pub mod httpdate {
 
     use super::HttpDateParseError;
 
-    /// Parse HTTP date string into SystemTime following RFC 7231 formats
+    /// Parse HTTP date string into `SystemTime` following RFC 7231 formats
+    ///
+    /// # Errors
+    ///
+    /// - [`HttpDateParseError::UnrecognizedFormat`] if the date string doesn't match any supported format
+    /// - [`HttpDateParseError::InvalidTimestamp`] if the date represents a time before Unix epoch
     pub fn parse_http_date(date_str: &str) -> Result<SystemTime, HttpDateParseError> {
         use chrono::{DateTime, NaiveDateTime};
 
@@ -49,6 +54,7 @@ pub mod httpdate {
         if let Ok(dt) = DateTime::parse_from_str(date_str, "%a, %d %b %Y %H:%M:%S GMT") {
             let timestamp = dt.timestamp();
             if timestamp >= 0 {
+                #[allow(clippy::cast_sign_loss)]
                 return Ok(SystemTime::UNIX_EPOCH + Duration::from_secs(timestamp as u64));
             }
         }
@@ -57,6 +63,7 @@ pub mod httpdate {
         if let Ok(dt) = DateTime::parse_from_str(date_str, "%A, %d-%b-%y %H:%M:%S GMT") {
             let timestamp = dt.timestamp();
             if timestamp >= 0 {
+                #[allow(clippy::cast_sign_loss)]
                 return Ok(SystemTime::UNIX_EPOCH + Duration::from_secs(timestamp as u64));
             }
         }
@@ -65,6 +72,7 @@ pub mod httpdate {
         if let Ok(dt) = NaiveDateTime::parse_from_str(date_str, "%a %b %e %H:%M:%S %Y") {
             let timestamp = dt.and_utc().timestamp();
             if timestamp >= 0 {
+                #[allow(clippy::cast_sign_loss)]
                 return Ok(SystemTime::UNIX_EPOCH + Duration::from_secs(timestamp as u64));
             }
         }
@@ -73,6 +81,7 @@ pub mod httpdate {
         if let Ok(dt) = DateTime::parse_from_rfc2822(date_str) {
             let timestamp = dt.timestamp();
             if timestamp >= 0 {
+                #[allow(clippy::cast_sign_loss)]
                 return Ok(SystemTime::UNIX_EPOCH + Duration::from_secs(timestamp as u64));
             }
         }
@@ -80,7 +89,8 @@ pub mod httpdate {
         Err(HttpDateParseError::UnrecognizedFormat(date_str.to_string()))
     }
 
-    /// Format SystemTime as HTTP date string in RFC 7231 IMF-fixdate format
+    /// Format `SystemTime` as HTTP date string in RFC 7231 IMF-fixdate format
+    #[must_use] 
     pub fn fmt_http_date(time: SystemTime) -> String {
         use chrono::{DateTime, Utc};
 

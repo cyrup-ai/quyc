@@ -24,6 +24,7 @@ impl HttpConfig {
     ///     .with_timeout(Duration::from_secs(30));
     /// assert_eq!(config.timeout, Duration::from_secs(30));
     /// ```
+    #[must_use] 
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
         self.timeout = timeout;
         self
@@ -46,6 +47,7 @@ impl HttpConfig {
     ///     .with_connect_timeout(Duration::from_secs(5));
     /// assert_eq!(config.connect_timeout, Duration::from_secs(5));
     /// ```
+    #[must_use] 
     pub fn with_connect_timeout(mut self, timeout: Duration) -> Self {
         self.connect_timeout = timeout;
         self
@@ -68,6 +70,7 @@ impl HttpConfig {
     ///     .with_dns_cache_duration(Duration::from_secs(600)); // 10 minutes
     /// assert_eq!(config.dns_cache_duration, Duration::from_secs(600));
     /// ```
+    #[must_use] 
     pub fn with_dns_cache_duration(mut self, duration: Duration) -> Self {
         self.dns_cache_duration = duration;
         self

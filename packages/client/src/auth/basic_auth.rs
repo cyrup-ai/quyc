@@ -9,6 +9,11 @@ use http::{HeaderMap, HeaderValue};
 use super::AuthProvider;
 use crate::prelude::*;
 
+/// Creates a basic authentication header value from username and optional password.
+///
+/// # Errors
+///
+/// Returns an `HttpError` if the resulting header value contains invalid characters.
 pub fn basic_auth<U, P>(
     username: U,
     password: Option<P>,
@@ -36,12 +41,18 @@ where
 }
 
 /// Encode basic authentication credentials for compatibility
+#[must_use] 
 pub fn encode_basic_auth(username: &str, password: &str) -> String {
     let credentials = format!("{username}:{password}");
     BASE64_STANDARD.encode(credentials.as_bytes())
 }
 
 /// Decode basic authentication credentials
+///
+/// # Errors
+///
+/// Returns an `HttpError` if the encoded string is not valid base64 or does not
+/// contain a valid username:password format.
 pub fn decode_basic_auth(encoded: &str) -> Result<(String, String), crate::error::HttpError> {
     let decoded = BASE64_STANDARD.decode(encoded).map_err(|_| {
         crate::error::invalid_header("Invalid base64 encoding in authorization header")

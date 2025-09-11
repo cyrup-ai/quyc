@@ -5,6 +5,7 @@ use crate::jsonpath::stream_processor::types::{ProcessorStats, ProcessorStatsSna
 
 impl ProcessorStats {
     /// Create new processor statistics tracker
+    #[must_use] 
     pub fn new() -> Self {
         let now_micros = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -23,6 +24,7 @@ impl ProcessorStats {
     }
 
     /// Get current statistics snapshot
+    #[must_use] 
     pub fn snapshot(&self) -> ProcessorStatsSnapshot {
         let now_micros = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -31,6 +33,8 @@ impl ProcessorStats {
 
         let start_time = self.start_time.load(Ordering::Relaxed);
         let elapsed_micros = now_micros.saturating_sub(start_time);
+        // Precision loss acceptable for telemetry time calculations
+        #[allow(clippy::cast_precision_loss)]
         let elapsed_seconds = (elapsed_micros as f64) / 1_000_000.0;
 
         let chunks = self.chunks_processed.load(Ordering::Relaxed);
@@ -46,17 +50,23 @@ impl ProcessorStats {
             processing_errors: errors,
             parse_errors,
             throughput_objects_per_sec: if elapsed_seconds > 0.0 {
-                objects as f64 / elapsed_seconds
+                // Precision loss acceptable for throughput statistics
+                #[allow(clippy::cast_precision_loss)]
+                { objects as f64 / elapsed_seconds }
             } else {
                 0.0
             },
             bytes_per_object: if objects > 0 {
-                bytes as f64 / objects as f64
+                // Precision loss acceptable for bytes per object statistics
+                #[allow(clippy::cast_precision_loss)]
+                { bytes as f64 / objects as f64 }
             } else {
                 0.0
             },
             error_rate: if chunks > 0 {
-                (errors + parse_errors) as f64 / chunks as f64
+                // Precision loss acceptable for error rate statistics
+                #[allow(clippy::cast_precision_loss)]
+                { (errors + parse_errors) as f64 / chunks as f64 }
             } else {
                 0.0
             },

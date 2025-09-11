@@ -1,6 +1,6 @@
 //! RFC 9535 Normalized Paths Implementation (Section 2.7)
 //!
-//! A Normalized Path is a JSONPath expression that uniquely identifies
+//! A Normalized Path is a `JSONPath` expression that uniquely identifies
 //! a single node in a JSON value using a canonical syntax:
 //! - Use bracket notation exclusively
 //! - Use single quotes for member names  

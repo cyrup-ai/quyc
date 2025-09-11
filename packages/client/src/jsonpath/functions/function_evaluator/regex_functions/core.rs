@@ -1,15 +1,15 @@
 //! Core regex function implementations
 //!
-//! RFC 9535 Section 2.4.6 & 2.4.7: match() and search() functions
-//! with ReDoS protection and timeout handling
+//! RFC 9535 Section 2.4.6 & 2.4.7: `match()` and `search()` functions
+//! with `ReDoS` protection and timeout handling
 
 use super::super::super::regex_cache::{REGEX_CACHE, execute_regex_with_timeout};
 use crate::jsonpath::error::{JsonPathResult, invalid_expression_error};
 use crate::jsonpath::parser::{FilterExpression, FilterValue};
 
-/// RFC 9535 Section 2.4.6: match() function
+/// RFC 9535 Section 2.4.6: `match()` function
 /// Tests if string matches regular expression (anchored match)
-/// Includes ReDoS protection with 1-second timeout
+/// Includes `ReDoS` protection with 1-second timeout
 #[inline]
 pub fn evaluate_match_function(
     context: &serde_json::Value,
@@ -40,7 +40,7 @@ pub fn evaluate_match_function(
             }
             Err(_) => Err(invalid_expression_error(
                 "",
-                &format!("invalid regex pattern: {}", pattern),
+                format!("invalid regex pattern: {pattern}"),
                 None,
             )),
         }
@@ -49,9 +49,9 @@ pub fn evaluate_match_function(
     }
 }
 
-/// RFC 9535 Section 2.4.7: search() function
+/// RFC 9535 Section 2.4.7: `search()` function
 /// Tests if string contains match for regular expression (unanchored search)
-/// Includes ReDoS protection with 1-second timeout
+/// Includes `ReDoS` protection with 1-second timeout
 #[inline]
 pub fn evaluate_search_function(
     context: &serde_json::Value,
@@ -82,7 +82,7 @@ pub fn evaluate_search_function(
             }
             Err(_) => Err(invalid_expression_error(
                 "",
-                &format!("invalid regex pattern: {}", pattern),
+                format!("invalid regex pattern: {pattern}"),
                 None,
             )),
         }

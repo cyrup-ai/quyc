@@ -22,7 +22,7 @@ pub enum JsonProcessResult {
     Complete,
 }
 
-impl<'iter, 'data, T> JsonPathIterator<'iter, 'data, T>
+impl<T> JsonPathIterator<'_, '_, T>
 where
     T: DeserializeOwned,
 {
@@ -30,7 +30,7 @@ where
     #[inline]
     pub(super) fn read_next_byte(&mut self) -> JsonPathResult<Option<u8>> {
         let mut processor = SharedByteProcessor::new(
-            &mut self.deserializer.buffer,
+            self.deserializer.buffer,
             self.deserializer.buffer_position
         );
         let result = processor.read_next_byte();
@@ -43,9 +43,9 @@ where
     #[inline]
     pub(super) fn process_json_byte(&mut self, byte: u8) -> JsonPathResult<JsonProcessResult> {
         match &self.deserializer.state {
-            super::super::core::DeserializerState::Initial => self.process_initial_byte(byte),
+            super::super::core::DeserializerState::Initial => Ok(self.process_initial_byte(byte)),
             super::super::core::DeserializerState::Navigating => self.process_navigating_byte(byte),
-            super::super::core::DeserializerState::ProcessingArray => self.process_array_byte(byte),
+            super::super::core::DeserializerState::ProcessingArray => Ok(self.process_array_byte(byte)),
             super::super::core::DeserializerState::ProcessingObject => {
                 self.process_object_byte(byte)
             }

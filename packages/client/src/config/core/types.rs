@@ -1,6 +1,6 @@
 //! Core HTTP configuration structure and field definitions
 //!
-//! Contains the main HttpConfig struct with all configuration fields
+//! Contains the main `HttpConfig` struct with all configuration fields
 //! for HTTP client behavior, connection management, and protocol settings.
 
 use std::time::Duration;
@@ -28,7 +28,7 @@ pub struct HttpConfig {
     /// TCP keep-alive duration
     pub tcp_keepalive: Option<Duration>,
 
-    /// Enable TCP_NODELAY
+    /// Enable `TCP_NODELAY`
     pub tcp_nodelay: bool,
 
     /// Enable HTTP/2 adaptive window
@@ -139,7 +139,7 @@ pub struct HttpConfig {
     /// Controls flow control for individual HTTP/3 streams
     pub quic_stream_receive_window: Option<u32>,
 
-    /// QUIC connection-wide receive window size in bytes  
+    /// QUIC connection-wide receive window size in bytes\
     /// Controls aggregate flow control across all streams in a connection
     pub quic_receive_window: Option<u32>,
 

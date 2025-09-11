@@ -54,7 +54,7 @@ impl GetOperation {
     /// Add multiple query parameters
     ///
     /// # Arguments
-    /// * `params` - A HashMap of query parameters to add
+    /// * `params` - A `HashMap` of query parameters to add
     ///
     /// # Returns
     /// `Self` for method chaining
@@ -84,7 +84,7 @@ impl GetOperation {
         self
     }
 
-    /// Set headers from a HeaderMap
+    /// Set headers from a `HeaderMap`
     ///
     /// # Arguments
     /// * `headers` - The headers to set
@@ -115,7 +115,7 @@ impl HttpOperation for GetOperation {
                 return AsyncStream::with_channel(move |sender| {
                     let error_response = crate::prelude::HttpResponse::error(
                         http::StatusCode::BAD_REQUEST,
-                        format!("URL parse error: {}", e)
+                        format!("URL parse error: {e}")
                     );
                     ystream::emit!(sender, error_response);
                 });

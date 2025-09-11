@@ -10,12 +10,13 @@ use ystream::AsyncStream;
 use super::{cache_key::CacheKey, response_cache::ResponseCache};
 use crate::prelude::*;
 
-lazy_static::lazy_static! {
-    /// Global cache instance for use across the HTTP client
-    pub static ref GLOBAL_CACHE: ResponseCache = ResponseCache::default();
-}
+/// Cache size limit (50MB)
+const MAX_CACHE_SIZE: usize = 50 * 1024 * 1024;
 
-/// Cache-aware HTTP stream that checks cache before making requests using AsyncStream
+/// Global cache instance for use across the HTTP client
+pub static GLOBAL_CACHE: std::sync::LazyLock<ResponseCache> = std::sync::LazyLock::new(ResponseCache::default);
+
+/// Cache-aware HTTP stream that checks cache before making requests using `AsyncStream`
 pub fn cached_stream<F>(cache_key: CacheKey, operation: F) -> AsyncStream<HttpResponse, 1024>
 where
     F: Fn() -> AsyncStream<HttpResponse, 1024> + Send + Sync + 'static,
@@ -52,7 +53,6 @@ where
                     let mut cached_body_data = Vec::new();
                     let mut cached_trailers = Vec::new();
                     let mut total_size = 0usize;
-                    const MAX_CACHE_SIZE: usize = 50 * 1024 * 1024; // 50MB cache limit
                     
                     // Process headers - forward and cache simultaneously
                     for header in headers_stream {
@@ -117,19 +117,18 @@ where
                             // Use tokio runtime to properly execute async cache operations
                             if let Ok(handle) = tokio::runtime::Handle::try_current() {
                                 handle.block_on(async move {
-                                    match super::CacheEntry::new(cached_response).await {
-                                        cache_entry => {
-                                            // Store in global cache - create HttpResponse from cache entry
-                                            let stored_response = crate::HttpResponse::from_cache_entry(cache_entry);
-                                            GLOBAL_CACHE.put(cache_key_clone.clone(), stored_response).await;
-                                            
-                                            tracing::debug!(
-                                                target: "quyc::cache::integration",
-                                                cache_key = %cache_key_clone.url,
-                                                total_size = total_size,
-                                                "Streaming response successfully cached via integration layer"
-                                            );
-                                        }
+                                    let cache_entry = super::CacheEntry::new(cached_response).await;
+                                    {
+                                        // Store in global cache - create HttpResponse from cache entry
+                                        let stored_response = crate::HttpResponse::from_cache_entry(cache_entry);
+                                        GLOBAL_CACHE.put(cache_key_clone.clone(), stored_response).await;
+                                        
+                                        tracing::debug!(
+                                            target: "quyc::cache::integration",
+                                            cache_key = %cache_key_clone.url,
+                                            total_size = total_size,
+                                            "Streaming response successfully cached via integration layer"
+                                        );
                                     }
                                 });
                             } else {
@@ -159,6 +158,7 @@ where
 }
 
 /// Helper to create conditional request headers for cache validation
+#[must_use] 
 pub fn conditional_headers_for_key(cache_key: &CacheKey) -> HashMap<String, String> {
     GLOBAL_CACHE
         .get_validation_headers(cache_key)

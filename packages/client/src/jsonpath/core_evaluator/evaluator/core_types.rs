@@ -1,29 +1,29 @@
-//! Core types and structures for JSONPath evaluation
+//! Core types and structures for `JSONPath` evaluation
 //!
-//! Defines the main CoreJsonPathEvaluator struct and associated types.
+//! Defines the main `CoreJsonPathEvaluator` struct and associated types.
 
 // Removed unused import
 
 use crate::jsonpath::error::JsonPathError;
 use crate::jsonpath::parser::{JsonPathParser, JsonSelector};
 
-/// Result type for JSONPath operations
+/// Result type for `JSONPath` operations
 pub type JsonPathResult<T> = Result<T, JsonPathError>;
 
-/// Core JSONPath evaluator that works with parsed JSON according to RFC 9535
+/// Core `JSONPath` evaluator that works with parsed JSON according to RFC 9535
 ///
-/// This evaluator supports the complete JSONPath specification with optimized performance
+/// This evaluator supports the complete `JSONPath` specification with optimized performance
 /// and protection against pathological inputs.
 #[derive(Debug, Clone)]
 pub struct CoreJsonPathEvaluator {
-    /// The parsed selectors from the JSONPath expression
+    /// The parsed selectors from the `JSONPath` expression
     pub(crate) selectors: Vec<JsonSelector>,
     /// The original expression string for debugging and error reporting
     pub(crate) expression: String,
 }
 
 impl CoreJsonPathEvaluator {
-    /// Create new evaluator with JSONPath expression
+    /// Create new evaluator with `JSONPath` expression
     pub fn new(expression: &str) -> JsonPathResult<Self> {
         // Compile the expression to get the parsed selectors
         let compiled = JsonPathParser::compile(expression)?;
@@ -36,11 +36,13 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Get the original expression string
+    #[must_use] 
     pub fn expression(&self) -> &str {
         &self.expression
     }
 
     /// Get the parsed selectors
+    #[must_use] 
     pub fn selectors(&self) -> &[JsonSelector] {
         &self.selectors
     }

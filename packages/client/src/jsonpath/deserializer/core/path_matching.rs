@@ -2,11 +2,11 @@ use serde::de::DeserializeOwned;
 
 use super::types::JsonPathDeserializer;
 
-impl<'a, T> JsonPathDeserializer<'a, T>
+impl<T> JsonPathDeserializer<'_, T>
 where
     T: DeserializeOwned,
 {
-    /// Check if current position matches JSONPath expression
+    /// Check if current position matches `JSONPath` expression
     #[inline]
     pub(super) fn matches_current_path(&self) -> bool {
         // Simplified JSONPath matching for basic patterns

@@ -79,7 +79,8 @@ impl QuicheConnectionEvent {
         Self::Connected { connection_id }
     }
 
-    /// Create a bad chunk (alias for bad_chunk from MessageChunk trait)
+    /// Create a bad chunk (alias for `bad_chunk` from `MessageChunk` trait)
+    #[must_use] 
     pub fn bad_chunk(error_message: String) -> Self {
         <Self as MessageChunk>::bad_chunk(error_message)
     }
@@ -202,14 +203,17 @@ pub enum QuicheStreamChunk {
 }
 
 impl QuicheStreamChunk {
+    #[must_use] 
     pub fn stream_opened(stream_id: u64, _bidirectional: bool) -> Self {
         Self::Opened { stream_id }
     }
 
+    #[must_use] 
     pub fn readable_stream(stream_id: u64) -> Self {
         Self::Opened { stream_id }
     }
 
+    #[must_use] 
     pub fn stream_data(stream_id: u64, data: Vec<u8>, fin: bool) -> Self {
         if fin {
             Self::Closed { stream_id }
@@ -218,6 +222,7 @@ impl QuicheStreamChunk {
         }
     }
 
+    #[must_use] 
     pub fn stream_finished(stream_id: u64) -> Self {
         Self::Closed { stream_id }
     }
@@ -307,16 +312,19 @@ impl QuicheConnectionEvent {
 }
 
 impl QuicheWriteResult {
+    #[must_use] 
     pub fn write_complete(stream_id: u64) -> Self {
         let packet_id = stream_id; // Use stream_id as packet_id for traceability
         Self::Sent { packet_id, size: 0 }
     }
 
+    #[must_use] 
     pub fn write_blocked(stream_id: u64) -> Self {
         let packet_id = stream_id; // Use stream_id as packet_id for traceability
         Self::Lost { packet_id } // Use Lost variant to indicate blocked write
     }
 
+    #[must_use] 
     pub fn bytes_written(stream_id: u64, bytes_written: usize, _fin: bool) -> Self {
         let packet_id = stream_id; // Use stream_id as packet_id for traceability
         Self::Sent {

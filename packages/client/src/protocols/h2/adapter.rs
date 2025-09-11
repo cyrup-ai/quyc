@@ -14,7 +14,7 @@ use crate::http::response::HttpResponse;
 /// Execute HTTP/2 request using pure streams-first architecture
 ///
 /// Creates an AsyncStream-based HTTP/2 response without blocking I/O or sync connections.
-/// Leverages existing H2Connection streaming infrastructure.
+/// Leverages existing `H2Connection` streaming infrastructure.
 pub fn execute_h2_request(
     request: HttpRequest,
     config: H2Config,
@@ -33,7 +33,7 @@ pub fn execute_h2_request(
                     // Emit error response using HttpResponse::error
                     let error_response = HttpResponse::error(
                         http::StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("H2 connection failed: {}", e)
+                        format!("H2 connection failed: {e}")
                     );
                     emit!(sender, error_response);
                 }
@@ -44,7 +44,7 @@ pub fn execute_h2_request(
 
 /// Create H2 connection stream
 ///
-/// Creates an H2Connection and executes the request through it.
+/// Creates an `H2Connection` and executes the request through it.
 fn create_h2_connection_stream(
     _request: HttpRequest,
     _config: H2Config,

@@ -1,12 +1,12 @@
-//! High-performance JSONPath streaming deserializer for Http3
+//! High-performance `JSONPath` streaming deserializer for Http3
 //!
-//! This module provides blazing-fast, zero-allocation JSONPath expression evaluation
+//! This module provides blazing-fast, zero-allocation `JSONPath` expression evaluation
 //! over streaming HTTP responses. It enables streaming individual array elements from
-//! nested JSON structures like OpenAI's `{"data": [...]}` format.
+//! nested JSON structures like `OpenAI`'s `{"data": [...]}` format.
 //!
 //! # Features
 //!
-//! - Full JSONPath specification support
+//! - Full `JSONPath` specification support
 //! - Zero-allocation streaming deserialization
 //! - Lock-free concurrent processing
 //! - Comprehensive error handling and recovery

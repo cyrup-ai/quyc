@@ -370,7 +370,7 @@ async fn requestbin_logger(
         println!("📤 Body: <empty>");
     }
 
-    println!(""); // Empty line for readability
+    println!(); // Empty line for readability
 
     // Reconstruct request with the consumed body
     let reconstructed_req = Request::from_parts(parts, Body::from(body_bytes));

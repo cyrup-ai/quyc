@@ -1,4 +1,4 @@
-//! Transport layer integration for HTTP/2 and HTTP/3 using ONLY AsyncStream patterns
+//! Transport layer integration for HTTP/2 and HTTP/3 using ONLY `AsyncStream` patterns
 //!
 //! Zero-allocation transport handling with Quiche (H3) and hyper (H2) integration.
 //! Uses canonical Connection from protocols/connection.rs - no duplicate Connection types.
@@ -69,7 +69,7 @@ impl std::fmt::Debug for TransportConfig {
 impl Clone for TransportConfig {
     fn clone(&self) -> Self {
         Self {
-            transport_type: self.transport_type.clone(),
+            transport_type: self.transport_type,
             timeout_ms: self.timeout_ms,
             max_streams: self.max_streams,
             enable_push: self.enable_push,
@@ -81,6 +81,7 @@ impl Clone for TransportConfig {
 impl TransportManager {
     /// Create new transport manager
     #[inline]
+    #[must_use] 
     pub fn new(default_transport: TransportType) -> Self {
         Self {
             connection_manager: ConnectionManager::new(),
@@ -122,16 +123,13 @@ impl TransportManager {
     ) -> AsyncStream<Connection, 1024> {
         AsyncStream::with_channel(move |sender| {
             // Determine appropriate local address for binding
-            let local_addr = match remote_addr.is_ipv4() {
-                true => "0.0.0.0:0".parse().map_err(|e| {
-                    log::error!("Failed to parse IPv4 local address: {}", e);
-                    e
-                }).unwrap_or_else(|_| std::net::SocketAddr::new(std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED), 0)),
-                false => "[::]:0".parse().map_err(|e| {
-                    log::error!("Failed to parse IPv6 local address: {}", e);
-                    e
-                }).unwrap_or_else(|_| std::net::SocketAddr::new(std::net::IpAddr::V6(std::net::Ipv6Addr::UNSPECIFIED), 0)),
-            };
+            let local_addr = if remote_addr.is_ipv4() { "0.0.0.0:0".parse().map_err(|e| {
+                log::error!("Failed to parse IPv4 local address: {e}");
+                e
+            }).unwrap_or_else(|_| std::net::SocketAddr::new(std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED), 0)) } else { "[::]:0".parse().map_err(|e| {
+                log::error!("Failed to parse IPv6 local address: {e}");
+                e
+            }).unwrap_or_else(|_| std::net::SocketAddr::new(std::net::IpAddr::V6(std::net::Ipv6Addr::UNSPECIFIED), 0)) };
             
             // Step 1: Attempt QUIC/H3 connection using existing working method
             let h3_result = Ok(Connection::new_h3_with_addr(local_addr, remote_addr));
@@ -160,15 +158,16 @@ impl TransportManager {
                 }
                 Err(h2_error) => {
                     emit!(sender, Connection::bad_chunk(
-                        format!("All protocols failed. H3: {}, H2: {}", h3_error, h2_error)
+                        format!("All protocols failed. H3: {h3_error}, H2: {h2_error}")
                     ));
                 }
             }
         })
     }
 
-    /// Get connection by ID (delegates to canonical ConnectionManager)
+    /// Get connection by ID (delegates to canonical `ConnectionManager`)
     #[inline]
+    #[must_use] 
     pub fn get_connection(&self, id: &str) -> Option<&Connection> {
         self.connection_manager.get_connection(id)
     }
@@ -187,6 +186,7 @@ impl TransportManager {
     }
 
     /// Get transport statistics
+    #[must_use] 
     pub fn transport_stats(&self) -> TransportStats {
         let conn_stats = self.connection_manager.stats();
         TransportStats {
@@ -322,9 +322,10 @@ impl TransportConnection {
 
 /// Transport layer utilities
 pub mod utils {
-    use super::*;
+    use super::{TransportType, Config};
 
     /// Detect optimal transport type based on server capabilities
+    #[must_use] 
     pub fn detect_transport_type(server_capabilities: &[&str]) -> TransportType {
         if server_capabilities.contains(&"h3") {
             TransportType::H3
@@ -376,6 +377,7 @@ pub struct TransportFactory;
 
 impl TransportFactory {
     /// Create transport connection with automatic type detection
+    #[must_use] 
     pub fn create_auto_connection(
         connection_id: String,
         remote_addr: SocketAddr,
@@ -416,6 +418,7 @@ impl TransportFactory {
     }
 
     /// Create H2-specific transport connection
+    #[must_use] 
     pub fn create_h2_connection(
         connection_id: String,
         remote_addr: SocketAddr,
@@ -443,6 +446,7 @@ impl TransportFactory {
     }
 
     /// Create H3-specific transport connection
+    #[must_use] 
     pub fn create_h3_connection(
         connection_id: String,
         remote_addr: SocketAddr,
@@ -466,7 +470,7 @@ impl TransportFactory {
                     );
                     // Emit error TransportConnection and return
                     ystream::emit!(sender, TransportConnection::bad_chunk(
-                        format!("Failed to create QUICHE config: {}", e)
+                        format!("Failed to create QUICHE config: {e}")
                     ));
                     return;
                 }

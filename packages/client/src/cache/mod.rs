@@ -1,7 +1,7 @@
 //! Zero allocation HTTP response caching with lock-free skiplist storage
 //!
 //! This module provides a high-performance, concurrent HTTP response cache using:
-//! - Lock-free SkipMap for O(log n) concurrent operations
+//! - Lock-free `SkipMap` for O(log n) concurrent operations
 //! - Atomic counters for statistics and cache management
 //! - Blake3 hashing for fast cache key generation
 //! - TTL-based expiration with microsecond precision

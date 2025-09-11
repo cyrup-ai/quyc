@@ -6,14 +6,13 @@
 use super::types::{JsonStreamState, StateStats, StreamStateMachine};
 use crate::jsonpath::error::JsonPathError;
 
-/// Check if current JSONPath target is an array for streaming
+/// Check if current `JSONPath` target is an array for streaming
 pub fn is_target_array(machine: &StreamStateMachine) -> bool {
     // Simplified check - full implementation would evaluate JSONPath expression
     machine
         .path_expression
         .as_ref()
-        .map(|e| e.is_array_stream())
-        .unwrap_or(false)
+        .is_some_and(super::super::expression::core::JsonPathExpression::is_array_stream)
 }
 
 /// Get current error if state machine is in error state
@@ -27,17 +26,20 @@ pub fn current_error(machine: &StreamStateMachine) -> Option<JsonPathError> {
 
 /// Check if stream processing is complete
 #[inline]
+#[must_use] 
 pub fn is_complete(machine: &StreamStateMachine) -> bool {
     matches!(machine.state, JsonStreamState::Complete)
 }
 
 /// Check if state machine is in error state
 #[inline]
+#[must_use] 
 pub fn is_error_state(machine: &StreamStateMachine) -> bool {
     matches!(machine.state, JsonStreamState::Error { .. })
 }
 
 /// Check if error is recoverable
+#[must_use] 
 pub fn is_recoverable_error(machine: &StreamStateMachine) -> bool {
     if let JsonStreamState::Error { recoverable, .. } = &machine.state {
         *recoverable
@@ -48,12 +50,14 @@ pub fn is_recoverable_error(machine: &StreamStateMachine) -> bool {
 
 /// Get current processing depth
 #[inline]
+#[must_use] 
 pub fn current_depth(machine: &StreamStateMachine) -> usize {
     machine.stats.current_depth
 }
 
 /// Get maximum depth reached during processing
 #[inline]
+#[must_use] 
 pub fn max_depth_reached(machine: &StreamStateMachine) -> usize {
     machine.stats.max_depth
 }
@@ -77,67 +81,76 @@ pub fn estimate_memory_usage(machine: &StreamStateMachine) -> usize {
     let expression_size = machine
         .path_expression
         .as_ref()
-        .map(|_| 256) // Estimated size
-        .unwrap_or(0);
+        .map_or(0, |_| 256);
 
     base_size + stack_size + expression_size
 }
 
-/// Implementation of public API methods for StreamStateMachine
+/// Implementation of public API methods for `StreamStateMachine`
 impl StreamStateMachine {
     /// Get current state for debugging
+    #[must_use] 
     pub fn current_state(&self) -> &JsonStreamState {
         &self.state
     }
 
     /// Get processing statistics
+    #[must_use] 
     pub fn stats(&self) -> &StateStats {
         &self.stats
     }
 
     /// Get number of objects successfully yielded
     #[inline]
+    #[must_use] 
     pub fn objects_yielded(&self) -> u64 {
         self.stats.objects_yielded
     }
 
     /// Get number of parse errors encountered
     #[inline]
+    #[must_use] 
     pub fn parse_errors(&self) -> u64 {
         self.stats.parse_errors
     }
 
     /// Get number of state transitions performed
     #[inline]
+    #[must_use] 
     pub fn state_transitions(&self) -> u64 {
         self.stats.state_transitions
     }
 
     /// Check if stream processing is complete
     #[inline]
+    #[must_use] 
     pub fn is_complete(&self) -> bool {
         is_complete(self)
     }
 
     /// Check if state machine is in error state
     #[inline]
+    #[must_use] 
     pub fn is_error(&self) -> bool {
         is_error_state(self)
     }
 
     /// Check if current error is recoverable
+    #[must_use] 
     pub fn is_recoverable(&self) -> bool {
         is_recoverable_error(self)
     }
 
     /// Get current processing depth
     #[inline]
+    #[must_use] 
     pub fn depth(&self) -> usize {
         current_depth(self)
     }
 
     /// Get maximum depth reached
     #[inline]
+    #[must_use] 
     pub fn max_depth(&self) -> usize {
         max_depth_reached(self)
     }
@@ -155,21 +168,25 @@ impl StreamStateMachine {
     }
 
     /// Check if ready for processing
+    #[must_use] 
     pub fn is_ready(&self) -> bool {
         super::transitions::is_ready_for_processing(self)
     }
 
     /// Get estimated memory usage
+    #[must_use] 
     pub fn memory_usage(&self) -> usize {
         estimate_memory_usage(self)
     }
 
-    /// Check if at target JSONPath depth
+    /// Check if at target `JSONPath` depth
+    #[must_use] 
     pub fn at_target_depth(&self) -> bool {
         at_target_depth(self)
     }
 
     /// Get current error details
+    #[must_use] 
     pub fn current_error(&self) -> Option<JsonPathError> {
         current_error(self)
     }

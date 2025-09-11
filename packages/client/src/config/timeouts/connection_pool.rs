@@ -23,6 +23,7 @@ impl HttpConfig {
     ///     .with_pool_size(50);
     /// assert_eq!(config.pool_size, 50);
     /// ```
+    #[must_use] 
     pub fn with_pool_size(mut self, size: usize) -> Self {
         self.pool_size = size;
         self
@@ -45,6 +46,7 @@ impl HttpConfig {
     ///     .with_max_idle_per_host(64);
     /// assert_eq!(config.pool_max_idle_per_host, 64);
     /// ```
+    #[must_use] 
     pub fn with_max_idle_per_host(mut self, max_idle: usize) -> Self {
         self.pool_max_idle_per_host = max_idle;
         self
@@ -67,6 +69,7 @@ impl HttpConfig {
     ///     .with_pool_idle_timeout(Duration::from_secs(120));
     /// assert_eq!(config.pool_idle_timeout, Duration::from_secs(120));
     /// ```
+    #[must_use] 
     pub fn with_pool_idle_timeout(mut self, timeout: Duration) -> Self {
         self.pool_idle_timeout = timeout;
         self

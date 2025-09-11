@@ -15,12 +15,13 @@ impl<'a> Escape<'a> {
 
 impl fmt::Debug for Escape<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "b\"{}\"", self)?;
+        write!(f, "b\"{self}\"")?;
         Ok(())
     }
 }
 
 /// HTML escape function for compatibility
+#[must_use] 
 pub fn html_escape(input: &str) -> String {
     input
         .replace('&', "&amp;")
@@ -38,6 +39,7 @@ pub fn url_decode(input: &str) -> Result<String, std::fmt::Error> {
 }
 
 /// URL encode function for compatibility
+#[must_use] 
 pub fn url_encode(input: &str) -> String {
     urlencoding::encode(input).into_owned()
 }
@@ -57,7 +59,7 @@ impl fmt::Display for Escape<'_> {
             } else if c == b'\0' {
                 write!(f, "\\0")?;
             // ASCII printable
-            } else if c >= 0x20 && c < 0x7f {
+            } else if (0x20..0x7f).contains(&c) {
                 write!(f, "{}", c as char)?;
             } else {
                 write!(f, "\\x{c:02x}")?;

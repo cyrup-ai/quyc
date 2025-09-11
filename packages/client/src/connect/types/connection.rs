@@ -1,6 +1,6 @@
 //! HTTP connection abstractions and trait definitions
 //!
-//! Provides the core connection types with MessageChunk implementations
+//! Provides the core connection types with `MessageChunk` implementations
 //! for error handling and connection management.
 
 
@@ -126,11 +126,13 @@ impl Default for Conn {
 
 impl Conn {
     /// Returns whether this connection is through a proxy.
+    #[must_use] 
     pub fn is_proxy(&self) -> bool {
         self.is_proxy
     }
 
     /// Returns TLS information for this connection if available.
+    #[must_use] 
     pub fn tls_info(&self) -> Option<&TlsInfo> {
         self.tls_info.as_ref()
     }
@@ -187,6 +189,7 @@ pub struct BrokenConnectionImpl {
 }
 
 impl BrokenConnectionImpl {
+    #[must_use] 
     pub fn new(error_message: String) -> Self {
         Self { error_message }
     }

@@ -1,6 +1,6 @@
 //! Default implementations for HTTP configuration
 //!
-//! Provides comprehensive default values for HttpConfig with optimized
+//! Provides comprehensive default values for `HttpConfig` with optimized
 //! settings for HTTP/3, connection pooling, and retry behavior.
 
 use std::time::Duration;

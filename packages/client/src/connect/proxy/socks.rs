@@ -28,6 +28,7 @@ pub struct SocksConfig {
 
 impl SocksConfig {
     /// Create new SOCKS5 configuration with no authentication
+    #[must_use] 
     pub fn socks5_no_auth(target_host: String, target_port: u16) -> Self {
         Self {
             version: SocksVersion::V5,
@@ -38,6 +39,7 @@ impl SocksConfig {
     }
 
     /// Create new SOCKS5 configuration with username/password authentication
+    #[must_use] 
     pub fn socks5_auth(
         target_host: String,
         target_port: u16,
@@ -53,6 +55,7 @@ impl SocksConfig {
     }
 
     /// Create new SOCKS4 configuration
+    #[must_use] 
     pub fn socks4(target_host: String, target_port: u16) -> Self {
         Self {
             version: SocksVersion::V4,

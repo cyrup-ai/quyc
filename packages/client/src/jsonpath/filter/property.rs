@@ -12,7 +12,7 @@ use crate::jsonpath::parser::FilterValue;
 
 // Shared thread-local storage for missing property context
 thread_local! {
-    pub static MISSING_PROPERTY_CONTEXT: RefCell<Option<(String, bool)>> = RefCell::new(None);
+    pub static MISSING_PROPERTY_CONTEXT: RefCell<Option<(String, bool)>> = const { RefCell::new(None) };
 }
 
 /// Property resolution utilities
@@ -118,8 +118,9 @@ impl PropertyResolver {
         Ok(Self::json_value_to_filter_value(current))
     }
 
-    /// Convert serde_json::Value to FilterValue
+    /// Convert `serde_json::Value` to `FilterValue`
     #[inline]
+    #[must_use] 
     pub fn json_value_to_filter_value(value: &serde_json::Value) -> FilterValue {
         match value {
             serde_json::Value::Null => FilterValue::Null,

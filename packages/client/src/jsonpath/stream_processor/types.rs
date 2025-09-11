@@ -28,7 +28,14 @@ pub struct ErrorRecoveryState {
     pub(super) max_backoff_micros: u64,
 }
 
+impl Default for ErrorRecoveryState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ErrorRecoveryState {
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             circuit_state: Arc::new(AtomicU64::new(0)), // Closed
@@ -48,6 +55,7 @@ impl ErrorRecoveryState {
     }
 
     /// Check if a request should be allowed
+    #[must_use] 
     pub fn should_allow_request(&self) -> bool {
         use std::sync::atomic::Ordering;
         let state = self.circuit_state.load(Ordering::Relaxed);
@@ -92,6 +100,7 @@ impl ErrorRecoveryState {
     }
 
     /// Get backoff delay in microseconds
+    #[must_use] 
     pub fn get_backoff_delay_micros(&self) -> u64 {
         use std::sync::atomic::Ordering;
         let failures = self.consecutive_failures.load(Ordering::Relaxed);
@@ -103,6 +112,7 @@ impl ErrorRecoveryState {
     }
 
     /// Get current circuit breaker state
+    #[must_use] 
     pub fn get_current_state(&self) -> CircuitState {
         use std::sync::atomic::Ordering;
         match self.circuit_state.load(Ordering::Relaxed) {
@@ -114,7 +124,7 @@ impl ErrorRecoveryState {
     }
 }
 
-/// Lock-free performance statistics for JsonStreamProcessor
+/// Lock-free performance statistics for `JsonStreamProcessor`
 #[derive(Debug)]
 pub struct ProcessorStats {
     /// Total chunks processed from HTTP response
@@ -158,7 +168,7 @@ pub struct ProcessorStatsSnapshot {
     pub elapsed_seconds: f64,
 }
 
-/// High-performance HTTP chunk processor for JSONPath streaming
+/// High-performance HTTP chunk processor for `JSONPath` streaming
 pub struct JsonStreamProcessor<T>
 where
     T: ystream::prelude::MessageChunk + Default + Send + 'static,

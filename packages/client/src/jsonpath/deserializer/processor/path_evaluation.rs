@@ -1,6 +1,6 @@
-//! JSONPath expression evaluation during streaming
+//! `JSONPath` expression evaluation during streaming
 //!
-//! Provides path matching and navigation logic for JSONPath expressions
+//! Provides path matching and navigation logic for `JSONPath` expressions
 //! during incremental JSON parsing.
 
 use crate::jsonpath::{ast::JsonSelector, error::JsonPathResult, expression::JsonPathExpression};
@@ -18,7 +18,7 @@ pub enum PathEvaluationResult {
     TargetReached,
 }
 
-/// Evaluate current JSON path against JSONPath expression
+/// Evaluate current JSON path against `JSONPath` expression
 pub fn evaluate_path_step(
     expression: &JsonPathExpression,
     current_path: &[String],
@@ -68,6 +68,7 @@ pub fn evaluate_path_step(
 }
 
 /// Check if current location matches the target pattern
+#[must_use] 
 pub fn is_target_location(expression: &JsonPathExpression, current_path: &[String]) -> bool {
     current_path.len() == expression.selectors().len().saturating_sub(1)
 }

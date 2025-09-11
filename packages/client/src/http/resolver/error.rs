@@ -24,17 +24,17 @@ pub enum ResolverError {
 }
 
 impl ResolverError {
-    /// Create a new InvalidHostname error
+    /// Create a new `InvalidHostname` error
     pub fn invalid_hostname(msg: impl Into<String>) -> Self {
         Self::InvalidHostname(msg.into())
     }
 
-    /// Create a new DnsServerError
+    /// Create a new `DnsServerError`
     pub fn dns_server_error(msg: impl Into<String>) -> Self {
         Self::DnsServerError(msg.into())
     }
 
-    /// Create a new NetworkError
+    /// Create a new `NetworkError`
     pub fn network_error(msg: impl Into<String>) -> Self {
         Self::NetworkError(msg.into())
     }

@@ -1,6 +1,6 @@
 //! Cache performance statistics and monitoring
 //!
-//! Provides CacheStats for tracking cache hits, misses, evictions,
+//! Provides `CacheStats` for tracking cache hits, misses, evictions,
 //! and other performance metrics with atomic counters.
 
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -35,7 +35,10 @@ impl Default for CacheStats {
 impl CacheStats {
     /// Get hit rate as percentage
     pub fn hit_rate(&self) -> f64 {
+        // Precision loss acceptable for cache hit rate statistics
+        #[allow(clippy::cast_precision_loss)]
         let hits = self.hits.load(Ordering::Relaxed) as f64;
+        #[allow(clippy::cast_precision_loss)]
         let total = hits + self.misses.load(Ordering::Relaxed) as f64;
 
         if total > 0.0 {

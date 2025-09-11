@@ -14,6 +14,7 @@ pub struct HeaderManager {
 
 impl HeaderManager {
     /// Creates a new, empty `HeaderManager`.
+    #[must_use] 
     pub fn new() -> Self {
         HeaderManager {
             headers: HeaderMap::new(),
@@ -37,19 +38,19 @@ impl HeaderManager {
             Ok(value) => self.set(header::CONTENT_TYPE, value),
             Err(e) => Self {
                 headers: self.headers,
-                error: Some(format!("Invalid Content-Type header: {}", e)),
+                error: Some(format!("Invalid Content-Type header: {e}")),
             },
         }
     }
 
     /// Sets the Authorization header with a bearer token.
     pub fn bearer_token(self, token: &str) -> Self {
-        let auth_header = format!("Bearer {}", token);
+        let auth_header = format!("Bearer {token}");
         match HeaderValue::from_str(&auth_header) {
             Ok(value) => self.set(header::AUTHORIZATION, value),
             Err(e) => Self {
                 headers: self.headers,
-                error: Some(format!("Invalid bearer token: {}", e)),
+                error: Some(format!("Invalid bearer token: {e}")),
             },
         }
     }
@@ -58,27 +59,30 @@ impl HeaderManager {
     pub fn basic_auth(self, user: &str, pass: Option<&str>) -> Self {
         let credentials = format!("{}:{}", user, pass.unwrap_or_default());
         let encoded = general_purpose::STANDARD.encode(credentials);
-        let auth_header = format!("Basic {}", encoded);
+        let auth_header = format!("Basic {encoded}");
         match HeaderValue::from_str(&auth_header) {
             Ok(value) => self.set(header::AUTHORIZATION, value),
             Err(e) => Self {
                 headers: self.headers,
-                error: Some(format!("Invalid basic auth credentials: {}", e)),
+                error: Some(format!("Invalid basic auth credentials: {e}")),
             },
         }
     }
 
     /// Returns the underlying `HeaderMap`.
+    #[must_use] 
     pub fn build(self) -> HeaderMap {
         self.headers
     }
 
     /// Check if there were any header validation errors
+    #[must_use] 
     pub fn has_error(&self) -> bool {
         self.error.is_some()
     }
 
     /// Get the error message if any
+    #[must_use] 
     pub fn error(&self) -> Option<&str> {
         self.error.as_deref()
     }
@@ -132,6 +136,7 @@ pub fn parse_headers(header_str: &str) -> Result<HeaderMap, crate::error::HttpEr
 
 /// Format headers as string representation
 #[inline]
+#[must_use] 
 pub fn format_headers(headers: &HeaderMap) -> String {
     let mut result = String::new();
 
@@ -159,14 +164,14 @@ pub fn validate_header(name: &str, value: &str) -> Result<(), crate::error::Http
 #[inline]
 pub fn create_header_value(value: &str) -> Result<HeaderValue, crate::error::HttpError> {
     HeaderValue::from_str(value)
-        .map_err(|e| crate::error::invalid_header(format!("Invalid header value: {}", e)))
+        .map_err(|e| crate::error::invalid_header(format!("Invalid header value: {e}")))
 }
 
 /// Create header name from string
 #[inline]
 pub fn create_header_name(name: &str) -> Result<HeaderName, crate::error::HttpError> {
     HeaderName::from_bytes(name.as_bytes())
-        .map_err(|e| crate::error::invalid_header(format!("Invalid header name: {}", e)))
+        .map_err(|e| crate::error::invalid_header(format!("Invalid header name: {e}")))
 }
 
 /// Merge header maps with conflict resolution
@@ -181,18 +186,19 @@ pub fn merge_headers(base: &mut HeaderMap, additional: HeaderMap) {
 
 /// Extract content type from headers
 #[inline]
+#[must_use] 
 pub fn extract_content_type(headers: &HeaderMap) -> Option<&str> {
     headers.get("content-type").and_then(|v| v.to_str().ok())
 }
 
 /// Check if headers indicate compressed content
 #[inline]
+#[must_use] 
 pub fn is_compressed(headers: &HeaderMap) -> bool {
     headers
         .get("content-encoding")
         .and_then(|v| v.to_str().ok())
-        .map(|encoding| !matches!(encoding, "identity" | ""))
-        .unwrap_or(false)
+        .is_some_and(|encoding| !matches!(encoding, "identity" | ""))
 }
 
 /// Compression algorithms supported by the client
@@ -207,6 +213,7 @@ pub enum CompressionAlgorithm {
 impl CompressionAlgorithm {
     /// Get the HTTP encoding name for this algorithm
     #[inline]
+    #[must_use] 
     pub fn encoding_name(&self) -> &'static str {
         match self {
             CompressionAlgorithm::Gzip => "gzip",
@@ -218,6 +225,7 @@ impl CompressionAlgorithm {
 
     /// Parse compression algorithm from encoding string
     #[inline]
+    #[must_use] 
     pub fn from_encoding(encoding: &str) -> Option<Self> {
         match encoding.to_lowercase().as_str() {
             "gzip" | "x-gzip" => Some(CompressionAlgorithm::Gzip),
@@ -230,6 +238,7 @@ impl CompressionAlgorithm {
 
     /// Check if client supports decompression for this algorithm
     #[inline]
+    #[must_use] 
     pub fn is_supported(&self, config: &crate::config::HttpConfig) -> bool {
         match self {
             CompressionAlgorithm::Gzip => config.gzip_enabled,
@@ -251,6 +260,7 @@ pub fn detect_compression_algorithm(headers: &HeaderMap) -> Option<CompressionAl
 
 /// Check if response needs decompression based on headers and config
 #[inline]
+#[must_use] 
 pub fn needs_decompression(headers: &HeaderMap, config: &crate::config::HttpConfig) -> Option<CompressionAlgorithm> {
     if !config.response_compression {
         return None;
@@ -268,6 +278,7 @@ pub fn needs_decompression(headers: &HeaderMap, config: &crate::config::HttpConf
 
 /// Get content length from headers
 #[inline]
+#[must_use] 
 pub fn get_content_length(headers: &HeaderMap) -> Option<u64> {
     headers
         .get("content-length")
@@ -284,6 +295,7 @@ pub fn replace_headers(headers: &mut HeaderMap, new_headers: HeaderMap) {
 
 /// Build Accept-Encoding header value based on compression configuration
 #[inline] 
+#[must_use] 
 pub fn build_accept_encoding_header(config: &crate::config::HttpConfig) -> Option<HeaderValue> {
     let mut encodings = Vec::new();
     
@@ -314,9 +326,8 @@ pub fn build_accept_encoding_header(config: &crate::config::HttpConfig) -> Optio
 #[inline]
 pub fn add_compression_headers(headers: &mut HeaderMap, config: &crate::config::HttpConfig) {
     // Only add Accept-Encoding if response compression is enabled
-    if config.response_compression {
-        if let Some(accept_encoding) = build_accept_encoding_header(config) {
+    if config.response_compression
+        && let Some(accept_encoding) = build_accept_encoding_header(config) {
             headers.insert(http::header::ACCEPT_ENCODING, accept_encoding);
         }
-    }
 }

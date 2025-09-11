@@ -85,7 +85,7 @@ impl<S> Http3Builder<S> {
 
     /// Set bearer token authentication header
     ///
-    /// Creates a Bearer token authentication header for OAuth2 and similar token-based
+    /// Creates a Bearer token authentication header for `OAuth2` and similar token-based
     /// authentication schemes.
     ///
     /// # Arguments

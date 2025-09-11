@@ -78,7 +78,7 @@ impl DescendantOperations {
                     let new_path = if current_path.is_empty() {
                         key.clone()
                     } else {
-                        format!("{}.{}", current_path, key)
+                        format!("{current_path}.{key}")
                     };
                     results.push((new_path.clone(), value.clone()));
                     Self::collect_descendants_with_paths(value, new_path, results);
@@ -87,9 +87,9 @@ impl DescendantOperations {
             Value::Array(arr) => {
                 for (index, value) in arr.iter().enumerate() {
                     let new_path = if current_path.is_empty() {
-                        format!("[{}]", index)
+                        format!("[{index}]")
                     } else {
-                        format!("{}[{}]", current_path, index)
+                        format!("{current_path}[{index}]")
                     };
                     results.push((new_path.clone(), value.clone()));
                     Self::collect_descendants_with_paths(value, new_path, results);

@@ -4,4 +4,4 @@
 //! attacks from malicious servers, including DNS amplification, slowloris,
 //! gzip bombs, and redirect loops.
 //!
-//! Note: Client protection functionality has been integrated into the canonical HttpClient.
+//! Note: Client protection functionality has been integrated into the canonical `HttpClient`.

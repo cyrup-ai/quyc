@@ -41,6 +41,7 @@ impl Error for JsonPathError {}
 pub type JsonPathResult<T> = Result<T, JsonPathError>;
 
 impl JsonPathError {
+    #[must_use] 
     pub fn new(kind: ErrorKind, message: String) -> Self {
         Self { kind, message }
     }
@@ -69,30 +70,36 @@ impl JsonPathError {
         Self::new(ErrorKind::InvalidPath, msg.into())
     }
 
+    #[must_use] 
     pub fn invalid_expression_simple(kind: &str, msg: &str, position: Option<usize>) -> Self {
         let message = match position {
-            Some(pos) => format!("{} at position {}: {}", kind, pos, msg),
-            None => format!("{}: {}", kind, msg),
+            Some(pos) => format!("{kind} at position {pos}: {msg}"),
+            None => format!("{kind}: {msg}"),
         };
         Self::new(ErrorKind::InvalidPath, message)
     }
 
+    #[must_use] 
     pub fn buffer_underflow() -> Self {
         Self::new(ErrorKind::ProcessingError, "Buffer underflow during JSON parsing".into())
     }
 
+    #[must_use] 
     pub fn unexpected_byte(byte: char) -> Self {
-        Self::new(ErrorKind::InvalidJson, format!("Unexpected byte: '{}'", byte))
+        Self::new(ErrorKind::InvalidJson, format!("Unexpected byte: '{byte}'"))
     }
 
+    #[must_use] 
     pub fn invalid_utf8() -> Self {
         Self::new(ErrorKind::InvalidJson, "Invalid UTF-8 sequence".into())
     }
 
+    #[must_use] 
     pub fn unexpected_end_of_input() -> Self {
         Self::new(ErrorKind::InvalidJson, "Unexpected end of input".into())
     }
 
+    #[must_use] 
     pub fn invalid_number() -> Self {
         Self::new(ErrorKind::InvalidJson, "Invalid number format".into())
     }

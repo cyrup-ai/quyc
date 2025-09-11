@@ -1,11 +1,11 @@
-//! RFC 9535 Section 2.4.5: count() function implementation
+//! RFC 9535 Section 2.4.5: `count()` function implementation
 //!
 //! Returns number of nodes in nodelist produced by argument expression
 
 use crate::jsonpath::error::{JsonPathResult, invalid_expression_error};
 use crate::jsonpath::parser::{FilterExpression, FilterValue};
 
-/// RFC 9535 Section 2.4.5: count() function  
+/// RFC 9535 Section 2.4.5: `count()` function\
 /// Returns number of nodes in nodelist produced by argument expression
 #[inline]
 pub fn evaluate_count_function(

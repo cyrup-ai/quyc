@@ -1,4 +1,4 @@
-//! State types for Http3Builder typestate pattern
+//! State types for `Http3Builder` typestate pattern
 //!
 //! Provides marker types to track builder state at compile time, ensuring
 //! proper usage patterns and preventing invalid method calls.
@@ -11,9 +11,9 @@ pub struct BodyNotSet;
 #[derive(Debug, Clone, Copy)]
 pub struct BodySet;
 
-/// JSONPath streaming configuration state
+/// `JSONPath` streaming configuration state
 #[derive(Debug, Clone)]
 pub struct JsonPathStreaming {
-    /// JSONPath expression for filtering JSON array responses
+    /// `JSONPath` expression for filtering JSON array responses
     pub jsonpath_expr: String,
 }

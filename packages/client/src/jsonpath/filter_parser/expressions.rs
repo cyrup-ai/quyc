@@ -1,7 +1,7 @@
 //! Expression parsing logic for filter expressions
 //!
 //! Contains parsing logic for logical operators, comparisons, and primary expressions
-//! including literals, function calls, and basic JSONPath patterns.
+//! including literals, function calls, and basic `JSONPath` patterns.
 
 use super::core::FilterParser;
 use crate::jsonpath::{
@@ -10,7 +10,7 @@ use crate::jsonpath::{
     tokens::Token,
 };
 
-impl<'a> FilterParser<'a> {
+impl FilterParser<'_> {
     /// Parse logical OR expressions (lowest precedence)
     pub(super) fn parse_logical_or(&mut self) -> JsonPathResult<FilterExpression> {
         let mut left = self.parse_logical_and()?;
@@ -62,7 +62,7 @@ impl<'a> FilterParser<'a> {
                 _ => {
                     return Err(crate::jsonpath::error::JsonPathError::new(
                         crate::jsonpath::error::ErrorKind::InvalidPath,
-                        format!("Unknown comparison operator: {}", op_str),
+                        format!("Unknown comparison operator: {op_str}"),
                     ));
                 }
             };
@@ -151,9 +151,8 @@ impl<'a> FilterParser<'a> {
                 } else {
                     Err(invalid_expression_error(
                         self.input,
-                        &format!(
-                            "unexpected identifier '{}' - did you mean a function call?",
-                            name
+                        format!(
+                            "unexpected identifier '{name}' - did you mean a function call?"
                         ),
                         Some(self.position),
                     ))
@@ -170,7 +169,7 @@ impl<'a> FilterParser<'a> {
 
     // parse_function_arguments implementation is in functions.rs
 
-    /// Parse JSONPath expression starting with $ or @
+    /// Parse `JSONPath` expression starting with $ or @
     fn parse_root_jsonpath(&mut self) -> JsonPathResult<FilterExpression> {
         // Parse JSONPath expression starting with $ or @
         let mut jsonpath_tokens = Vec::new();

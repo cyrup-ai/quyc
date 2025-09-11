@@ -9,6 +9,7 @@ use super::core::PropertyOperations;
 
 impl PropertyOperations {
     /// Find all properties matching a pattern
+    #[must_use] 
     pub fn find_properties_matching(json: &Value, pattern: &str) -> Vec<(String, Value)> {
         let mut results = Vec::new();
         Self::find_properties_matching_impl(json, pattern, "", &mut results);
@@ -28,7 +29,7 @@ impl PropertyOperations {
                     let new_path = if current_path.is_empty() {
                         key.clone()
                     } else {
-                        format!("{}.{}", current_path, key)
+                        format!("{current_path}.{key}")
                     };
 
                     // Check if key matches pattern (simple wildcard support)
@@ -43,9 +44,9 @@ impl PropertyOperations {
             Value::Array(arr) => {
                 for (index, value) in arr.iter().enumerate() {
                     let new_path = if current_path.is_empty() {
-                        format!("[{}]", index)
+                        format!("[{index}]")
                     } else {
-                        format!("{}[{}]", current_path, index)
+                        format!("{current_path}[{index}]")
                     };
 
                     // Recurse into array elements
@@ -59,6 +60,7 @@ impl PropertyOperations {
     }
 
     /// Simple pattern matching with wildcard support
+    #[must_use] 
     pub fn matches_pattern(text: &str, pattern: &str) -> bool {
         if pattern == "*" {
             return true;

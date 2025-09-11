@@ -30,6 +30,7 @@ pub struct ResolvedAddress {
 }
 
 impl ResolvedAddress {
+    #[must_use] 
     pub fn new(address: SocketAddr, hostname: Arc<str>) -> Self {
         Self { address, hostname }
     }
@@ -40,7 +41,7 @@ impl ystream::prelude::MessageChunk for ResolvedAddress {
         // Create an invalid address for error cases
         use std::net::{IpAddr, Ipv4Addr};
         Self {
-            address: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 0),
+            address: SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0),
             hostname: Arc::from(error),
         }
     }
@@ -63,7 +64,7 @@ impl Default for ResolvedAddress {
     fn default() -> Self {
         use std::net::{IpAddr, Ipv4Addr};
         Self {
-            address: SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 80),
+            address: SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 80),
             hostname: Arc::from("localhost"),
         }
     }
@@ -96,6 +97,7 @@ pub struct Resolver {
 
 impl Resolver {
     /// Create new resolver with default timeout
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             timeout: Duration::from_secs(5),
@@ -111,6 +113,7 @@ impl Resolver {
     }
 
     /// Create resolver with custom timeout
+    #[must_use] 
     pub fn with_timeout(timeout: Duration) -> Self {
         Self {
             timeout,
@@ -119,18 +122,21 @@ impl Resolver {
     }
 
     /// Configure IPv6 preference
+    #[must_use] 
     pub fn with_ipv6_preference(mut self, prefer_ipv6: bool) -> Self {
         self.ipv6_preference = prefer_ipv6;
         self
     }
 
     /// Configure DNS retry behavior
+    #[must_use] 
     pub fn with_retry_config(mut self, retry_config: RetryConfig) -> Self {
         self.engine = Arc::new(ResolutionEngine::new(retry_config));
         self
     }
 
     /// Configure DNS response caching
+    #[must_use] 
     pub fn with_cache_config(mut self, cache_config: CacheConfig) -> Self {
         self.dns_cache = Arc::new(DnsCache::new(cache_config));
         self
@@ -146,7 +152,7 @@ impl Resolver {
         }
 
         // Check DNS cache first
-        let cache_key = format!("{}:{}", hostname, port);
+        let cache_key = format!("{hostname}:{port}");
         if let Some(entry) = self.dns_cache.get(&cache_key) {
             debug!("DNS cache hit for {}:{}", hostname, port);
             let hostname_arc: Arc<str> = Arc::from(hostname);
@@ -205,8 +211,7 @@ impl Resolver {
                             emit!(
                                 sender,
                                 ResolvedAddress::bad_chunk(format!(
-                                    "No addresses found for hostname: {}",
-                                    hostname
+                                    "No addresses found for hostname: {hostname}"
                                 ))
                             );
                         } else {
@@ -214,7 +219,7 @@ impl Resolver {
                             debug!("Resolved {} to {} addresses", hostname, addresses.len());
 
                             // Store in cache
-                            let cache_key = format!("{}:{}", hostname, port);
+                            let cache_key = format!("{hostname}:{port}");
                             let cache_entry =
                                 DnsCacheEntry::new(addresses.clone(), dns_cache.config.ttl_secs);
                             dns_cache.insert(cache_key, cache_entry);
@@ -231,8 +236,7 @@ impl Resolver {
                         emit!(
                             sender,
                             ResolvedAddress::bad_chunk(format!(
-                                "DNS resolution failed for {}: {}",
-                                hostname, err
+                                "DNS resolution failed for {hostname}: {err}"
                             ))
                         );
                     }
@@ -247,6 +251,7 @@ impl Resolver {
     }
 
     /// Get resolver statistics
+    #[must_use] 
     pub fn stats(&self) -> ResolverStats {
         ResolverStats::new(
             self.request_count.load(Ordering::Acquire),

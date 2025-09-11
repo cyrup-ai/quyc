@@ -4,7 +4,7 @@
 //!
 //! ## Architecture
 //!
-//! - `core`: Main H3Strategy struct and ProtocolStrategy implementation
+//! - `core`: Main `H3Strategy` struct and `ProtocolStrategy` implementation
 //! - `connection`: QUIC connection establishment and UDP socket management
 //! - `processing`: HTTP/3 request sending and response processing
 //! - `security`: Address validation and security measures

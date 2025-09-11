@@ -1,6 +1,6 @@
-//! String counting functions for JSONPath function evaluator
+//! String counting functions for `JSONPath` function evaluator
 //!
-//! Provides string length and count operations for JSONPath expressions.
+//! Provides string length and count operations for `JSONPath` expressions.
 
 use serde_json::Value;
 

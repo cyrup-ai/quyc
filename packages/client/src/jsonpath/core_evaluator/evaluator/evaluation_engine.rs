@@ -1,4 +1,4 @@
-//! Core evaluation engine for JSONPath expressions
+//! Core evaluation engine for `JSONPath` expressions
 //!
 //! Handles the main evaluation logic including recursive descent processing
 //! and selector application with RFC 9535 compliance.
@@ -9,11 +9,11 @@ use super::core_types::{CoreJsonPathEvaluator, JsonPathResult};
 use super::descendant_operations::DescendantOperations;
 use crate::jsonpath::parser::{JsonPathParser, JsonSelector};
 
-/// Main evaluation engine for JSONPath expressions
+/// Main evaluation engine for `JSONPath` expressions
 pub struct EvaluationEngine;
 
 impl EvaluationEngine {
-    /// Evaluate JSONPath expression against JSON value using AST-based evaluation
+    /// Evaluate `JSONPath` expression against JSON value using AST-based evaluation
     pub fn evaluate_expression(
         evaluator: &CoreJsonPathEvaluator,
         json: &Value,
@@ -121,21 +121,23 @@ impl EvaluationEngine {
     }
 
     /// Check if evaluation would be expensive
+    #[must_use] 
     pub fn is_expensive_evaluation(selectors: &[JsonSelector]) -> bool {
         use crate::jsonpath::core_evaluator::selector_engine::SelectorEngine;
 
         selectors
             .iter()
-            .any(|s| SelectorEngine::is_expensive_selector(s))
+            .any(SelectorEngine::is_expensive_selector)
     }
 
     /// Estimate total evaluation complexity
+    #[must_use] 
     pub fn estimate_evaluation_complexity(selectors: &[JsonSelector]) -> u32 {
         use crate::jsonpath::core_evaluator::selector_engine::SelectorEngine;
 
         selectors
             .iter()
-            .map(|s| SelectorEngine::selector_complexity(s))
+            .map(SelectorEngine::selector_complexity)
             .sum()
     }
 }

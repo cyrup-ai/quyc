@@ -1,6 +1,6 @@
-//! HttpResponse conversion utilities
+//! `HttpResponse` conversion utilities
 //!
-//! Converts AsyncStream<HttpChunk, 1024> from protocol implementations to canonical HttpResponse
+//! Converts `AsyncStream`<`HttpChunk`, 1024> from protocol implementations to canonical `HttpResponse`
 //! with proper header parsing, status extraction, and body stream conversion.
 
 use std::time::Instant;
@@ -12,13 +12,13 @@ use bytes::Bytes;
 use crate::prelude::*;
 use crate::http::response::{HttpResponse, HttpBodyChunk};
 
-/// Convert AsyncStream<HttpChunk, 1024> to HttpResponse
+/// Convert `AsyncStream`<`HttpChunk`, 1024> to `HttpResponse`
 ///
-/// Parses the HttpChunk stream to extract HTTP status, headers, and body data.
+/// Parses the `HttpChunk` stream to extract HTTP status, headers, and body data.
 /// The first few chunks contain response metadata, subsequent chunks become body stream.
 ///
 /// # Arguments
-/// * `chunk_stream` - The HttpChunk stream from H2Connection or H3Connection
+/// * `chunk_stream` - The `HttpChunk` stream from `H2Connection` or `H3Connection`
 /// * `stream_id` - The stream ID for the response
 ///
 /// # Returns
@@ -28,7 +28,8 @@ use crate::http::response::{HttpResponse, HttpBodyChunk};
 /// - Zero allocation parsing using atomic operations
 /// - Lock-free header extraction and status parsing
 /// - Maintains streaming patterns for body data
-/// - No unwrap() or expect() calls - production safe
+/// - No `unwrap()` or `expect()` calls - production safe
+#[must_use] 
 pub fn convert_http_chunks_to_response(
     chunk_stream: AsyncStream<HttpChunk, 1024>,
     stream_id: u64,
@@ -57,7 +58,7 @@ pub fn convert_http_chunks_to_response(
                                 let (_parsed_status, parsed_headers) = parse_http_response_headers(header_section);
                                 
                                 // Emit headers to headers stream
-                                for (name, value) in parsed_headers.iter() {
+                                for (name, value) in &parsed_headers {
                                     let header = crate::http::response::HttpHeader {
                                         name: name.clone(),
                                         value: value.clone(),
@@ -97,7 +98,6 @@ pub fn convert_http_chunks_to_response(
                     }
                     HttpChunk::Headers(_, _) => {
                         // Headers are processed separately - skip in body conversion
-                        continue;
                     }
                     HttpChunk::Trailers(_) => {
                         // Trailers come after body - end body stream
@@ -163,19 +163,13 @@ fn find_header_body_separator(data: &[u8]) -> Option<usize> {
         return None;
     }
     
-    for i in 0..=(data.len() - separator.len()) {
-        if &data[i..i + separator.len()] == separator {
-            return Some(i);
-        }
-    }
-    
-    None
+    (0..=(data.len() - separator.len())).find(|&i| &data[i..i + separator.len()] == separator)
 }
 
 /// Parse HTTP response headers and extract status code
 ///
 /// Parses the raw HTTP response header section to extract status code and headers.
-/// Uses production-safe parsing without unwrap() or expect() calls.
+/// Uses production-safe parsing without `unwrap()` or `expect()` calls.
 ///
 /// # Arguments
 /// * `header_data` - Raw header bytes from HTTP response
@@ -199,7 +193,7 @@ fn parse_http_response_headers(header_data: &[u8]) -> (StatusCode, HeaderMap) {
     }
     
     // Parse status line (first line)
-    if let Some(status_line) = lines.get(0) {
+    if let Some(status_line) = lines.first() {
         status = parse_status_line(status_line).unwrap_or(StatusCode::OK);
     }
     

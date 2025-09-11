@@ -29,7 +29,7 @@ struct RequestContext {
 pub struct CacheMiddleware {
     enabled: bool,
     cache_key_buffer: Arc<str>,
-    /// Store request context for use in process_response
+    /// Store request context for use in `process_response`
     request_context: std::sync::RwLock<Option<RequestContext>>,
 }
 
@@ -42,6 +42,7 @@ impl Default for CacheMiddleware {
 
 impl CacheMiddleware {
     #[inline]
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             enabled: true,
@@ -51,6 +52,7 @@ impl CacheMiddleware {
     }
 
     #[inline]
+    #[must_use] 
     pub fn enabled(enabled: bool) -> Self {
         Self {
             enabled,
@@ -61,10 +63,10 @@ impl CacheMiddleware {
 
     /// Generate cache key with zero allocations using request context
     #[inline]
-    fn generate_cache_key(&self, method: &str, uri: &str, headers: &[(&str, &str)]) -> CacheKey {
+    fn generate_cache_key(method: &str, uri: &str, headers: &[(&str, &str)]) -> CacheKey {
         let headers_map = headers
             .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
             .collect();
         CacheKey::new(uri.to_string(), method.to_string(), headers_map)
     }
@@ -101,19 +103,18 @@ impl Middleware for CacheMiddleware {
             *ctx = Some(context);
         }
         
-        let cache_key = self.generate_cache_key(method, &request.uri(), &[]);
+        let cache_key = Self::generate_cache_key(method, &request.uri(), &[]);
 
         match GLOBAL_CACHE.get(&cache_key) {
             Some(cached_entry) => {
                 let mut modified_request = request;
 
                 // Add conditional validation headers for cache revalidation
-                if let Some(ref etag) = cached_entry.etag() {
-                    if let Ok(header_value) = http::HeaderValue::from_str(etag) {
+                if let Some(etag) = cached_entry.etag()
+                    && let Ok(header_value) = http::HeaderValue::from_str(etag) {
                         modified_request =
                             modified_request.header(http::header::IF_NONE_MATCH, header_value);
                     }
-                }
 
                 if let Some(last_modified) = cached_entry.last_modified() {
                     let system_time = std::time::SystemTime::UNIX_EPOCH
@@ -151,15 +152,12 @@ impl Middleware for CacheMiddleware {
             }
         };
         
-        let context = match context {
-            Some(ctx) => ctx,
-            None => {
-                tracing::warn!(
-                    target: "quyc::middleware::cache",
-                    "No request context available for response caching, skipping cache"
-                );
-                return Ok(response);
-            }
+        let context = if let Some(ctx) = context { ctx } else {
+            tracing::warn!(
+                target: "quyc::middleware::cache",
+                "No request context available for response caching, skipping cache"
+            );
+            return Ok(response);
         };
 
         // Generate cache key using stored request context
@@ -167,7 +165,7 @@ impl Middleware for CacheMiddleware {
             .iter()
             .map(|(k, v)| (k.as_str(), v.as_str()))
             .collect();
-        let cache_key = self.generate_cache_key(&context.method, &context.url, &headers_slice);
+        let cache_key = Self::generate_cache_key(&context.method, &context.url, &headers_slice);
 
         // Implement streaming response caching with background task
         // Extract stream_id and version before moving the response
@@ -237,7 +235,7 @@ impl Middleware for CacheMiddleware {
             // Create cache entry from collected data
             if !cached_body_chunks.is_empty() || !cached_headers.is_empty() {
                 // Combine body chunks into single buffer
-                let cached_body: Vec<u8> = cached_body_chunks.into_iter().flat_map(|chunk| chunk).collect();
+                let cached_body: Vec<u8> = cached_body_chunks.into_iter().flatten().collect();
                 
                 // Create HttpResponse streams for cache entry creation
                 let (cache_entry_headers_tx, cache_entry_headers_stream) = AsyncStream::<HttpHeader, 256>::channel();
@@ -269,18 +267,17 @@ impl Middleware for CacheMiddleware {
                     // Use tokio runtime to properly execute async cache operations
                     if let Ok(handle) = tokio::runtime::Handle::try_current() {
                         handle.block_on(async move {
-                            match CacheEntry::new(cache_response).await {
-                                cache_entry => {
-                                    // Store in global cache using existing put method
-                                    GLOBAL_CACHE.put(cache_key.clone(), HttpResponse::from_cache_entry(cache_entry)).await;
-                                    
-                                    tracing::debug!(
-                                        target: "quyc::middleware::cache",
-                                        cache_key = %cache_key.url,
-                                        body_size = total_body_size,
-                                        "Streaming response successfully cached in background"
-                                    );
-                                }
+                            let cache_entry = CacheEntry::new(cache_response).await;
+                            {
+                                // Store in global cache using existing put method
+                                GLOBAL_CACHE.put(cache_key.clone(), HttpResponse::from_cache_entry(cache_entry)).await;
+                                
+                                tracing::debug!(
+                                    target: "quyc::middleware::cache",
+                                    cache_key = %cache_key.url,
+                                    body_size = total_body_size,
+                                    "Streaming response successfully cached in background"
+                                );
                             }
                         });
                     } else {

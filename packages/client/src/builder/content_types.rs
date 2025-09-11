@@ -1,11 +1,11 @@
-//! ContentTypes - Legacy compatibility wrapper for content type constants
+//! `ContentTypes` - Legacy compatibility wrapper for content type constants
 //!
-//! This module provides a simplified ContentTypes interface that wraps the
-//! ContentType enum for backward compatibility.
+//! This module provides a simplified `ContentTypes` interface that wraps the
+//! `ContentType` enum for backward compatibility.
 
 use crate::builder::ContentType;
 
-/// Legacy-compatible ContentTypes constants
+/// Legacy-compatible `ContentTypes` constants
 pub struct ContentTypes;
 
 impl ContentTypes {

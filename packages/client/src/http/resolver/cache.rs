@@ -18,6 +18,7 @@ pub struct DnsCacheEntry {
 }
 
 impl DnsCacheEntry {
+    #[must_use] 
     pub fn new(addresses: Vec<SocketAddr>, ttl_secs: u64) -> Self {
         let expires_at = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -31,6 +32,7 @@ impl DnsCacheEntry {
         }
     }
 
+    #[must_use] 
     pub fn is_expired(&self) -> bool {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -48,6 +50,7 @@ pub struct DnsCache {
 }
 
 impl DnsCache {
+    #[must_use] 
     pub fn new(config: CacheConfig) -> Self {
         Self {
             cache: DashMap::new(),
@@ -62,14 +65,14 @@ impl DnsCache {
         }
 
         if let Some(entry) = self.cache.get(key) {
-            if !entry.is_expired() {
-                debug!("DNS cache hit for {}", key);
-                Some(entry.clone())
-            } else {
+            if entry.is_expired() {
                 // Remove expired entry
                 self.cache.remove(key);
                 debug!("Removed expired DNS cache entry for {}", key);
                 None
+            } else {
+                debug!("DNS cache hit for {}", key);
+                Some(entry.clone())
             }
         } else {
             None
@@ -115,11 +118,13 @@ impl DnsCache {
     }
 
     /// Get current cache size
+    #[must_use] 
     pub fn len(&self) -> usize {
         self.cache.len()
     }
 
     /// Check if cache is empty
+    #[must_use] 
     pub fn is_empty(&self) -> bool {
         self.cache.is_empty()
     }

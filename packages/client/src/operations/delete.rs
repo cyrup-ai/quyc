@@ -18,6 +18,7 @@ pub struct DeleteOperation {
 impl DeleteOperation {
     /// Create a new DELETE operation
     #[inline(always)]
+    #[must_use] 
     pub fn new(client: HttpClient, url: String) -> Self {
         Self {
             client,
@@ -28,6 +29,7 @@ impl DeleteOperation {
 
     /// Add custom header
     #[inline(always)]
+    #[must_use] 
     pub fn header(mut self, key: &str, value: &str) -> Self {
         if let (Ok(header_name), Ok(header_value)) = (
             HeaderName::from_bytes(key.as_bytes()),
@@ -61,7 +63,7 @@ impl HttpOperation for DeleteOperation {
                 return AsyncStream::with_channel(move |sender| {
                     let error_response = crate::prelude::HttpResponse::error(
                         http::StatusCode::BAD_REQUEST,
-                        format!("URL parse error: {}", e)
+                        format!("URL parse error: {e}")
                     );
                     ystream::emit!(sender, error_response);
                 });

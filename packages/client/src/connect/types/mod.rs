@@ -1,11 +1,11 @@
 //! HTTP/3 connection types and trait definitions
 //!
-//! Core connection abstractions with zero-allocation MessageChunk implementations.
+//! Core connection abstractions with zero-allocation `MessageChunk` implementations.
 //! The functionality is organized into logical modules:
 //!
 //! - `connector`: HTTP/3 connector types and service abstractions
 //! - `connection`: HTTP connection wrappers and trait definitions
-//! - `tcp_impl`: TCP connection implementations with MessageChunk support
+//! - `tcp_impl`: TCP connection implementations with `MessageChunk` support
 //!
 //! All modules maintain production-quality code standards with comprehensive error handling.
 

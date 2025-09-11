@@ -6,35 +6,41 @@ use super::super::types::JsonPathError;
 
 /// Helper functions for common error scenarios
 impl JsonPathError {
-    /// Creates an error for invalid JSONPath syntax
+    /// Creates an error for invalid `JSONPath` syntax
+    #[must_use] 
     pub fn invalid_syntax(expression: &str, position: usize) -> Self {
         Self::invalid_expression(expression, "invalid JSONPath syntax", Some(position))
     }
 
-    /// Creates an error for unsupported JSONPath operators
+    /// Creates an error for unsupported `JSONPath` operators
+    #[must_use] 
     pub fn unsupported_operator(operator: &str) -> Self {
         Self::unsupported_feature(
-            format!("operator '{}'", operator),
+            format!("operator '{operator}'"),
             Some("check JSONPath specification for supported operators"),
         )
     }
 
     /// Creates an error for JSON parsing failures with minimal context
+    #[must_use] 
     pub fn parse_failure(message: &str, offset: usize) -> Self {
         Self::json_parse_error(message, offset, "JSON parsing")
     }
 
     /// Creates an error for stream buffer overflow
+    #[must_use] 
     pub fn buffer_overflow(requested: usize, available: usize) -> Self {
         Self::buffer_error("overflow", requested, available)
     }
 
     /// Creates an error for unrecoverable stream processing failures
+    #[must_use] 
     pub fn stream_failure(message: &str, state: &str) -> Self {
         Self::stream_error(message, state, false)
     }
 
     /// Creates an error for recoverable stream processing issues
+    #[must_use] 
     pub fn stream_warning(message: &str, state: &str) -> Self {
         Self::stream_error(message, state, true)
     }

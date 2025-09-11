@@ -21,29 +21,23 @@ impl ConnectorService {
 
         AsyncStream::with_channel(move |sender| {
             spawn_task(move || {
-                let proxy_config = match connector_service.intercepted.first_proxy() {
-                    Some(config) => config,
-                    None => {
-                        emit!(
-                            sender,
-                            TcpConnectionChunk::bad_chunk(
-                                "No proxy configuration available".to_string()
-                            )
-                        );
-                        return;
-                    }
+                let proxy_config = if let Some(config) = connector_service.intercepted.first_proxy() { config } else {
+                    emit!(
+                        sender,
+                        TcpConnectionChunk::bad_chunk(
+                            "No proxy configuration available".to_string()
+                        )
+                    );
+                    return;
                 };
 
                 let proxy_uri = &proxy_config.uri;
-                let proxy_host = match proxy_uri.host() {
-                    Some(h) => h,
-                    None => {
-                        emit!(
-                            sender,
-                            TcpConnectionChunk::bad_chunk("Proxy URI missing host".to_string())
-                        );
-                        return;
-                    }
+                let proxy_host = if let Some(h) = proxy_uri.host() { h } else {
+                    emit!(
+                        sender,
+                        TcpConnectionChunk::bad_chunk("Proxy URI missing host".to_string())
+                    );
+                    return;
                 };
 
                 let proxy_port = proxy_uri.port_u16().unwrap_or(8080);
@@ -51,8 +45,8 @@ impl ConnectorService {
                 // Connect to proxy server first
                 let proxy_stream = match super::super::tcp::connect_to_address_list(
                     &[SocketAddr::new(
-                        proxy_host.parse().unwrap_or_else(|_| {
-                            std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1))
+                        proxy_host.parse().unwrap_or({
+                            std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST)
                         }),
                         proxy_port,
                     )],
@@ -130,7 +124,6 @@ impl ConnectorService {
                 // Extract addresses and emit connection event
                 if let Err(error) = super::direct::emit_stream_connection(final_stream, &sender) {
                     emit!(sender, TcpConnectionChunk::bad_chunk(error));
-                    return;
                 }
             });
         })

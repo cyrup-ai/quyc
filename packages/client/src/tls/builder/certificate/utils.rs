@@ -2,7 +2,8 @@
 
 use std::collections::HashMap;
 
-/// Format a distinguished name HashMap into a string representation
+/// Format a distinguished name `HashMap` into a string representation
+#[must_use] 
 pub fn format_dn_hashmap(dn: &HashMap<String, String>) -> String {
     let mut parts = Vec::new();
     
@@ -11,14 +12,14 @@ pub fn format_dn_hashmap(dn: &HashMap<String, String>) -> String {
     
     for &key in &ordered_keys {
         if let Some(value) = dn.get(key) {
-            parts.push(format!("{}={}", key, value));
+            parts.push(format!("{key}={value}"));
         }
     }
     
     // Add any remaining keys that weren't in the standard order
-    for (key, value) in dn.iter() {
+    for (key, value) in dn {
         if !ordered_keys.contains(&key.as_str()) {
-            parts.push(format!("{}={}", key, value));
+            parts.push(format!("{key}={value}"));
         }
     }
     

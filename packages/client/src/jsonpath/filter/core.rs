@@ -26,7 +26,7 @@ pub fn is_truthy(value: &serde_json::Value) -> bool {
     }
 }
 
-/// Evaluate JSONPath selectors for filter expressions
+/// Evaluate `JSONPath` selectors for filter expressions
 pub fn evaluate_jsonpath_selectors(
     context: &serde_json::Value,
     selectors: &[crate::jsonpath::ast::JsonSelector],
@@ -168,7 +168,7 @@ impl FilterEvaluator {
             }
             _ => Err(deserialization_error(
                 "complex expressions not supported in value context".to_string(),
-                format!("{:?}", expr),
+                format!("{expr:?}"),
                 "FilterValue",
             )),
         }

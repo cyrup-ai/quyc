@@ -42,6 +42,7 @@ impl Default for RetryConfig {
 
 impl CacheConfig {
     /// Create a new cache configuration
+    #[must_use] 
     pub fn new(enabled: bool, ttl_secs: u64, max_entries: usize) -> Self {
         Self {
             enabled,
@@ -51,6 +52,7 @@ impl CacheConfig {
     }
 
     /// Create a disabled cache configuration
+    #[must_use] 
     pub fn disabled() -> Self {
         Self {
             enabled: false,
@@ -62,6 +64,7 @@ impl CacheConfig {
 
 impl RetryConfig {
     /// Create a new retry configuration
+    #[must_use] 
     pub fn new(max_retries: u32, initial_delay: Duration, backoff_multiplier: u32) -> Self {
         Self {
             max_retries,
@@ -71,6 +74,7 @@ impl RetryConfig {
     }
 
     /// Create a no-retry configuration
+    #[must_use] 
     pub fn no_retry() -> Self {
         Self {
             max_retries: 0,

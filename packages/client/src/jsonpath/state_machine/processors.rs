@@ -6,7 +6,7 @@
 use super::types::{JsonStreamState, ProcessResult, StreamStateMachine};
 use crate::jsonpath::error::{JsonPathError, stream_error};
 
-/// Process byte while navigating to JSONPath target
+/// Process byte while navigating to `JSONPath` target
 pub fn process_navigating_byte(
     machine: &mut StreamStateMachine,
     byte: u8,
@@ -187,7 +187,7 @@ pub fn process_object_byte(
                             // Invalid escape sequence
                             *escaped = false;
                             Ok(ProcessResult::Error(stream_error(
-                                &format!("invalid escape sequence '\\{}'", byte as char),
+                                format!("invalid escape sequence '\\{}'", byte as char),
                                 "object_processing",
                                 false,
                             )))
@@ -218,7 +218,7 @@ pub fn process_finishing_byte(
         }
         _ => {
             let err = stream_error(
-                &format!("unexpected byte 0x{:02x} in finishing state", byte),
+                format!("unexpected byte 0x{byte:02x} in finishing state"),
                 "finishing",
                 false,
             );

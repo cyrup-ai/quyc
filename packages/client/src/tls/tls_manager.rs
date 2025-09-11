@@ -59,7 +59,9 @@ impl TlsCacheStats {
         if total == 0 {
             0.0
         } else {
-            (self.total_hits() as f64 / total as f64) * 100.0
+            // Precision loss acceptable for TLS cache hit rate statistics
+            #[allow(clippy::cast_precision_loss)]
+            { (self.total_hits() as f64 / total as f64) * 100.0 }
         }
     }
     
@@ -69,7 +71,9 @@ impl TlsCacheStats {
         if total == 0 {
             0.0
         } else {
-            (self.ocsp_hits as f64 / total as f64) * 100.0
+            // Precision loss acceptable for OCSP hit rate statistics
+            #[allow(clippy::cast_precision_loss)]
+            { (self.ocsp_hits as f64 / total as f64) * 100.0 }
         }
     }
     
@@ -79,7 +83,9 @@ impl TlsCacheStats {
         if total == 0 {
             0.0
         } else {
-            (self.crl_hits as f64 / total as f64) * 100.0
+            // Precision loss acceptable for CRL hit rate statistics
+            #[allow(clippy::cast_precision_loss)]
+            { (self.crl_hits as f64 / total as f64) * 100.0 }
         }
     }
 }
@@ -133,7 +139,8 @@ impl Default for TlsConfig {
 }
 
 impl TlsConfig {
-    /// Create TLS configuration from HttpConfig
+    /// Create TLS configuration from `HttpConfig`
+    #[must_use] 
     pub fn from_http_config(http_config: &HttpConfig) -> Self {
         Self {
             enable_ocsp: true, // Always enable for enterprise
@@ -147,6 +154,7 @@ impl TlsConfig {
     }
     
     /// Create AI-optimized TLS configuration
+    #[must_use] 
     pub fn ai_optimized() -> Self {
         Self {
             enable_ocsp: true,
@@ -160,13 +168,21 @@ impl TlsConfig {
     }
 }
 
+impl Default for TlsManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TlsManager {
     /// Create new TLS manager with default configuration
+    #[must_use] 
     pub fn new() -> Self {
         Self::with_config(TlsConfig::default())
     }
     
     /// Create TLS manager with specific configuration
+    #[must_use] 
     pub fn with_config(config: TlsConfig) -> Self {
         Self {
             ocsp_cache: Arc::new(OcspCache::new()),
@@ -176,7 +192,8 @@ impl TlsManager {
         }
     }
     
-    /// Create TLS manager from HttpConfig
+    /// Create TLS manager from `HttpConfig`
+    #[must_use] 
     pub fn from_http_config(http_config: &HttpConfig) -> Self {
         Self::with_config(TlsConfig::from_http_config(http_config))
     }
@@ -186,7 +203,7 @@ impl TlsManager {
         // Create certificate directory if it doesn't exist
         if !cert_dir.exists() {
             std::fs::create_dir_all(&cert_dir)
-                .map_err(|e| TlsError::Internal(format!("Failed to create cert directory: {}", e)))?;
+                .map_err(|e| TlsError::Internal(format!("Failed to create cert directory: {e}")))?;
         }
         
         // Initialize TLS manager with custom config
@@ -196,11 +213,10 @@ impl TlsManager {
         if let Ok(entries) = std::fs::read_dir(&cert_dir) {
             for entry in entries.flatten() {
                 let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("pem") {
-                    if let Ok(cert_data) = std::fs::read_to_string(&path) {
+                if path.extension().and_then(|s| s.to_str()) == Some("pem")
+                    && let Ok(cert_data) = std::fs::read_to_string(&path) {
                         config.custom_root_certs.push(cert_data);
                     }
-                }
             }
         }
         
@@ -214,7 +230,7 @@ impl TlsManager {
         
         // Validate CA before adding
         if !ca.is_valid() {
-            return Err(TlsError::CertificateExpired(format!("Certificate authority '{}' is expired", name)));
+            return Err(TlsError::CertificateExpired(format!("Certificate authority '{name}' is expired")));
         }
         
         cas.insert(name, ca);
@@ -235,7 +251,7 @@ impl TlsManager {
             TcpStream::connect((host, port))
         ).await
             .map_err(|_| TlsError::Internal("Connection timeout".to_string()))?
-            .map_err(|e| TlsError::Internal(format!("Failed to connect to {}:{}: {}", host, port, e)))?;
+            .map_err(|e| TlsError::Internal(format!("Failed to connect to {host}:{port}: {e}")))?;
 
         // Create enterprise TLS client configuration
         let client_config = self.create_client_config_sync()?;
@@ -245,11 +261,11 @@ impl TlsManager {
         
         // Create server name for TLS
         let server_name = rustls::pki_types::ServerName::try_from(host.to_string())
-            .map_err(|e| TlsError::Internal(format!("Invalid hostname '{}': {}", host, e)))?;
+            .map_err(|e| TlsError::Internal(format!("Invalid hostname '{host}': {e}")))?;
 
         // Perform TLS handshake
         let tls_stream = connector.connect(server_name, tcp_stream).await
-            .map_err(|e| TlsError::Internal(format!("TLS handshake failed: {}", e)))?;
+            .map_err(|e| TlsError::Internal(format!("TLS handshake failed: {e}")))?;
 
         tracing::info!("Enterprise TLS connection established to {}:{}", host, port);
         Ok(tls_stream)
@@ -342,6 +358,7 @@ impl TlsManager {
     }
     
     /// Get aggregated cache statistics from OCSP and CRL caches
+    #[must_use] 
     pub fn get_cache_stats(&self) -> (usize, usize) {
         let (ocsp_hits, ocsp_misses) = self.ocsp_cache.get_stats();
         let (crl_hits, crl_misses) = self.crl_cache.get_stats();
@@ -349,6 +366,7 @@ impl TlsManager {
     }
     
     /// Get detailed cache statistics for monitoring and troubleshooting
+    #[must_use] 
     pub fn get_detailed_cache_stats(&self) -> TlsCacheStats {
         let (ocsp_hits, ocsp_misses) = self.ocsp_cache.get_stats();
         let (crl_hits, crl_misses) = self.crl_cache.get_stats();
@@ -367,11 +385,13 @@ impl TlsManager {
     }
     
     /// Get OCSP cache statistics only
+    #[must_use] 
     pub fn get_ocsp_stats(&self) -> (usize, usize) {
         self.ocsp_cache.get_stats()
     }
     
     /// Get CRL cache statistics only
+    #[must_use] 
     pub fn get_crl_stats(&self) -> (usize, usize) {
         self.crl_cache.get_stats()
     }
@@ -416,7 +436,7 @@ impl TlsManager {
             },
             Err(e) => {
                 tracing::warn!("OCSP validation failed: {}", e);
-                Err(TlsError::OcspValidationFailed(format!("OCSP validation error: {}", e)))
+                Err(TlsError::OcspValidationFailed(format!("OCSP validation error: {e}")))
             }
         }
     }
@@ -441,7 +461,7 @@ impl TlsManager {
                     tracing::debug!("CRL validation passed for URL: {}", crl_url);
                 },
                 Ok(crate::tls::crl_cache::CrlStatus::Revoked) => {
-                    return Err(TlsError::CertificateRevoked(format!("Certificate revoked via CRL: {}", crl_url)));
+                    return Err(TlsError::CertificateRevoked(format!("Certificate revoked via CRL: {crl_url}")));
                 },
                 Ok(crate::tls::crl_cache::CrlStatus::Unknown) => {
                     tracing::warn!("CRL validation inconclusive for URL: {}", crl_url);
@@ -499,22 +519,22 @@ impl rustls::client::danger::ServerCertVerifier for EnterpriseServerCertVerifier
         // First perform standard certificate validation
         let webpki_verifier = rustls::client::WebPkiServerVerifier::builder(
             Arc::new(webpki_roots::TLS_SERVER_ROOTS.iter().cloned().collect())
-        ).build().map_err(|e| rustls::Error::General(format!("Failed to create webpki verifier: {}", e)))?;
+        ).build().map_err(|e| rustls::Error::General(format!("Failed to create webpki verifier: {e}")))?;
         
         // Perform standard validation
         webpki_verifier.verify_server_cert(end_entity, intermediates, server_name, ocsp_response, now)?;
         
         // Parse end entity certificate for additional validation
         let parsed_cert = parse_certificate_from_der(end_entity.as_ref())
-            .map_err(|e| rustls::Error::General(format!("Failed to parse certificate: {}", e)))?;
+            .map_err(|e| rustls::Error::General(format!("Failed to parse certificate: {e}")))?;
         
         // Perform OCSP validation if enabled (synchronous for rustls compatibility)
         if self.enable_ocsp && !parsed_cert.ocsp_urls.is_empty() {
-            let issuer_cert = if !intermediates.is_empty() {
-                Some(parse_certificate_from_der(intermediates[0].as_ref())
-                    .map_err(|e| rustls::Error::General(format!("Failed to parse issuer certificate: {}", e)))?)
-            } else {
+            let issuer_cert = if intermediates.is_empty() {
                 None
+            } else {
+                Some(parse_certificate_from_der(intermediates[0].as_ref())
+                    .map_err(|e| rustls::Error::General(format!("Failed to parse issuer certificate: {e}")))?)
             };
             
             // Perform real OCSP validation using blocking calls to our async infrastructure

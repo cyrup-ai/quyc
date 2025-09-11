@@ -12,17 +12,17 @@ use crate::jsonpath::{
     parser::{JsonPathExpression, JsonSelector},
 };
 
-/// Current state of JSON streaming and JSONPath evaluation
+/// Current state of JSON streaming and `JSONPath` evaluation
 #[derive(Debug, Clone)]
 pub enum JsonStreamState {
     /// Initial state - waiting for JSON to begin
     Initial,
 
-    /// Navigating to the target JSONPath location
+    /// Navigating to the target `JSONPath` location
     Navigating {
         /// Current depth in JSON structure
         depth: usize,
-        /// JSONPath selectors remaining to process
+        /// `JSONPath` selectors remaining to process
         remaining_selectors: Vec<JsonSelector>,
         /// Current JSON value being processed
         current_value: Option<Value>,
@@ -116,7 +116,7 @@ pub struct StreamStateMachine {
     pub(super) state: JsonStreamState,
     /// Performance and debugging statistics
     pub(super) stats: StateStats,
-    /// Optional JSONPath expression being evaluated
+    /// Optional `JSONPath` expression being evaluated
     pub(super) path_expression: Option<JsonPathExpression>,
     /// Stack tracking nested JSON structures
     pub(super) depth_stack: VecDeque<FrameIdentifier>,

@@ -11,7 +11,7 @@ use crossbeam_utils::Backoff;
 use ystream::prelude::*;
 use quiche::{Config, Connection, ConnectionId};
 
-use crate::protocols::quiche::chunks::*;
+use crate::protocols::quiche::chunks::{QuicheStreamChunk, QuichePacketChunk, QuicheWriteResult};
 
 /// Quiche connection state chunk for connection lifecycle events
 #[derive(Debug)]
@@ -27,6 +27,7 @@ pub struct QuicheConnectionChunk {
 
 impl QuicheConnectionChunk {
     #[inline]
+    #[must_use] 
     pub fn established(local: SocketAddr, peer: SocketAddr) -> Self {
         Self {
             local_addr: Some(local),
@@ -40,6 +41,7 @@ impl QuicheConnectionChunk {
     }
 
     #[inline]
+    #[must_use] 
     pub fn connection_ready(connection: QuicheConnection) -> Self {
         let local = connection.local_addr();
         let peer = connection.peer_addr();
@@ -55,6 +57,7 @@ impl QuicheConnectionChunk {
     }
 
     #[inline]
+    #[must_use] 
     pub fn connection_closed(local: SocketAddr, peer: SocketAddr) -> Self {
         Self {
             local_addr: Some(local),
@@ -68,6 +71,7 @@ impl QuicheConnectionChunk {
     }
 
     #[inline]
+    #[must_use] 
     pub fn timeout_event(timeout_ms: u64) -> Self {
         Self {
             local_addr: None,
@@ -81,6 +85,7 @@ impl QuicheConnectionChunk {
     }
 
     #[inline]
+    #[must_use] 
     pub fn streams_available(_readable_streams: Vec<u64>, _writable_streams: Vec<u64>) -> Self {
         Self {
             local_addr: None,
@@ -112,7 +117,7 @@ impl MessageChunk for QuicheConnectionChunk {
     }
 
     fn error(&self) -> Option<&str> {
-        self.error.as_ref().map(|s| s.as_str())
+        self.error.as_deref()
     }
 }
 
@@ -149,6 +154,7 @@ pub struct QuicheConnection {
 impl QuicheConnection {
     /// Create new connection from established Quiche connection
     #[inline]
+    #[must_use] 
     pub fn new(
         connection: Connection,
         socket: UdpSocket,
@@ -167,44 +173,52 @@ impl QuicheConnection {
 
     /// Get connection local address
     #[inline]
+    #[must_use] 
     pub fn local_addr(&self) -> SocketAddr {
         self.local_addr
     }
 
     /// Get connection peer address
     #[inline]
+    #[must_use] 
     pub fn peer_addr(&self) -> SocketAddr {
         self.peer_addr
     }
 
     /// Check if connection is established
     #[inline]
+    #[must_use] 
     pub fn is_established(&self) -> bool {
         self.connection.inner.is_established()
     }
 
     /// Check if connection is closed
     #[inline]
+    #[must_use] 
     pub fn is_closed(&self) -> bool {
         self.connection.inner.is_closed()
     }
 
     /// Stream readable data from connection
+    #[must_use] 
     pub fn readable_streams(self) -> AsyncStream<QuicheConnectionChunk, 1024> {
         read_readable_streams(self.connection.into_inner())
     }
 
     /// Open bidirectional stream
+    #[must_use] 
     pub fn open_bidi_stream(self) -> AsyncStream<QuicheStreamChunk, 1024> {
         open_bidirectional_stream(self.connection.into_inner(), self.is_server)
     }
 
     /// Open unidirectional stream
+    #[must_use] 
     pub fn open_uni_stream(self) -> AsyncStream<QuicheStreamChunk, 1024> {
         open_unidirectional_stream(self.connection.into_inner(), self.is_server)
     }
 
     /// Process incoming packets
+    #[must_use] 
     pub fn process_packets(self, packets: Vec<Bytes>) -> AsyncStream<QuichePacketChunk, 1024> {
         process_incoming_packets(
             self.connection.into_inner(),
@@ -216,6 +230,7 @@ impl QuicheConnection {
 }
 
 // CORRECT: Connect to server using synchronous Quiche APIs
+#[must_use] 
 pub fn connect_to_server(
     server_name: &str,
     scid: &ConnectionId,
@@ -240,7 +255,7 @@ pub fn connect_to_server(
             Err(e) => {
                 emit!(
                     sender,
-                    QuicheConnectionChunk::bad_chunk(format!("Connection error: {}", e))
+                    QuicheConnectionChunk::bad_chunk(format!("Connection error: {e}"))
                 );
             }
         }
@@ -248,6 +263,7 @@ pub fn connect_to_server(
 }
 
 // CORRECT: Accept Quiche connection using synchronous APIs
+#[must_use] 
 pub fn accept_connection(
     scid: &ConnectionId,
     odcid: Option<&ConnectionId>,
@@ -265,7 +281,7 @@ pub fn accept_connection(
     AsyncStream::with_channel(move |sender| {
         // Create proper ConnectionIds from bytes using real quiche API
         let scid = quiche::ConnectionId::from_vec(scid_owned);
-        let odcid = odcid_owned.map(|v| quiche::ConnectionId::from_vec(v));
+        let odcid = odcid_owned.map(quiche::ConnectionId::from_vec);
         
         // Use real quiche::accept method with proper signature  
         match quiche::accept(
@@ -284,7 +300,7 @@ pub fn accept_connection(
             Err(e) => {
                 emit!(
                     sender,
-                    QuicheConnectionChunk::bad_chunk(format!("Accept error: {}", e))
+                    QuicheConnectionChunk::bad_chunk(format!("Accept error: {e}"))
                 );
             }
         }
@@ -292,6 +308,7 @@ pub fn accept_connection(
 }
 
 /// Stream readable streams from Quiche connection  
+#[must_use] 
 pub fn read_readable_streams(connection: Connection) -> AsyncStream<QuicheConnectionChunk, 1024> {
     AsyncStream::with_channel(move |sender| {
         let mut readable_streams = Vec::new();
@@ -326,6 +343,7 @@ pub fn read_readable_streams(connection: Connection) -> AsyncStream<QuicheConnec
 }
 
 /// Open bidirectional stream with proper sequence tracking
+#[must_use] 
 pub fn open_bidirectional_stream(
     mut connection: Connection,
     is_server: bool,
@@ -334,7 +352,7 @@ pub fn open_bidirectional_stream(
         // Calculate next available bidirectional stream ID based on server/client role
         // Client bidi streams: 0, 4, 8, 12... (stream_id & 0x3 == 0)
         // Server bidi streams: 1, 5, 9, 13... (stream_id & 0x3 == 1)
-        let base_stream_id = if is_server { 1u64 } else { 0u64 };
+        let base_stream_id = u64::from(is_server);
 
         // Check streams to find the next available ID
         // Start from base and increment by 4 until we find an unused one
@@ -368,8 +386,7 @@ pub fn open_bidirectional_stream(
                     emit!(
                         sender,
                         QuicheStreamChunk::bad_chunk(format!(
-                            "Failed to create bidirectional stream {}: {}",
-                            stream_id, e
+                            "Failed to create bidirectional stream {stream_id}: {e}"
                         ))
                     );
                     return;
@@ -381,14 +398,14 @@ pub fn open_bidirectional_stream(
         emit!(
             sender,
             QuicheStreamChunk::bad_chunk(format!(
-                "Could not find available bidirectional stream ID after {} attempts",
-                max_attempts
+                "Could not find available bidirectional stream ID after {max_attempts} attempts"
             ))
         );
     })
 }
 
 /// Open unidirectional stream with proper sequence tracking
+#[must_use] 
 pub fn open_unidirectional_stream(
     mut connection: Connection,
     is_server: bool,
@@ -431,8 +448,7 @@ pub fn open_unidirectional_stream(
                     emit!(
                         sender,
                         QuicheStreamChunk::bad_chunk(format!(
-                            "Failed to create unidirectional stream {}: {}",
-                            stream_id, e
+                            "Failed to create unidirectional stream {stream_id}: {e}"
                         ))
                     );
                     return;
@@ -444,14 +460,14 @@ pub fn open_unidirectional_stream(
         emit!(
             sender,
             QuicheStreamChunk::bad_chunk(format!(
-                "Could not find available unidirectional stream ID after {} attempts",
-                max_attempts
+                "Could not find available unidirectional stream ID after {max_attempts} attempts"
             ))
         );
     })
 }
 
 /// Process incoming packets
+#[must_use] 
 pub fn process_incoming_packets(
     mut connection: Connection,
     packets: Vec<Bytes>,
@@ -482,7 +498,7 @@ pub fn process_incoming_packets(
                 Err(e) => {
                     emit!(
                         sender,
-                        QuichePacketChunk::bad_chunk(format!("Packet processing error: {}", e))
+                        QuichePacketChunk::bad_chunk(format!("Packet processing error: {e}"))
                     );
                 }
             }
@@ -491,6 +507,7 @@ pub fn process_incoming_packets(
 }
 
 /// Read data from specific stream using elite polling pattern
+#[must_use] 
 pub fn read_stream_data(
     mut connection: Connection,
     stream_id: u64,
@@ -525,7 +542,7 @@ pub fn read_stream_data(
                 Err(e) => {
                     emit!(
                         sender,
-                        QuicheStreamChunk::bad_chunk(format!("Stream read error: {}", e))
+                        QuicheStreamChunk::bad_chunk(format!("Stream read error: {e}"))
                     );
                     break;
                 }
@@ -541,6 +558,7 @@ pub fn read_stream_data(
 }
 
 /// Write data to specific stream
+#[must_use] 
 pub fn write_stream_data(
     mut connection: Connection,
     stream_id: u64,
@@ -562,14 +580,14 @@ pub fn write_stream_data(
             Err(e) => {
                 emit!(
                     sender,
-                    QuicheWriteResult::bad_chunk(format!("Stream write error: {}", e))
+                    QuicheWriteResult::bad_chunk(format!("Stream write error: {e}"))
                 );
             }
         }
     })
 }
 
-/// Debug wrapper for quiche::Connection
+/// Debug wrapper for `quiche::Connection`
 pub struct QuicheConnectionWrapper {
     inner: Connection,
 }
@@ -584,6 +602,7 @@ impl std::fmt::Debug for QuicheConnectionWrapper {
 
 impl QuicheConnectionWrapper {
     #[inline]
+    #[must_use] 
     pub fn new(connection: Connection) -> Self {
         Self { inner: connection }
     }
@@ -594,6 +613,7 @@ impl QuicheConnectionWrapper {
     }
 
     #[inline]
+    #[must_use] 
     pub fn into_inner(self) -> Connection {
         self.inner
     }
@@ -609,6 +629,7 @@ pub struct QuicheStreamWrapper {
 
 impl QuicheStreamWrapper {
     #[inline]
+    #[must_use] 
     pub fn new(connection: Connection, stream_id: u64) -> Self {
         Self {
             connection: Some(QuicheConnectionWrapper::new(connection)),
@@ -618,11 +639,13 @@ impl QuicheStreamWrapper {
     }
 
     #[inline]
+    #[must_use] 
     pub fn stream_id(&self) -> u64 {
         self.stream_id
     }
 
     /// Read data from this stream
+    #[must_use] 
     pub fn read_data(self) -> AsyncStream<QuicheStreamChunk, 1024> {
         if let Some(connection) = self.connection {
             read_stream_data(connection.into_inner(), self.stream_id)
@@ -637,6 +660,7 @@ impl QuicheStreamWrapper {
     }
 
     /// Write data to this stream
+    #[must_use] 
     pub fn write_data(self, data: Vec<u8>, fin: bool) -> AsyncStream<QuicheWriteResult, 1024> {
         if let Some(connection) = self.connection {
             write_stream_data(connection.into_inner(), self.stream_id, data, fin)
@@ -681,7 +705,7 @@ impl MessageChunk for QuicheStreamWrapper {
     }
 
     fn error(&self) -> Option<&str> {
-        self.error.as_ref().map(|s| s.as_str())
+        self.error.as_deref()
     }
 }
 

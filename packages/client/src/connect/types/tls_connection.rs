@@ -1,4 +1,4 @@
-//! TLS connection implementation using enterprise TlsManager
+//! TLS connection implementation using enterprise `TlsManager`
 //!
 //! Provides proper TLS connection wrapper that integrates with the existing
 //! enterprise TLS infrastructure in src/tls/ instead of bypassing it.
@@ -9,27 +9,27 @@ use tokio::net::TcpStream;
 use super::connection::ConnectionTrait;
 use crate::tls::{TlsManager, TlsError};
 
-/// Enterprise TLS connection implementation using TlsManager
+/// Enterprise TLS connection implementation using `TlsManager`
 ///
 /// This connection wrapper uses the proper enterprise TLS system from src/tls/
 /// with comprehensive security features including OCSP validation, CRL checking,
 /// certificate management, and proper async I/O integration.
 #[derive(Debug)]
 pub struct TlsConnection {
-    /// The underlying TLS stream from TlsManager.create_connection()
+    /// The underlying TLS stream from `TlsManager.create_connection()`
     pub stream: tokio_rustls::client::TlsStream<TcpStream>,
 }
 
 impl TlsConnection {
     /// Create a new TLS connection wrapper
     ///
-    /// This should only be called from TlsManager.create_connection() or
+    /// This should only be called from `TlsManager.create_connection()` or
     /// connection establishment functions that properly validate TLS.
     pub fn new(stream: tokio_rustls::client::TlsStream<TcpStream>) -> Self {
         Self { stream }
     }
     
-    /// Create TLS connection using enterprise TlsManager
+    /// Create TLS connection using enterprise `TlsManager`
     ///
     /// This is the proper way to establish TLS connections, using the full
     /// enterprise TLS infrastructure with security validation.

@@ -59,6 +59,7 @@ impl RetryStats {
     /// including both retry attempts and delay periods. If the sequence
     /// is still active, returns elapsed time to current moment.
     #[inline]
+    #[must_use] 
     pub fn total_elapsed(&self) -> Duration {
         match self.end_time {
             Some(end) => end.duration_since(self.start_time),
@@ -71,6 +72,7 @@ impl RetryStats {
     /// Returns true if at least one retry attempt succeeded after
     /// an initial failure, indicating the retry logic was beneficial.
     #[inline]
+    #[must_use] 
     pub fn had_successful_retry(&self) -> bool {
         self.successful_retries > 0
     }
@@ -80,10 +82,11 @@ impl RetryStats {
     /// Returns the percentage of attempts that ultimately succeeded.
     /// Only meaningful after the retry sequence has completed.
     #[inline]
+    #[must_use] 
     pub fn success_rate(&self) -> f64 {
         if self.total_attempts > 0 {
-            let successful_attempts = if self.had_successful_retry() { 1 } else { 0 };
-            (successful_attempts as f64 / self.total_attempts as f64) * 100.0
+            let successful_attempts = i32::from(self.had_successful_retry());
+            (f64::from(successful_attempts) / f64::from(self.total_attempts)) * 100.0
         } else {
             0.0
         }
@@ -95,6 +98,7 @@ impl RetryStats {
     /// excluding delay periods. Useful for understanding operation
     /// performance characteristics.
     #[inline]
+    #[must_use] 
     pub fn average_retry_time(&self) -> Duration {
         if self.total_attempts > 0 {
             self.total_retry_time / self.total_attempts
@@ -109,6 +113,7 @@ impl RetryStats {
     /// compared to time spent on actual attempts. Higher ratios
     /// indicate longer backoff periods.
     #[inline]
+    #[must_use] 
     pub fn delay_to_retry_ratio(&self) -> f64 {
         if self.total_retry_time > Duration::ZERO {
             self.total_delay_time.as_secs_f64() / self.total_retry_time.as_secs_f64()

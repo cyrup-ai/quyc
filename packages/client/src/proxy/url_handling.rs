@@ -11,7 +11,7 @@ use http::header::HeaderValue;
 use super::core::NoProxy;
 use crate::Url;
 
-/// MessageChunk wrapper for URL parsing with proper error handling
+/// `MessageChunk` wrapper for URL parsing with proper error handling
 #[derive(Debug, Clone)]
 pub(crate) struct ProxyUrl {
     url: crate::Url,
@@ -38,7 +38,7 @@ impl MessageChunk for ProxyUrl {
                 .or_else(|_| crate::Url::parse("http://127.0.0.1"))
                 .or_else(|_| crate::Url::parse("http://[::1]"))
                 .unwrap_or_else(|parse_error| {
-                    log::error!("Critical: All proxy URL parsing failed: {}", parse_error);
+                    log::error!("Critical: All proxy URL parsing failed: {parse_error}");
                     // Absolute last resort - return a synthetic URL
                     crate::Url::parse("data:text/plain,proxy-url-error").expect("data URL must parse")
                 }),
@@ -58,7 +58,7 @@ impl MessageChunk for ProxyUrl {
 /// Set username and password for proxy URL authentication
 pub(crate) fn url_auth(url: &mut Url, username: &str, password: &str) {
     // Use unwrap_or_else for safe error handling (allowed)
-    url.set_username(username).unwrap_or_else(|_| {
+    url.set_username(username).unwrap_or_else(|()| {
         // If username setting fails, log but continue
         tracing::warn!(
             target: "quyc::proxy",
@@ -66,7 +66,7 @@ pub(crate) fn url_auth(url: &mut Url, username: &str, password: &str) {
             "Failed to set proxy username"
         );
     });
-    url.set_password(Some(password)).unwrap_or_else(|_| {
+    url.set_password(Some(password)).unwrap_or_else(|()| {
         // If password setting fails, log but continue
         tracing::warn!(
             target: "quyc::proxy",
@@ -75,12 +75,13 @@ pub(crate) fn url_auth(url: &mut Url, username: &str, password: &str) {
     });
 }
 
-/// Encode basic authentication credentials into a HeaderValue
+/// Encode basic authentication credentials into a `HeaderValue`
+#[must_use] 
 pub fn encode_basic_auth(username: &str, password: &str) -> HeaderValue {
     use base64::Engine;
-    let credentials = format!("{}:{}", username, password);
+    let credentials = format!("{username}:{password}");
     let encoded = base64::engine::general_purpose::STANDARD.encode(credentials.as_bytes());
-    let auth_value = format!("Basic {}", encoded);
+    let auth_value = format!("Basic {encoded}");
 
     HeaderValue::from_str(&auth_value).unwrap_or_else(|_| HeaderValue::from_static(""))
 }
@@ -123,6 +124,7 @@ impl Custom {
         }
     }
 
+    #[must_use] 
     pub fn with_no_proxy(mut self, no_proxy: NoProxy) -> Self {
         self.no_proxy = Some(no_proxy);
         self

@@ -85,34 +85,37 @@ pub fn wasm<E: std::fmt::Debug>(js_error: E) -> Error {
 pub fn decode<E: std::fmt::Debug>(decode_error: E) -> Error {
     Error::new(Kind::Decode).with(std::io::Error::new(
         std::io::ErrorKind::InvalidData,
-        format!("Decode error: {:?}", decode_error),
+        format!("Decode error: {decode_error:?}"),
     ))
 }
 
 /// Create a status code error
 pub fn status_code(status: u16) -> Error {
-    Error::new(Kind::Request).with(std::io::Error::new(
-        std::io::ErrorKind::Other,
+    Error::new(Kind::Request).with(std::io::Error::other(
         format!("HTTP status code error: {status}"),
     ))
 }
 
 /// Helper function to create a timeout duration from milliseconds.
+#[must_use] 
 pub fn timeout_from_millis(millis: u64) -> Duration {
     Duration::from_millis(millis)
 }
 
 /// Helper function to create a timeout duration from seconds.
+#[must_use] 
 pub fn timeout_from_secs(secs: u64) -> Duration {
     Duration::from_secs(secs)
 }
 
 /// Helper function to check if a duration has elapsed.
+#[must_use] 
 pub fn is_timeout_elapsed(start: std::time::Instant, timeout: Duration) -> bool {
     start.elapsed() >= timeout
 }
 
 /// Helper function to calculate remaining timeout duration.
+#[must_use] 
 pub fn remaining_timeout(start: std::time::Instant, timeout: Duration) -> Option<Duration> {
     let elapsed = start.elapsed();
     if elapsed >= timeout {
@@ -123,11 +126,13 @@ pub fn remaining_timeout(start: std::time::Instant, timeout: Duration) -> Option
 }
 
 /// Helper function to format error messages with context.
+#[must_use] 
 pub fn format_error_with_context(error: &str, context: &str) -> String {
-    format!("{}: {}", context, error)
+    format!("{context}: {error}")
 }
 
 /// Helper function to chain error messages.
+#[must_use] 
 pub fn chain_error_message(original: &str, additional: &str) -> String {
-    format!("{} ({})", original, additional)
+    format!("{original} ({additional})")
 }

@@ -9,7 +9,7 @@ use super::{HttpRetryExecutor, RetryPolicy};
 
 /// Helper function to create retry executor for HTTP operations
 ///
-/// Creates a new HttpRetryExecutor for the given operation closure.
+/// Creates a new `HttpRetryExecutor` for the given operation closure.
 /// The operation will be called once per retry attempt.
 #[inline]
 pub fn with_retry<F, T>(operation: F) -> HttpRetryExecutor<F, T>

@@ -1,6 +1,6 @@
 //! General-purpose streaming deserializer utilities
 //!
-//! Provides simplified streaming JSON deserialization without JSONPath navigation
+//! Provides simplified streaming JSON deserialization without `JSONPath` navigation
 //! for use cases that don't require complex path-based filtering.
 
 use std::io::Read;
@@ -11,7 +11,7 @@ use serde_json::{Deserializer, StreamDeserializer, de::IoRead};
 /// Streaming deserializer for general use
 ///
 /// Provides a simplified interface for streaming JSON deserialization without
-/// JSONPath navigation. Useful for streaming simple arrays directly.
+/// `JSONPath` navigation. Useful for streaming simple arrays directly.
 pub struct StreamingDeserializer<R: Read, T> {
     inner: StreamDeserializer<'static, IoRead<R>, T>,
 }

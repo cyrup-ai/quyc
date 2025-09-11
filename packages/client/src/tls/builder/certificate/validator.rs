@@ -18,6 +18,7 @@ pub struct CertificateValidator {
 }
 
 impl CertificateValidator {
+    #[must_use] 
     pub fn new() -> Self {
         Self {}
     }
@@ -33,6 +34,7 @@ impl CertificateValidator {
     }
 
     /// Load certificate from PEM string
+    #[must_use] 
     pub fn from_string(self, pem: &str) -> CertificateValidatorWithInput {
         CertificateValidatorWithInput {
             input_source: InputSource::String(pem.to_string()),
@@ -43,6 +45,7 @@ impl CertificateValidator {
     }
 
     /// Load certificate from bytes
+    #[must_use] 
     pub fn from_bytes(self, bytes: &[u8]) -> CertificateValidatorWithInput {
         CertificateValidatorWithInput {
             input_source: InputSource::Bytes(bytes.to_vec()),
@@ -70,6 +73,7 @@ pub struct CertificateValidatorWithInput {
 
 impl CertificateValidatorWithInput {
     /// Validate certificate for specific domain
+    #[must_use] 
     pub fn domain(self, domain: &str) -> Self {
         Self {
             domain: Some(domain.to_string()),
@@ -86,6 +90,7 @@ impl CertificateValidatorWithInput {
     }
 
     /// Validate certificate against specific authority
+    #[must_use] 
     pub fn authority(self, ca: &CertificateAuthority) -> Self {
         Self {
             authority: Some(ca.clone()),
@@ -120,8 +125,7 @@ impl CertificateValidatorWithInput {
                         },
                         validation_summary: ValidationSummary {
                             parsing: CheckResult::Failed(format!(
-                                "Failed to read file: {}",
-                                e
+                                "Failed to read file: {e}"
                             )),
                             time_validity: CheckResult::Skipped,
                             domain_match: None,
@@ -132,7 +136,7 @@ impl CertificateValidatorWithInput {
                         issues: vec![ValidationIssue {
                             severity: IssueSeverity::Error,
                             category: IssueCategory::Parsing,
-                            message: format!("Failed to read certificate file: {}", e),
+                            message: format!("Failed to read certificate file: {e}"),
                             suggestion: Some("Check file path and permissions".to_string()),
                         }],
                         performance: ValidationPerformance {
@@ -166,8 +170,7 @@ impl CertificateValidatorWithInput {
                         },
                         validation_summary: ValidationSummary {
                             parsing: CheckResult::Failed(format!(
-                                "Invalid UTF-8: {}",
-                                e
+                                "Invalid UTF-8: {e}"
                             )),
                             time_validity: CheckResult::Skipped,
                             domain_match: None,
@@ -178,7 +181,7 @@ impl CertificateValidatorWithInput {
                         issues: vec![ValidationIssue {
                             severity: IssueSeverity::Error,
                             category: IssueCategory::Parsing,
-                            message: format!("Certificate bytes are not valid UTF-8: {}", e),
+                            message: format!("Certificate bytes are not valid UTF-8: {e}"),
                             suggestion: Some("Ensure certificate is in PEM format".to_string()),
                         }],
                         performance: ValidationPerformance {
@@ -218,8 +221,7 @@ impl CertificateValidatorWithInput {
                     },
                     validation_summary: ValidationSummary {
                         parsing: CheckResult::Failed(format!(
-                            "Parse error: {}",
-                            e
+                            "Parse error: {e}"
                         )),
                         time_validity: CheckResult::Skipped,
                         domain_match: None,
@@ -230,7 +232,7 @@ impl CertificateValidatorWithInput {
                     issues: vec![ValidationIssue {
                         severity: IssueSeverity::Error,
                         category: IssueCategory::Parsing,
-                        message: format!("Failed to parse certificate: {}", e),
+                        message: format!("Failed to parse certificate: {e}"),
                         suggestion: Some("Ensure certificate is in valid PEM format".to_string()),
                     }],
                     performance: ValidationPerformance {
@@ -256,10 +258,10 @@ impl CertificateValidatorWithInput {
                 issues.push(ValidationIssue {
                     severity: IssueSeverity::Error,
                     category: IssueCategory::Expiry,
-                    message: format!("Time validation failed: {}", e),
+                    message: format!("Time validation failed: {e}"),
                     suggestion: Some("Check certificate validity period".to_string()),
                 });
-                CheckResult::Failed(format!("Time validation: {}", e))
+                CheckResult::Failed(format!("Time validation: {e}"))
             }
         };
 
@@ -272,7 +274,7 @@ impl CertificateValidatorWithInput {
             issues.push(ValidationIssue {
                 severity: IssueSeverity::Warning,
                 category: IssueCategory::KeyUsage,
-                message: format!("Basic constraints issue: {}", e),
+                message: format!("Basic constraints issue: {e}"),
                 suggestion: Some("Check certificate basic constraints extension".to_string()),
             });
         }
@@ -286,7 +288,7 @@ impl CertificateValidatorWithInput {
             issues.push(ValidationIssue {
                 severity: IssueSeverity::Warning,
                 category: IssueCategory::KeyUsage,
-                message: format!("Key usage issue: {}", e),
+                message: format!("Key usage issue: {e}"),
                 suggestion: Some("Check certificate key usage extension".to_string()),
             });
         }
@@ -300,8 +302,7 @@ impl CertificateValidatorWithInput {
                     severity: IssueSeverity::Warning,
                     category: IssueCategory::Chain,
                     message: format!(
-                        "Could not initialize TLS manager for security checks: {}",
-                        e
+                        "Could not initialize TLS manager for security checks: {e}"
                     ),
                     suggestion: Some("OCSP and CRL validation will be skipped".to_string()),
                 });
@@ -311,7 +312,7 @@ impl CertificateValidatorWithInput {
                 let is_valid = time_result.is_ok()
                     && domain_check
                         .as_ref()
-                        .map_or(true, |c| matches!(c, CheckResult::Passed));
+                        .is_none_or(|c| matches!(c, CheckResult::Passed));
 
                 return CertificateValidationResponse {
                     is_valid,
@@ -360,12 +361,12 @@ impl CertificateValidatorWithInput {
                 issues.push(ValidationIssue {
                     severity: IssueSeverity::Error,
                     category: IssueCategory::Revocation,
-                    message: format!("OCSP validation failed: {}", e),
+                    message: format!("OCSP validation failed: {e}"),
                     suggestion: Some(
                         "Certificate may be revoked or OCSP responder unavailable".to_string(),
                     ),
                 });
-                CheckResult::Failed(format!("OCSP: {}", e))
+                CheckResult::Failed(format!("OCSP: {e}"))
             }
         };
 
@@ -380,10 +381,10 @@ impl CertificateValidatorWithInput {
                 issues.push(ValidationIssue {
                     severity: IssueSeverity::Error,
                     category: IssueCategory::Revocation,
-                    message: format!("CRL validation failed: {}", e),
+                    message: format!("CRL validation failed: {e}"),
                     suggestion: Some("Certificate may be revoked or CRL unavailable".to_string()),
                 });
-                CheckResult::Failed(format!("CRL: {}", e))
+                CheckResult::Failed(format!("CRL: {e}"))
             }
         };
 
@@ -399,10 +400,10 @@ impl CertificateValidatorWithInput {
             && crl_result.is_ok()
             && domain_check
                 .as_ref()
-                .map_or(true, |c| matches!(c, CheckResult::Passed))
+                .is_none_or(|c| matches!(c, CheckResult::Passed))
             && ca_check
                 .as_ref()
-                .map_or(true, |c| matches!(c, CheckResult::Passed));
+                .is_none_or(|c| matches!(c, CheckResult::Passed));
 
         CertificateValidationResponse {
             is_valid,
@@ -447,14 +448,14 @@ impl CertificateValidatorWithInput {
     fn validate_domain_match(&self, parsed_cert: &ParsedCertificate, issues: &mut Vec<ValidationIssue>) -> Option<CheckResult> {
         if let Some(domain) = &self.domain {
             if parsed_cert.san_dns_names.contains(domain)
-                || parsed_cert.subject.get("CN").map_or(false, |cn| cn == domain)
+                || (parsed_cert.subject.get("CN") == Some(domain))
             {
                 Some(CheckResult::Passed)
             } else {
                 issues.push(ValidationIssue {
                     severity: IssueSeverity::Error,
                     category: IssueCategory::Domain,
-                    message: format!("Certificate not valid for domain: {}", domain),
+                    message: format!("Certificate not valid for domain: {domain}"),
                     suggestion: Some("Check SAN entries and subject CN".to_string()),
                 });
                 Some(CheckResult::Failed("Domain mismatch".to_string()))
@@ -483,12 +484,12 @@ impl CertificateValidatorWithInput {
                     issues.push(ValidationIssue {
                         severity: IssueSeverity::Error,
                         category: IssueCategory::Chain,
-                        message: format!("Certificate chain validation failed: {}", e),
+                        message: format!("Certificate chain validation failed: {e}"),
                         suggestion: Some(
                             "Certificate may not be signed by the provided CA".to_string(),
                         ),
                     });
-                    Some(CheckResult::Failed(format!("Chain: {}", e)))
+                    Some(CheckResult::Failed(format!("Chain: {e}")))
                 }
             }
         } else {

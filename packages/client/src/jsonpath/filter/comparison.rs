@@ -1,6 +1,6 @@
 //! Value comparison logic for filter expressions
 //!
-//! Handles comparison operations between FilterValues with support for
+//! Handles comparison operations between `FilterValues` with support for
 //! RFC 9535 missing vs null semantics and context-aware comparisons.
 
 use std::collections::HashSet;
@@ -137,6 +137,8 @@ impl ValueComparator {
             }),
             // Type coercion for number/integer comparisons
             (FilterValue::Integer(a), FilterValue::Number(b)) => Self::compare_values(
+                // Precision loss acceptable for filter value comparisons
+                #[allow(clippy::cast_precision_loss)]
                 &FilterValue::Number(*a as f64),
                 op,
                 &FilterValue::Number(*b),
@@ -144,6 +146,8 @@ impl ValueComparator {
             (FilterValue::Number(a), FilterValue::Integer(b)) => Self::compare_values(
                 &FilterValue::Number(*a),
                 op,
+                // Precision loss acceptable for filter value comparisons
+                #[allow(clippy::cast_precision_loss)]
                 &FilterValue::Number(*b as f64),
             ),
             _ => Ok(false), // Other cross-type comparisons are false

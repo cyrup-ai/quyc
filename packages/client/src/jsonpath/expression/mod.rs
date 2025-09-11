@@ -1,8 +1,8 @@
-//! JsonPathExpression modules
+//! `JsonPathExpression` modules
 //!
-//! Decomposed JsonPathExpression implementation with logical separation of concerns:
+//! Decomposed `JsonPathExpression` implementation with logical separation of concerns:
 //!
-//! - `core`: Main JsonPathExpression struct and basic accessors
+//! - `core`: Main `JsonPathExpression` struct and basic accessors
 //! - `complexity`: Sophisticated complexity metrics and scoring algorithms
 //! - `evaluation`: Depth-based evaluation and selector matching logic
 //!

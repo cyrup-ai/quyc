@@ -1,17 +1,17 @@
-//! JSONPath evaluation logic for streaming deserialization
+//! `JSONPath` evaluation logic for streaming deserialization
 //!
-//! Contains the logic for evaluating JSONPath expressions against the current
+//! Contains the logic for evaluating `JSONPath` expressions against the current
 //! parsing position during streaming JSON processing.
 
 use serde::de::DeserializeOwned;
 
 use super::iterator::JsonPathIterator;
 
-impl<'iter, 'data, T> JsonPathIterator<'iter, 'data, T>
+impl<T> JsonPathIterator<'_, '_, T>
 where
     T: DeserializeOwned,
 {
-    /// Check if current position matches JSONPath root object selector
+    /// Check if current position matches `JSONPath` root object selector
     #[inline]
     pub(super) fn matches_root_object_path(&self) -> bool {
         // Check if the root selector matches object access
@@ -22,7 +22,7 @@ where
         }
     }
 
-    /// Check if current position matches JSONPath root array selector
+    /// Check if current position matches `JSONPath` root array selector
     #[inline]
     pub(super) fn matches_root_array_path(&self) -> bool {
         matches!(
@@ -35,13 +35,13 @@ where
         )
     }
 
-    /// Check if current position matches JSONPath expression
+    /// Check if current position matches `JSONPath` expression
     #[inline]
     pub(super) fn matches_current_path(&self) -> bool {
         self.evaluate_jsonpath_at_current_position()
     }
 
-    /// Evaluate JSONPath expression at current parsing position
+    /// Evaluate `JSONPath` expression at current parsing position
     #[inline]
     pub(super) fn evaluate_jsonpath_at_current_position(&self) -> bool {
         if self.deserializer.streaming_state.in_recursive_descent {
@@ -98,16 +98,14 @@ where
             }
             JsonSelector::Filter { expression } => {
                 // Evaluate the filter expression against the current JSON context
-                if !self.deserializer.object_buffer.is_empty() {
-                    if let Ok(json_str) = std::str::from_utf8(&self.deserializer.object_buffer) {
-                        if let Ok(context) = serde_json::from_str::<serde_json::Value>(json_str) {
+                if !self.deserializer.object_buffer.is_empty()
+                    && let Ok(json_str) = std::str::from_utf8(&self.deserializer.object_buffer)
+                        && let Ok(context) = serde_json::from_str::<serde_json::Value>(json_str) {
                             // JsonPathResultExt removed - not available
                             use crate::jsonpath::filter::FilterEvaluator;
                             return FilterEvaluator::evaluate_predicate(&context, expression)
                                 .unwrap_or(false);
                         }
-                    }
-                }
                 false
             }
             JsonSelector::Union { selectors } => {

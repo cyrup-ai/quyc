@@ -18,6 +18,7 @@ pub struct ResolutionEngine {
 }
 
 impl ResolutionEngine {
+    #[must_use] 
     pub fn new(retry_config: RetryConfig) -> Self {
         Self { retry_config }
     }
@@ -74,7 +75,7 @@ impl ResolutionEngine {
         Err(ResolverError::NoAddresses)
     }
 
-    /// Perform DNS resolution using std::net
+    /// Perform DNS resolution using `std::net`
     fn resolve_with_std(
         hostname: &str,
         port: u16,
@@ -85,7 +86,7 @@ impl ResolutionEngine {
 
         // Use global thread pool instead of spawning new threads
         global_executor().execute(move || {
-            let host_port = format!("{}:{}", hostname, port);
+            let host_port = format!("{hostname}:{port}");
             let result = match host_port.to_socket_addrs() {
                 Ok(addrs) => {
                     let addr_vec: Vec<SocketAddr> = addrs.collect();
@@ -97,7 +98,7 @@ impl ResolutionEngine {
                 }
                 Err(_) => Err(ResolverError::LookupFailed),
             };
-            if let Err(_) = tx.send(result) {
+            if tx.send(result).is_err() {
                 warn!("Failed to send DNS resolution result for {}", hostname);
             }
         });

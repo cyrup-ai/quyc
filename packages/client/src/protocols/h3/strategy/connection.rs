@@ -26,7 +26,7 @@ impl H3Connection {
     /// Send error chunk and return error - helper method
     fn send_error_and_return<T>(&self, body_tx: &AsyncStreamSender<HttpBodyChunk>, message: String) -> Result<T, ()> {
         let error_chunk = HttpBodyChunk::bad_chunk(message);
-        if let Err(_) = body_tx.send(error_chunk) {
+        if body_tx.send(error_chunk).is_err() {
             // Sender closed, continue with error
         }
         Err(())
@@ -42,7 +42,7 @@ impl H3Connection {
 
     /// Establish connection to server
     ///
-    /// Returns (quic_connection, h3_connection, socket, server_addr, local_addr)
+    /// Returns (`quic_connection`, `h3_connection`, socket, `server_addr`, `local_addr`)
     pub fn establish(
         mut self,
         host: &str,
@@ -69,7 +69,7 @@ impl H3Connection {
             Ok(addr) => addr,
             Err(e) => {
                 let error_chunk = HttpBodyChunk::bad_chunk(format!("Failed to get local address: {e}"));
-                if let Err(_) = body_tx.send(error_chunk) {
+                if body_tx.send(error_chunk).is_err() {
                     // Sender closed, continue with error
                 }
                 return Err(());
@@ -109,7 +109,7 @@ impl H3Connection {
                     "Failed to bind UDP socket for QUIC connection"
                 );
                 let error_chunk = HttpBodyChunk::bad_chunk(format!("Failed to bind UDP socket: {e}"));
-                if let Err(_) = body_tx.send(error_chunk) {
+                if body_tx.send(error_chunk).is_err() {
                     // Sender closed, continue with error
                 }
                 return Err(());
@@ -135,7 +135,7 @@ impl H3Connection {
         port: u16,
         body_tx: &AsyncStreamSender<HttpBodyChunk>,
     ) -> Result<SocketAddr, ()> {
-        let server_addr = format!("{}:{}", host, port);
+        let server_addr = format!("{host}:{port}");
         let server_addr: SocketAddr = match server_addr.parse() {
             Ok(addr) => addr,
             Err(_) => {
@@ -151,7 +151,7 @@ impl H3Connection {
                                 "DNS resolution returned no addresses"
                             );
                             let error_chunk = HttpBodyChunk::bad_chunk(format!("Failed to resolve address: {server_addr}"));
-                            if let Err(_) = body_tx.send(error_chunk) {
+                            if body_tx.send(error_chunk).is_err() {
                                 // Sender closed, continue with error
                             }
                             return Err(());
@@ -164,8 +164,8 @@ impl H3Connection {
                             server_addr = %server_addr,
                             "Failed to resolve server address via DNS"
                         );
-                        let error_chunk = HttpBodyChunk::bad_chunk(format!("Failed to resolve {}: {}", server_addr, e));
-                        if let Err(_) = body_tx.send(error_chunk) {
+                        let error_chunk = HttpBodyChunk::bad_chunk(format!("Failed to resolve {server_addr}: {e}"));
+                        if body_tx.send(error_chunk).is_err() {
                             // Sender closed, continue with error
                         }
                         return Err(());
@@ -183,7 +183,7 @@ impl H3Connection {
                 "Blocked potentially dangerous destination address"
             );
             let error_chunk = HttpBodyChunk::bad_chunk("Connection blocked: destination address validation failed".to_string());
-            if let Err(_) = body_tx.send(error_chunk) {
+            if body_tx.send(error_chunk).is_err() {
                 // Sender closed, continue with error
             }
             return Err(());
@@ -223,7 +223,7 @@ impl H3Connection {
                     server_addr = %server_addr,
                     "Failed to create QUIC connection"
                 );
-                return self.send_error_and_return(body_tx, format!("Failed to create QUIC connection: {}", e));
+                return self.send_error_and_return(body_tx, format!("Failed to create QUIC connection: {e}"));
             }
         };
         
@@ -250,7 +250,7 @@ impl H3Connection {
                     error = %e,
                     "Failed initial QUIC handshake send"
                 );
-                return self.send_error_and_return(body_tx, format!("Failed initial QUIC send: {}", e));
+                return self.send_error_and_return(body_tx, format!("Failed initial QUIC send: {e}"));
             }
         };
         
@@ -262,7 +262,7 @@ impl H3Connection {
                 destination = %send_info.to,
                 "Failed to send initial QUIC packet"
             );
-            return self.send_error_and_return(body_tx, format!("Failed to send initial packet: {}", e));
+            return self.send_error_and_return(body_tx, format!("Failed to send initial packet: {e}"));
         }
         
         // Wait for handshake to complete with elite backoff
@@ -292,8 +292,8 @@ impl H3Connection {
                         to: match socket.local_addr() {
                             Ok(addr) => addr,
                             Err(e) => {
-                                let error_chunk = HttpBodyChunk::bad_chunk(format!("Failed to get local address during handshake: {}", e));
-                                if let Err(_) = body_tx.send(error_chunk) {
+                                let error_chunk = HttpBodyChunk::bad_chunk(format!("Failed to get local address during handshake: {e}"));
+                                if body_tx.send(error_chunk).is_err() {
                                     // Sender closed
                                 }
                                 return Err(());
@@ -383,7 +383,7 @@ impl H3Connection {
                     error = %e,
                     "Failed to create H3 config"
                 );
-                return self.send_error_and_return(body_tx, format!("Failed to create H3 config: {}", e));
+                return self.send_error_and_return(body_tx, format!("Failed to create H3 config: {e}"));
             }
         };
         
@@ -396,7 +396,7 @@ impl H3Connection {
                     error = %e,
                     "Failed to create HTTP/3 connection over QUIC transport"
                 );
-                return self.send_error_and_return(body_tx, format!("Failed to create H3 connection: {}", e));
+                return self.send_error_and_return(body_tx, format!("Failed to create H3 connection: {e}"));
             }
         };
         

@@ -1,6 +1,6 @@
 //! Cache configuration and preset policies
 //!
-//! Provides CacheConfig for configuring cache behavior including
+//! Provides `CacheConfig` for configuring cache behavior including
 //! memory limits, TTL settings, and cleanup intervals.
 
 use std::time::Duration;
@@ -34,6 +34,7 @@ impl Default for CacheConfig {
 
 impl CacheConfig {
     /// Create aggressive caching configuration
+    #[must_use] 
     pub fn aggressive() -> Self {
         Self {
             max_entries: 5000,
@@ -45,6 +46,7 @@ impl CacheConfig {
     }
 
     /// Create conservative caching configuration
+    #[must_use] 
     pub fn conservative() -> Self {
         Self {
             max_entries: 200,
@@ -56,6 +58,7 @@ impl CacheConfig {
     }
 
     /// Create no-cache configuration (disabled caching)
+    #[must_use] 
     pub fn no_cache() -> Self {
         Self {
             max_entries: 0,

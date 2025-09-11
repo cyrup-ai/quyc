@@ -36,6 +36,7 @@ pub enum H3ConnectionChunk {
 
 impl H3ConnectionChunk {
     #[inline]
+    #[must_use] 
     pub fn new_connection_ready(connection_id: u64) -> Self {
         Self::ConnectionReady { connection_id }
     }
@@ -60,6 +61,7 @@ impl H3ConnectionChunk {
     }
 
     #[inline]
+    #[must_use] 
     pub fn connection_closed(connection_id: u64, reason: String) -> Self {
         Self::ConnectionClosed {
             connection_id,
@@ -122,6 +124,7 @@ pub enum H3BiStreamChunk {
 
 impl H3BiStreamChunk {
     #[inline]
+    #[must_use] 
     pub fn new_bidi_stream(send_stream_id: u64, recv_stream_id: u64) -> Self {
         Self::BiStreamReady {
             send_stream_id,
@@ -130,11 +133,13 @@ impl H3BiStreamChunk {
     }
 
     #[inline]
+    #[must_use] 
     pub fn send_closed(stream_id: u64) -> Self {
         Self::SendStreamClosed { stream_id }
     }
 
     #[inline]
+    #[must_use] 
     pub fn recv_closed(stream_id: u64) -> Self {
         Self::RecvStreamClosed { stream_id }
     }
@@ -214,6 +219,7 @@ impl H3DataChunk {
     }
 
     #[inline]
+    #[must_use] 
     pub fn stream_reset(stream_id: u64, error_code: u32) -> Self {
         Self::StreamReset {
             stream_id,
@@ -305,6 +311,7 @@ impl H3SendResult {
     }
 
     #[inline]
+    #[must_use] 
     pub fn send_ready(stream_id: u64) -> Self {
         Self::SendReady { stream_id }
     }
@@ -367,6 +374,7 @@ impl H3RequestChunk {
     }
 
     #[inline]
+    #[must_use] 
     pub fn request_ready(request_id: u64) -> Self {
         Self::RequestReady { request_id }
     }

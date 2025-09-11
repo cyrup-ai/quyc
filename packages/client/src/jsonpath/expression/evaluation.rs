@@ -1,6 +1,6 @@
-//! Depth evaluation and selector matching for JsonPathExpression
+//! Depth evaluation and selector matching for `JsonPathExpression`
 //!
-//! Sophisticated depth-based evaluation algorithms for streaming JSONPath
+//! Sophisticated depth-based evaluation algorithms for streaming `JSONPath`
 //! processing with recursive descent handling and efficient selector matching.
 
 use super::core::JsonPathExpression;
@@ -10,7 +10,7 @@ impl JsonPathExpression {
     /// Check if expression matches at specified JSON depth
     ///
     /// Used during streaming to determine if current parsing position
-    /// matches the JSONPath expression navigation requirements.
+    /// matches the `JSONPath` expression navigation requirements.
     ///
     /// # Arguments
     ///
@@ -20,6 +20,7 @@ impl JsonPathExpression {
     ///
     /// `true` if the current depth matches the expression's navigation pattern.
     #[inline]
+    #[must_use] 
     pub fn matches_at_depth(&self, depth: usize) -> bool {
         self.evaluate_selectors_at_depth(depth, 0).is_some()
     }

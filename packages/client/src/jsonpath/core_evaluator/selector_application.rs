@@ -1,4 +1,4 @@
-//! Selector application logic for JSONPath evaluation
+//! Selector application logic for `JSONPath` evaluation
 //!
 //! Contains methods for applying individual selectors to JSON values.
 
@@ -45,6 +45,7 @@ impl CoreJsonPathEvaluator {
                         };
 
                         if actual_index >= 0 && (actual_index as usize) < arr.len() {
+                            // Safe cast: actual_index >= 0 check ensures non-negative value
                             Ok(vec![arr[actual_index as usize].clone()])
                         } else {
                             Ok(vec![])
@@ -103,7 +104,7 @@ impl CoreJsonPathEvaluator {
             }
             JsonSelector::Filter { expression } => {
                 // Filter expression - apply filter to current context
-                self.apply_filter_expression(value, &format!("{:?}", expression))
+                self.apply_filter_expression(value, &format!("{expression:?}"))
             }
             JsonSelector::Union { selectors } => {
                 // Union of multiple selectors

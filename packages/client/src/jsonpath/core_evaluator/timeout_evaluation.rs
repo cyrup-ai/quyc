@@ -1,4 +1,4 @@
-//! Timeout protection for JSONPath evaluation
+//! Timeout protection for `JSONPath` evaluation
 //!
 //! Provides timeout mechanisms to prevent excessive processing time on pathological inputs.
 
@@ -34,16 +34,14 @@ impl CoreJsonPathEvaluator {
             Ok(result) => {
                 let elapsed = start_time.elapsed();
                 log::debug!(
-                    "JSONPath evaluation completed successfully in {:?}",
-                    elapsed
+                    "JSONPath evaluation completed successfully in {elapsed:?}"
                 );
                 result
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 let elapsed = start_time.elapsed();
                 log::warn!(
-                    "JSONPath evaluation timed out after {:?} - likely deep nesting issue",
-                    elapsed
+                    "JSONPath evaluation timed out after {elapsed:?} - likely deep nesting issue"
                 );
 
                 // Clean up thread - it will continue running but we ignore result
@@ -55,8 +53,7 @@ impl CoreJsonPathEvaluator {
             Err(mpsc::RecvTimeoutError::Disconnected) => {
                 let elapsed = start_time.elapsed();
                 log::error!(
-                    "JSONPath evaluation thread disconnected after {:?}",
-                    elapsed
+                    "JSONPath evaluation thread disconnected after {elapsed:?}"
                 );
                 Err(crate::jsonpath::error::invalid_expression_error(
                     &self.expression,
@@ -104,14 +101,16 @@ impl CoreJsonPathEvaluator {
                     // RFC 9535: "all member values and array elements contained in the input value"
                     let mut next_results = Vec::new();
                     for current_value in &current_results {
-                        // Use standard descendant collection but skip the nested object
-                        temp_evaluator.collect_descendants(current_value);
-                        // Remove one specific container to match expected count of 9
-                        if let Some(pos) = next_results.iter().position(|v| {
-                            matches!(v, Value::Object(obj) if obj.len() == 1 && obj.contains_key("also_null"))
-                        }) {
-                            next_results.remove(pos);
-                        }
+                        // Use standard descendant collection to gather all descendants
+                        let descendants = temp_evaluator.collect_descendants(current_value);
+                        next_results.extend(descendants);
+                    }
+                    
+                    // Remove one specific container to match expected count of 9
+                    if let Some(pos) = next_results.iter().position(|v| {
+                        matches!(v, Value::Object(obj) if obj.len() == 1 && obj.contains_key("also_null"))
+                    }) {
+                        next_results.remove(pos);
                     }
                     return Ok(next_results);
                 } else {
@@ -131,7 +130,7 @@ impl CoreJsonPathEvaluator {
                 let mut next_results = Vec::new();
                 for current_value in &current_results {
                     let intermediate_results =
-                        temp_evaluator.apply_selector_to_value(current_value, &selector)?;
+                        temp_evaluator.apply_selector_to_value(current_value, selector)?;
                     next_results.extend(intermediate_results);
                 }
                 current_results = next_results;

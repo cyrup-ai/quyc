@@ -1,13 +1,13 @@
-//! JSONPath nodelist evaluation for function extensions
-//! Handles JSONPath selector evaluation and descendant collection
+//! `JSONPath` nodelist evaluation for function extensions
+//! Handles `JSONPath` selector evaluation and descendant collection
 
 use crate::jsonpath::error::JsonPathResult;
 
-/// JSONPath nodelist evaluator for function extensions
+/// `JSONPath` nodelist evaluator for function extensions
 pub struct JsonPathNodelistEvaluator;
 
 impl JsonPathNodelistEvaluator {
-    /// Evaluate JSONPath selectors to produce a nodelist
+    /// Evaluate `JSONPath` selectors to produce a nodelist
     #[inline]
     pub fn evaluate_jsonpath_nodelist(
         context: &serde_json::Value,
@@ -27,11 +27,10 @@ impl JsonPathNodelistEvaluator {
                         next_nodes.push(node.clone());
                     }
                     JsonSelector::Child { name, .. } => {
-                        if let Some(obj) = node.as_object() {
-                            if let Some(value) = obj.get(name) {
+                        if let Some(obj) = node.as_object()
+                            && let Some(value) = obj.get(name) {
                                 next_nodes.push(value.clone());
                             }
-                        }
                     }
                     JsonSelector::Index { index, from_end } => {
                         if let Some(arr) = node.as_array() {

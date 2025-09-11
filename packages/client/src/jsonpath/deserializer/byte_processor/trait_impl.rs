@@ -48,30 +48,32 @@ impl<'a> SharedByteProcessor<'a> {
         }
     }
     
+    #[must_use] 
     pub fn position(&self) -> usize {
         self.position
     }
     
+    #[must_use] 
     pub fn bytes_consumed(&self) -> usize {
         self.bytes_consumed
     }
 }
 
-impl<'a> JsonByteProcessor for SharedByteProcessor<'a> {
+impl JsonByteProcessor for SharedByteProcessor<'_> {
     fn read_next_byte(&mut self) -> JsonPathResult<Option<u8>> {
         if self.position >= self.buffer.len() {
             return Ok(None);
         }
         
         let byte = self.buffer.get_byte_at(self.position)
-            .ok_or_else(|| JsonPathError::buffer_underflow())?;
+            .ok_or_else(JsonPathError::buffer_underflow)?;
         self.position += 1;
         self.bytes_consumed += 1;
         Ok(Some(byte))
     }
     
     fn process_json_byte(&mut self, byte: u8) -> JsonPathResult<JsonProcessResult> {
-        use JsonProcessResult::*;
+        use JsonProcessResult::{ObjectStart, ObjectEnd, ArrayStart, ArrayEnd, String, Boolean, Null, Number, Comma, Colon, Whitespace};
         
         match byte {
             b'{' => {
@@ -170,7 +172,7 @@ impl<'a> JsonByteProcessor for SharedByteProcessor<'a> {
 }
 
 // Private helper methods
-impl<'a> SharedByteProcessor<'a> {
+impl SharedByteProcessor<'_> {
     fn read_boolean(&mut self, first: u8) -> JsonPathResult<bool> {
         match first {
             b't' => {
@@ -204,7 +206,7 @@ impl<'a> SharedByteProcessor<'a> {
     fn read_number_from_first_byte(&mut self, first: u8) -> JsonPathResult<f64> {
         let mut number_str = vec![first];
         
-        while let Some(byte) = self.peek_next_byte()? {
+        while let Some(byte) = self.peek_next_byte() {
             match byte {
                 b'0'..=b'9' | b'.' | b'e' | b'E' | b'+' | b'-' => {
                     self.read_next_byte()?;
@@ -220,11 +222,11 @@ impl<'a> SharedByteProcessor<'a> {
             .map_err(|_| JsonPathError::invalid_number())
     }
     
-    fn peek_next_byte(&mut self) -> JsonPathResult<Option<u8>> {
+    fn peek_next_byte(&mut self) -> Option<u8> {
         if self.position >= self.buffer.len() {
-            return Ok(None);
+            return None;
         }
         
-        Ok(self.buffer.get_byte_at(self.position))
+        self.buffer.get_byte_at(self.position)
     }
 }

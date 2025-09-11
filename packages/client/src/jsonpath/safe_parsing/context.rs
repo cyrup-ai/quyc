@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use crate::jsonpath::error::{JsonPathResult, buffer_error, invalid_expression_error};
 
-/// Maximum allowed nesting depth for JSONPath expressions
+/// Maximum allowed nesting depth for `JSONPath` expressions
 ///
 /// Prevents stack overflow and excessive memory usage from deeply nested
 /// filter expressions or recursive descent operations.
@@ -21,7 +21,7 @@ pub const MAX_COMPLEXITY_SCORE: u32 = 10_000;
 
 /// Maximum allowed buffer size for expression parsing
 ///
-/// Prevents memory exhaustion from extremely large JSONPath expressions.
+/// Prevents memory exhaustion from extremely large `JSONPath` expressions.
 pub const MAX_BUFFER_SIZE: usize = 1_048_576; // 1MB
 
 /// Maximum parsing time allowed for a single expression
@@ -49,9 +49,16 @@ pub struct SafeParsingContext {
     max_complexity: u32,
 }
 
+impl Default for SafeParsingContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SafeParsingContext {
     /// Create new safe parsing context with default limits
     #[inline]
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             nesting_depth: 0,
@@ -64,6 +71,7 @@ impl SafeParsingContext {
 
     /// Create parsing context with custom limits
     #[inline]
+    #[must_use] 
     pub fn with_limits(max_complexity: u32, strict_utf8: bool) -> Self {
         Self {
             nesting_depth: 0,
@@ -82,7 +90,7 @@ impl SafeParsingContext {
         if self.nesting_depth >= MAX_NESTING_DEPTH {
             return Err(invalid_expression_error(
                 "",
-                &format!("maximum nesting depth {} exceeded", MAX_NESTING_DEPTH),
+                format!("maximum nesting depth {MAX_NESTING_DEPTH} exceeded"),
                 None,
             ));
         }
@@ -137,7 +145,7 @@ impl SafeParsingContext {
         if self.start_time.elapsed() > MAX_PARSE_TIME {
             return Err(invalid_expression_error(
                 "",
-                &format!("parsing timeout after {:?}", MAX_PARSE_TIME),
+                format!("parsing timeout after {MAX_PARSE_TIME:?}"),
                 None,
             ));
         }
@@ -150,7 +158,7 @@ impl SafeParsingContext {
         if complexity_score > self.max_complexity {
             return Err(invalid_expression_error(
                 "",
-                &format!(
+                format!(
                     "expression complexity {} exceeds limit {}",
                     complexity_score, self.max_complexity
                 ),
@@ -162,12 +170,14 @@ impl SafeParsingContext {
 
     /// Get current nesting depth
     #[inline]
+    #[must_use] 
     pub fn nesting_depth(&self) -> usize {
         self.nesting_depth
     }
 
     /// Get allocated memory size
     #[inline]
+    #[must_use] 
     pub fn allocated_memory(&self) -> usize {
         self.allocated_memory
     }
@@ -196,7 +206,7 @@ impl SafeParsingContext {
         
         // Then check for security issues using the validation from http::conversions
         crate::http::conversions::validate_strict_utf8(chunk)
-            .map_err(|e| invalid_expression_error("", &e.to_string(), None))
+            .map_err(|e| invalid_expression_error("", e.to_string(), None))
     }
     
     /// Validate UTF-8 chunk with paranoid security checks
@@ -210,7 +220,7 @@ impl SafeParsingContext {
         
         // Convert to string for advanced checks (safe after strict validation)
         let text = std::str::from_utf8(chunk)
-            .map_err(|e| invalid_expression_error("", &format!("UTF-8 conversion failed: {}", e), None))?;
+            .map_err(|e| invalid_expression_error("", format!("UTF-8 conversion failed: {e}"), None))?;
         
         // Unicode normalization validation - text must be in NFC form
         if !unicode_normalization::is_nfc(text) {
@@ -223,11 +233,11 @@ impl SafeParsingContext {
         
         // Bidirectional attack detection  
         crate::http::conversions::detect_bidirectional_attacks(text)
-            .map_err(|e| invalid_expression_error("", &e.to_string(), None))?;
+            .map_err(|e| invalid_expression_error("", e.to_string(), None))?;
         
         // Multi-pattern security scanning
         crate::http::conversions::scan_for_malicious_patterns(chunk)
-            .map_err(|e| invalid_expression_error("", &e.to_string(), None))?;
+            .map_err(|e| invalid_expression_error("", e.to_string(), None))?;
             
         Ok(())
     }
@@ -235,9 +245,9 @@ impl SafeParsingContext {
     /// Create UTF-8 validation error with context
     fn utf8_error(&self, message: &str, position: usize, error_len: Option<usize>) -> crate::jsonpath::error::JsonPathError {
         let error_detail = if let Some(len) = error_len {
-            format!("{} at byte position {} (error length: {} bytes)", message, position, len)
+            format!("{message} at byte position {position} (error length: {len} bytes)")
         } else {
-            format!("{} at byte position {}", message, position)
+            format!("{message} at byte position {position}")
         };
         
         invalid_expression_error("", &error_detail, Some(position))

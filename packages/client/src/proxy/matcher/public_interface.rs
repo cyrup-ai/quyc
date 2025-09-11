@@ -15,6 +15,7 @@ use super::types::{Intercepted, Matcher, Matcher_};
 
 impl Matcher {
     /// Create new matcher from patterns
+    #[must_use] 
     pub fn new(patterns: Vec<String>) -> Self {
         Self {
             inner: Matcher_::Util(implementation::Matcher::new(patterns)),
@@ -25,6 +26,7 @@ impl Matcher {
     }
 
     /// Create matcher from system environment
+    #[must_use] 
     pub fn from_system() -> Self {
         Self {
             inner: Matcher_::Util(implementation::Matcher::from_system()),

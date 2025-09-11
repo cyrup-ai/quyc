@@ -26,7 +26,7 @@ where
     ///
     /// # Returns
     ///
-    /// AsyncStream over successfully deserialized objects of type `T`.
+    /// `AsyncStream` over successfully deserialized objects of type `T`.
     /// Errors are handled via async-stream error emission patterns.
     ///
     /// # Performance
@@ -131,13 +131,10 @@ where
         let raw_result_count = results.len();
         let mut typed_results = Vec::new();
         for value in results {
-            match serde_json::from_value::<T>(value.clone()) {
-                Ok(typed_value) => {
-                    typed_results.push(typed_value);
-                }
-                Err(_) => {
-                    // Skip invalid values
-                }
+            if let Ok(typed_value) = serde_json::from_value::<T>(value.clone()) {
+                typed_results.push(typed_value);
+            } else {
+                // Skip invalid values
             }
         }
 
@@ -204,9 +201,9 @@ where
         );
 
         // Manually collect the iterator to avoid lifetime dependency
-        let mut iterator = deserializer.process_available();
+        let iterator = deserializer.process_available();
         let mut iteration_count = 0;
-        while let Some(result) = iterator.next() {
+        for result in iterator {
             iteration_count += 1;
             tracing::trace!(
                 target: "quyc::jsonpath::streaming",

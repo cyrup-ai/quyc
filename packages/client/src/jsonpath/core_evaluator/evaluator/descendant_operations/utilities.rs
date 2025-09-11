@@ -8,6 +8,7 @@ use super::core::DescendantOperations;
 
 impl DescendantOperations {
     /// Count total number of descendants
+    #[must_use] 
     pub fn count_descendants(node: &Value) -> usize {
         match node {
             Value::Object(obj) => obj.values().map(|v| 1 + Self::count_descendants(v)).sum(),
@@ -17,6 +18,7 @@ impl DescendantOperations {
     }
 
     /// Get maximum depth of descendants
+    #[must_use] 
     pub fn max_descendant_depth(node: &Value) -> usize {
         match node {
             Value::Object(obj) => obj

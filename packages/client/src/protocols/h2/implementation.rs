@@ -1,6 +1,6 @@
-//! Direct H2 protocol implementation using ystream AsyncStream
+//! Direct H2 protocol implementation using ystream `AsyncStream`
 //!
-//! NO middleware, NO Futures - pure streaming from H2 to AsyncStream
+//! NO middleware, NO Futures - pure streaming from H2 to `AsyncStream`
 
 use std::collections::HashMap;
 // TcpStream import removed - not used
@@ -60,19 +60,19 @@ pub fn execute_h2_request(
                 Err(e) => {
                     emit!(
                         sender,
-                        H2Chunk::bad_chunk(format!("Failed to create tokio runtime: {}", e))
+                        H2Chunk::bad_chunk(format!("Failed to create tokio runtime: {e}"))
                     );
                     return;
                 }
             };
             
             // Establish TCP connection using tokio
-            let tcp = match rt.block_on(tokio::net::TcpStream::connect(format!("{}:{}", host, port))) {
+            let tcp = match rt.block_on(tokio::net::TcpStream::connect(format!("{host}:{port}"))) {
                 Ok(tcp) => tcp,
                 Err(e) => {
                     emit!(
                         sender,
-                        H2Chunk::bad_chunk(format!("TCP connection failed: {}", e))
+                        H2Chunk::bad_chunk(format!("TCP connection failed: {e}"))
                     );
                     return;
                 }
@@ -100,7 +100,7 @@ pub fn execute_h2_request(
                                     Err(e) => {
                                         emit!(
                                             sender,
-                                            H2Chunk::bad_chunk(format!("Failed to build HTTP request: {}", e))
+                                            H2Chunk::bad_chunk(format!("Failed to build HTTP request: {e}"))
                                         );
                                         return;
                                     }
@@ -131,8 +131,7 @@ pub fn execute_h2_request(
                                                 emit!(
                                                     sender,
                                                     H2Chunk::bad_chunk(format!(
-                                                        "H2 response error: {}",
-                                                        e
+                                                        "H2 response error: {e}"
                                                     ))
                                                 );
                                                 break;
@@ -142,14 +141,14 @@ pub fn execute_h2_request(
                                     Err(e) => {
                                         emit!(
                                             sender,
-                                            H2Chunk::bad_chunk(format!("H2 send error: {}", e))
+                                            H2Chunk::bad_chunk(format!("H2 send error: {e}"))
                                         );
                                         break;
                                     }
                                 }
                             }
                             Err(e) => {
-                                emit!(sender, H2Chunk::bad_chunk(format!("H2 ready error: {}", e)));
+                                emit!(sender, H2Chunk::bad_chunk(format!("H2 ready error: {e}")));
                                 break;
                             }
                         }
@@ -158,7 +157,7 @@ pub fn execute_h2_request(
                 Err(e) => {
                     emit!(
                         sender,
-                        H2Chunk::bad_chunk(format!("H2 handshake failed: {}", e))
+                        H2Chunk::bad_chunk(format!("H2 handshake failed: {e}"))
                     );
                 }
             }

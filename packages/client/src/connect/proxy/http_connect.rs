@@ -14,6 +14,7 @@ pub struct HttpConnectConfig {
 
 impl HttpConnectConfig {
     /// Create new HTTP CONNECT configuration
+    #[must_use] 
     pub fn new(target_host: String, target_port: u16) -> Self {
         Self {
             target_host,
@@ -24,6 +25,7 @@ impl HttpConnectConfig {
     }
 
     /// Add basic authentication
+    #[must_use] 
     pub fn with_auth(mut self, username: &str, password: &str) -> Self {
         use base64::Engine;
         let credentials = format!("{username}:{password}");
@@ -33,6 +35,7 @@ impl HttpConnectConfig {
     }
 
     /// Add custom headers
+    #[must_use] 
     pub fn with_headers(mut self, headers: hyper::HeaderMap) -> Self {
         self.custom_headers = Some(headers);
         self

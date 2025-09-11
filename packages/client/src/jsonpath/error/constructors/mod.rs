@@ -1,6 +1,6 @@
 //! Error constructor functions module
 //!
-//! Provides convenient factory functions for creating JSONPath error types
+//! Provides convenient factory functions for creating `JSONPath` error types
 //! with proper context and formatting.
 
 mod core;

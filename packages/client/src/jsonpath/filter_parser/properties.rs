@@ -1,7 +1,7 @@
-//! Property access parsing for JSONPath filter expressions
+//! Property access parsing for `JSONPath` filter expressions
 //!
 //! Handles parsing of property access patterns including current node (@),
-//! property chains (@.prop1.prop2), and complex JSONPath selectors.
+//! property chains (@.prop1.prop2), and complex `JSONPath` selectors.
 
 use super::core::FilterParser;
 use crate::jsonpath::{
@@ -10,7 +10,7 @@ use crate::jsonpath::{
     tokens::Token,
 };
 
-impl<'a> FilterParser<'a> {
+impl FilterParser<'_> {
     /// Parse property access after @ token
     pub(super) fn parse_property_access(&mut self) -> JsonPathResult<FilterExpression> {
         // Check for just @ (current node)

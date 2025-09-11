@@ -24,6 +24,7 @@ pub struct CacheStats {
 
 impl CacheStats {
     /// Create new cache statistics
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             hits: AtomicU64::new(0),
@@ -69,7 +70,10 @@ impl CacheStats {
         if total == 0 {
             0.0
         } else {
-            hits as f64 / total as f64
+            #[allow(clippy::cast_precision_loss)]
+            {
+                hits as f64 / total as f64
+            }
         }
     }
 

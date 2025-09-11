@@ -1,7 +1,7 @@
-//! Timeout protection for JSONPath evaluation
+//! Timeout protection for `JSONPath` evaluation
 //!
 //! Provides thread-based timeout handling to prevent excessive processing time
-//! on pathological JSONPath expressions or deeply nested JSON structures.
+//! on pathological `JSONPath` expressions or deeply nested JSON structures.
 
 use std::sync::mpsc;
 use std::thread;
@@ -29,11 +29,11 @@ impl Default for TimeoutConfig {
     }
 }
 
-/// Timeout handler for JSONPath evaluation
+/// Timeout handler for `JSONPath` evaluation
 pub struct TimeoutHandler;
 
 impl TimeoutHandler {
-    /// Evaluate JSONPath expression with timeout protection
+    /// Evaluate `JSONPath` expression with timeout protection
     pub fn evaluate_with_timeout(
         evaluator: &CoreJsonPathEvaluator,
         json: &Value,
@@ -64,8 +64,7 @@ impl TimeoutHandler {
                 let elapsed = start_time.elapsed();
                 if config.log_timeouts {
                     log::debug!(
-                        "JSONPath evaluation completed successfully in {:?}",
-                        elapsed
+                        "JSONPath evaluation completed successfully in {elapsed:?}"
                     );
                 }
                 result
@@ -74,8 +73,7 @@ impl TimeoutHandler {
                 let elapsed = start_time.elapsed();
                 if config.log_timeouts {
                     log::warn!(
-                        "JSONPath evaluation timed out after {:?} - likely deep nesting issue",
-                        elapsed
+                        "JSONPath evaluation timed out after {elapsed:?} - likely deep nesting issue"
                     );
                 }
 
@@ -89,8 +87,7 @@ impl TimeoutHandler {
                 let elapsed = start_time.elapsed();
                 if config.log_timeouts {
                     log::error!(
-                        "JSONPath evaluation thread disconnected after {:?}",
-                        elapsed
+                        "JSONPath evaluation thread disconnected after {elapsed:?}"
                     );
                 }
                 Err(crate::jsonpath::error::invalid_expression_error(
@@ -114,22 +111,24 @@ impl TimeoutHandler {
     }
 
     /// Check if an expression is likely to cause timeout
+    #[must_use] 
     pub fn is_potentially_slow(expression: &str) -> bool {
         // Patterns that are known to be expensive
         expression.contains("..") ||  // Recursive descent
-        expression.contains("*") ||   // Wildcard
+        expression.contains('*') ||   // Wildcard
         expression.contains("[?") ||  // Filters
         expression.contains("[:") ||  // Slices
         expression.matches('[').count() > 3 // Deep nesting
     }
 
     /// Estimate evaluation complexity
+    #[must_use] 
     pub fn estimate_complexity(expression: &str) -> u32 {
         let mut complexity = 1;
 
         // Add complexity for expensive operations
         complexity += expression.matches("..").count() as u32 * 50; // Recursive descent
-        complexity += expression.matches("*").count() as u32 * 10; // Wildcard
+        complexity += expression.matches('*').count() as u32 * 10; // Wildcard
         complexity += expression.matches("[?").count() as u32 * 20; // Filters
         complexity += expression.matches("[:").count() as u32 * 5; // Slices
         complexity += expression.matches('[').count() as u32 * 2; // Array access
@@ -138,6 +137,7 @@ impl TimeoutHandler {
     }
 
     /// Get recommended timeout for expression
+    #[must_use] 
     pub fn recommended_timeout(expression: &str) -> Duration {
         let complexity = Self::estimate_complexity(expression);
 

@@ -77,7 +77,7 @@ pub trait ProtocolConfig: Clone + Send + Sync {
     /// Get timeout settings
     fn timeout_config(&self) -> TimeoutConfig;
 
-    /// Convert to HttpConfig for compatibility
+    /// Convert to `HttpConfig` for compatibility
     fn to_http_config(&self) -> HttpConfig;
 }
 
@@ -103,6 +103,7 @@ pub struct ProtocolCapabilities {
 
 impl ProtocolCapabilities {
 
+    #[must_use] 
     pub const fn http2() -> Self {
         Self {
             supports_multiplexing: true,
@@ -113,6 +114,7 @@ impl ProtocolCapabilities {
         }
     }
 
+    #[must_use] 
     pub const fn http3() -> Self {
         Self {
             supports_multiplexing: true,

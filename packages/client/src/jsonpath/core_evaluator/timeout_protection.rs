@@ -1,4 +1,4 @@
-//! Timeout protection for JSONPath evaluation
+//! Timeout protection for `JSONPath` evaluation
 //!
 //! This module provides safety mechanisms to prevent excessive processing time on pathological inputs.
 
@@ -12,7 +12,7 @@ use crate::jsonpath::error::JsonPathError;
 
 type JsonPathResult<T> = Result<T, JsonPathError>;
 
-/// Timeout-protected evaluator for preventing runaway JSONPath evaluations
+/// Timeout-protected evaluator for preventing runaway `JSONPath` evaluations
 pub struct TimeoutProtectedEvaluator;
 
 impl TimeoutProtectedEvaluator {
@@ -48,22 +48,19 @@ impl TimeoutProtectedEvaluator {
             Ok(result) => {
                 let elapsed = start_time.elapsed();
                 log::debug!(
-                    "JSONPath evaluation completed successfully in {:?}",
-                    elapsed
+                    "JSONPath evaluation completed successfully in {elapsed:?}"
                 );
                 result
             }
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 let elapsed = start_time.elapsed();
                 log::warn!(
-                    "JSONPath evaluation timed out after {:?} - likely deep nesting issue",
-                    elapsed
+                    "JSONPath evaluation timed out after {elapsed:?} - likely deep nesting issue"
                 );
                 Err(JsonPathError::new(
                     crate::jsonpath::error::ErrorKind::ProcessingError,
                     format!(
-                        "Expression '{}' timed out after {}ms",
-                        expression_str_for_error, timeout_ms
+                        "Expression '{expression_str_for_error}' timed out after {timeout_ms}ms"
                     ),
                 ))
             }
@@ -127,6 +124,7 @@ impl TimeoutProtectedEvaluator {
     }
 
     /// Check if an expression is potentially dangerous
+    #[must_use] 
     pub fn is_dangerous_expression(expression: &str) -> bool {
         // Patterns that can cause exponential complexity
         let dangerous_patterns = [
@@ -158,6 +156,7 @@ impl TimeoutProtectedEvaluator {
     }
 
     /// Get recommended timeout for an expression
+    #[must_use] 
     pub fn recommended_timeout_ms(expression: &str) -> u64 {
         if Self::is_dangerous_expression(expression) {
             5000 // 5 seconds for dangerous expressions

@@ -1,7 +1,7 @@
 //! Regex functions module
 //!
-//! RFC 9535 Section 2.4.6 & 2.4.7: match() and search() function implementations
-//! with ReDoS protection and comprehensive testing
+//! RFC 9535 Section 2.4.6 & 2.4.7: `match()` and `search()` function implementations
+//! with `ReDoS` protection and comprehensive testing
 
 mod core;
 

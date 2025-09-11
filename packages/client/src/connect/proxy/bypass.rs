@@ -15,6 +15,7 @@ pub struct ProxyBypass {
 
 impl ProxyBypass {
     /// Create new bypass configuration
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             no_proxy_hosts: Vec::new(),
@@ -24,18 +25,21 @@ impl ProxyBypass {
     }
 
     /// Add host to bypass list
+    #[must_use] 
     pub fn add_host(mut self, host: String) -> Self {
         self.no_proxy_hosts.push(host);
         self
     }
 
     /// Add domain to bypass list (matches subdomains)
+    #[must_use] 
     pub fn add_domain(mut self, domain: String) -> Self {
         self.no_proxy_domains.push(domain);
         self
     }
 
     /// Add IP address to bypass list
+    #[must_use] 
     pub fn add_ip(mut self, ip: std::net::IpAddr) -> Self {
         self.no_proxy_ips.push(ip);
         self

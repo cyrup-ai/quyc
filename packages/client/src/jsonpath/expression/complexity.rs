@@ -1,4 +1,4 @@
-//! Complexity analysis for JsonPathExpression
+//! Complexity analysis for `JsonPathExpression`
 //!
 //! Sophisticated complexity metrics and scoring algorithms for performance
 //! optimization and query planning with zero-allocation patterns.
@@ -12,6 +12,7 @@ impl JsonPathExpression {
     /// Provides detailed breakdown of complexity factors for performance optimization guidance.
     /// All metrics are computed with zero allocations for optimal performance.
     #[inline]
+    #[must_use] 
     pub fn complexity_metrics(&self) -> ComplexityMetrics {
         let mut metrics = ComplexityMetrics::new();
 
@@ -54,7 +55,7 @@ impl JsonPathExpression {
     /// Calculate sophisticated complexity score for performance optimization
     ///
     /// Uses advanced algorithm considering multiple complexity factors:
-    /// - Base cost: minimum cost for any JSONPath expression
+    /// - Base cost: minimum cost for any `JSONPath` expression
     /// - Depth penalty: exponential cost increase for recursive descent
     /// - Filter complexity: sum of all filter expression complexities  
     /// - Selector multiplier: interaction effects between selectors
@@ -68,6 +69,7 @@ impl JsonPathExpression {
     /// All calculations use saturating arithmetic to prevent overflow and are optimized
     /// for zero allocations in hot paths.
     #[inline]
+    #[must_use] 
     pub fn complexity_score(&self) -> u32 {
         let metrics = self.complexity_metrics();
 

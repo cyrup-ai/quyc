@@ -1,4 +1,4 @@
-//! Contains implementations of external traits including ChunkHandler for
+//! Contains implementations of external traits including `ChunkHandler` for
 //! ystream integration and Debug for development support.
 
 use std::fmt;
@@ -12,6 +12,7 @@ use crate::prelude::*;
 /// Trait for builder extensions
 pub trait BuilderExt {
     /// Add custom chunk handler for stream processing
+    #[must_use]
     fn on_chunk<F>(self, handler: F) -> Self
     where
         F: Fn(Result<HttpChunk, HttpError>) -> HttpChunk + Send + Sync + 'static;
@@ -20,12 +21,14 @@ pub trait BuilderExt {
 /// Request builder extensions
 pub trait RequestBuilderExt {
     /// Configure request with custom settings
+    #[must_use]
     fn configure<F>(self, config_fn: F) -> Self
     where
         F: FnOnce(Self) -> Self,
         Self: Sized;
 
     /// Add middleware to request processing
+    #[must_use]
     fn middleware<F>(self, middleware_fn: F) -> Self
     where
         F: Fn(HttpChunk) -> HttpChunk + Send + Sync + 'static,
@@ -57,11 +60,12 @@ impl<S> RequestBuilderExt for Http3Builder<S> {
         F: Fn(HttpChunk) -> HttpChunk + Send + Sync + 'static,
     {
         // Implementation would store middleware function for later use
+        // Protocol config is preserved through self
         self
     }
 }
 
-/// Implement ChunkHandler trait for Http3Builder to support ystream on_chunk pattern
+/// Implement `ChunkHandler` trait for `Http3Builder` to support ystream `on_chunk` pattern
 impl<S> ChunkHandler<HttpChunk, HttpError> for Http3Builder<S> {
     #[inline]
     fn on_chunk<F>(self, handler: F) -> Self
@@ -80,6 +84,7 @@ impl<S> Http3Builder<S> {
         handler: Arc<dyn Fn(Result<HttpChunk, HttpError>) -> HttpChunk + Send + Sync>,
     ) -> Self {
         self.chunk_handler = Some(handler);
+        // Protocol config is preserved through mut self
         self
     }
 }
@@ -90,6 +95,9 @@ impl<S> fmt::Debug for Http3Builder<S> {
             .field("client", &"HttpClient")
             .field("request", &"HttpRequest")
             .field("debug_enabled", &self.debug_enabled)
+            .field("jsonpath_config", &self.jsonpath_config)
+            .field("chunk_handler", &self.chunk_handler.as_ref().map(|_| "ChunkHandler"))
+            .field("protocol_config", &self.protocol_config)
             .finish()
     }
 }
@@ -117,43 +125,43 @@ impl<S> Http3Builder<S> {
 
     /// Set HTTP/3 stream receive window
     #[inline]
-    pub fn http3_stream_receive_window(self, _window: u32) -> Self {
-        // Store window size in request configuration
+    pub fn http3_stream_receive_window(mut self, window: u32) -> Self {
+        self.protocol_config.h3_stream_receive_window = Some(window);
         self
     }
 
     /// Set HTTP/3 connection receive window
     #[inline]
-    pub fn http3_conn_receive_window(self, _window: u32) -> Self {
-        // Store connection receive window
+    pub fn http3_conn_receive_window(mut self, window: u32) -> Self {
+        self.protocol_config.h3_conn_receive_window = Some(window);
         self
     }
 
     /// Set HTTP/3 send window
     #[inline]
-    pub fn http3_send_window(self, _window: u32) -> Self {
-        // Store send window
+    pub fn http3_send_window(mut self, window: u32) -> Self {
+        self.protocol_config.h3_send_window = Some(window);
         self
     }
 
     /// Enable HTTP/3 BBR congestion control
     #[inline]
-    pub fn http3_congestion_bbr(self, _enable: bool) -> Self {
-        // Store BBR congestion control setting
+    pub fn http3_congestion_bbr(mut self, enable: bool) -> Self {
+        self.protocol_config.h3_congestion_bbr = Some(enable);
         self
     }
 
     /// Set HTTP/3 maximum field section size
     #[inline]
-    pub fn http3_max_field_section_size(self, _size: u64) -> Self {
-        // Store max field section size
+    pub fn http3_max_field_section_size(mut self, size: u64) -> Self {
+        self.protocol_config.h3_max_field_section_size = Some(size);
         self
     }
 
     /// Enable HTTP/3 GREASE sending
     #[inline]
-    pub fn http3_send_grease(self, _enable: bool) -> Self {
-        // Store GREASE setting
+    pub fn http3_send_grease(mut self, enable: bool) -> Self {
+        self.protocol_config.h3_send_grease = Some(enable);
         self
     }
 
@@ -166,15 +174,15 @@ impl<S> Http3Builder<S> {
 
     /// Set HTTP/2 adaptive window
     #[inline]
-    pub fn http2_adaptive_window(self, _enable: bool) -> Self {
-        // Store HTTP/2 adaptive window setting
+    pub fn http2_adaptive_window(mut self, enable: bool) -> Self {
+        self.protocol_config.h2_adaptive_window = Some(enable);
         self
     }
 
     /// Set HTTP/2 maximum frame size
     #[inline]
-    pub fn http2_max_frame_size(self, _size: u32) -> Self {
-        // Store HTTP/2 max frame size
+    pub fn http2_max_frame_size(mut self, size: u32) -> Self {
+        self.protocol_config.h2_max_frame_size = Some(size);
         self
     }
 }

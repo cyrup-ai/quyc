@@ -1,14 +1,14 @@
-//! JSONPath processing statistics
+//! `JSONPath` processing statistics
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
-/// Statistics for JSONPath stream processing
+/// Statistics for `JSONPath` stream processing
 #[derive(Debug)]
 pub struct JsonPathStats {
     /// Number of JSON objects processed
     pub objects_processed: AtomicU64,
-    /// Number of JSONPath matches found
+    /// Number of `JSONPath` matches found
     pub matches_found: AtomicU64,
     /// Number of processing errors
     pub errors: AtomicU64,
@@ -18,8 +18,15 @@ pub struct JsonPathStats {
     pub start_time: Instant,
 }
 
+impl Default for JsonPathStats {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl JsonPathStats {
-    /// Create new JSONPath statistics
+    /// Create new `JSONPath` statistics
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             objects_processed: AtomicU64::new(0),

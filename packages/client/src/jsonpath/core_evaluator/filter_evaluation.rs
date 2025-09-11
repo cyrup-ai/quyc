@@ -1,4 +1,4 @@
-//! Filter expression evaluation for JSONPath
+//! Filter expression evaluation for `JSONPath`
 //!
 //! Contains methods for evaluating filter expressions on JSON values.
 
@@ -26,7 +26,7 @@ impl CoreJsonPathEvaluator {
             }
             Value::Object(obj) => {
                 let mut results = Vec::new();
-                for (key, item) in obj.iter() {
+                for (key, item) in obj {
                     if self.evaluate_filter_on_object_item(item, filter_expr, key)? {
                         results.push(item.clone());
                     }
@@ -60,15 +60,14 @@ impl CoreJsonPathEvaluator {
 
                 if left == "@" {
                     // Compare entire item
-                    return Ok(item.as_str().map_or(false, |s| s == right));
+                    return Ok(item.as_str() == Some(right));
                 } else if left.starts_with("@.") {
                     // Compare property
                     let prop_name = left.trim_start_matches("@.");
-                    if let Value::Object(obj) = item {
-                        if let Some(prop_value) = obj.get(prop_name) {
-                            return Ok(prop_value.as_str().map_or(false, |s| s == right));
+                    if let Value::Object(obj) = item
+                        && let Some(prop_value) = obj.get(prop_name) {
+                            return Ok(prop_value.as_str() == Some(right));
                         }
-                    }
                 }
             }
         }

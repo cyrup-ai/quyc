@@ -1,6 +1,6 @@
 //! Core proxy types and structures
 //!
-//! Defines the main Proxy, NoProxy, Extra, and Intercept types
+//! Defines the main Proxy, `NoProxy`, Extra, and Intercept types
 //! for HTTP proxy configuration and management.
 
 // Arc import removed - not used

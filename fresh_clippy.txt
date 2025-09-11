@@ -1,0 +1,17 @@
+    Checking quyc_client v0.1.0 (/Volumes/samsung_t9/quyc/packages/client)
+error[E0308]: mismatched types
+   --> packages/client/src/protocols/quiche/h3_adapter.rs:358:20
+    |
+346 | fn encode_headers(headers: &[(Vec<u8>, Vec<u8>)]) -> Vec<u8> {
+    |                                                      ------- expected `std::vec::Vec<u8>` because of return type
+...
+358 |             return Err(format!("Header name too long: {} bytes", name.len()));
+    |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Vec<u8>`, found `Result<_, String>`
+    |
+    = note: expected struct `std::vec::Vec<u8>`
+                 found enum `std::result::Result<_, std::string::String>`
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `quyc_client` (lib test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `quyc_client` (lib) due to 1 previous error

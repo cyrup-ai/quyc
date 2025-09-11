@@ -1,6 +1,6 @@
 //! Value conversion and expression evaluation for filter expressions
 //!
-//! Contains logic for converting between JSON values and FilterValues,
+//! Contains logic for converting between JSON values and `FilterValues`,
 //! and evaluating filter expressions to produce values.
 
 use std::collections::HashSet;
@@ -9,7 +9,7 @@ use crate::jsonpath::error::{JsonPathResult, deserialization_error};
 use crate::jsonpath::functions::FunctionEvaluator;
 use crate::jsonpath::parser::{FilterExpression, FilterValue};
 
-/// Convert serde_json::Value to FilterValue
+/// Convert `serde_json::Value` to `FilterValue`
 #[inline]
 pub(super) fn json_value_to_filter_value(value: &serde_json::Value) -> FilterValue {
     match value {
@@ -69,7 +69,7 @@ pub fn evaluate_expression_with_context(
         }
         _ => Err(deserialization_error(
             "complex expressions not supported in value context".to_string(),
-            format!("{:?}", expr),
+            format!("{expr:?}"),
             "FilterValue",
         )),
     }

@@ -7,17 +7,11 @@ use crate::connect::service::ConnectorService;
 
 /// HTTP/3 connection provider with zero-allocation streaming
 #[derive(Clone, Debug)]
+#[derive(Default)]
 pub struct Connector {
     pub inner: ConnectorKind,
 }
 
-impl Default for Connector {
-    fn default() -> Self {
-        Self {
-            inner: ConnectorKind::default(),
-        }
-    }
-}
 
 /// Enumeration of different connector implementations
 #[derive(Clone, Debug)]
@@ -192,11 +186,11 @@ impl Default for ConnectorKind {
     }
 }
 
-/// Direct ConnectorService type - no more Service trait boxing needed
+/// Direct `ConnectorService` type - no more Service trait boxing needed
 pub type BoxedConnectorService = ConnectorService;
 
 /// Simplified approach: Use trait objects for connector layers
-/// This provides the same functionality as tower::Layer but with AsyncStream services
+/// This provides the same functionality as `tower::Layer` but with `AsyncStream` services
 /// Boxed connector layer type for composable connection handling.
 pub type BoxedConnectorLayer =
     Box<dyn Fn(BoxedConnectorService) -> BoxedConnectorService + Send + Sync + 'static>;

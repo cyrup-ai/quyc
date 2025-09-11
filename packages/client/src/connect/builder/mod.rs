@@ -4,7 +4,7 @@
 //!
 //! # Modules
 //!
-//! - [`types`] - Core ConnectorBuilder struct and basic configuration methods
+//! - [`types`] - Core `ConnectorBuilder` struct and basic configuration methods
 //! - [`tls`] - TLS-specific constructors and configuration (native-tls and rustls)
 //! - [`build`] - Final build logic and connector creation
 

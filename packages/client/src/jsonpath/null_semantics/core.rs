@@ -1,4 +1,4 @@
-//! Core NullSemantics struct and main operations
+//! Core `NullSemantics` struct and main operations
 
 use serde_json::Value as JsonValue;
 
@@ -14,7 +14,7 @@ pub struct NullSemantics;
 impl NullSemantics {
     /// Access a property with proper null vs missing distinction
     ///
-    /// Returns PropertyAccessResult to distinguish between:
+    /// Returns `PropertyAccessResult` to distinguish between:
     /// - A property that exists with null value
     /// - A property that does not exist (missing)
     /// - A property that exists with a non-null value
@@ -41,7 +41,7 @@ impl NullSemantics {
         result.is_present()
     }
 
-    /// Convert PropertyAccessResult to Option<JsonValue> for compatibility
+    /// Convert `PropertyAccessResult` to Option<JsonValue> for compatibility
     ///
     /// Used when interacting with existing code that expects Option<JsonValue>.
     /// Note: This loses the null vs missing distinction.
@@ -50,7 +50,7 @@ impl NullSemantics {
         Conversion::to_option(result)
     }
 
-    /// Convert PropertyAccessResult to JsonValue with explicit missing representation
+    /// Convert `PropertyAccessResult` to `JsonValue` with explicit missing representation
     ///
     /// For cases where the distinction needs to be preserved, this converts
     /// missing values to a special sentinel value that can be detected later.
@@ -59,7 +59,7 @@ impl NullSemantics {
         Conversion::to_json_with_missing_marker(result)
     }
 
-    /// Check if a JsonValue is the missing marker
+    /// Check if a `JsonValue` is the missing marker
     #[inline]
     pub fn is_missing_marker(value: &JsonValue) -> bool {
         Conversion::is_missing_marker(value)
@@ -143,9 +143,8 @@ impl NullSemantics {
             if result != expected {
                 return Err(invalid_expression_error(
                     "",
-                    &format!(
-                        "null semantics validation failed: expected {:?}, got {:?}",
-                        expected, result
+                    format!(
+                        "null semantics validation failed: expected {expected:?}, got {result:?}"
                     ),
                     None,
                 ));

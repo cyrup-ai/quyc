@@ -54,6 +54,7 @@ impl PostOperation {
     ///
     /// # Returns
     /// `Self` for method chaining - errors silently ignored, handled during execution
+    #[must_use] 
     pub fn header(mut self, key: &str, value: &str) -> Self {
         if let (Ok(header_name), Ok(header_value)) = (
             HeaderName::from_bytes(key.as_bytes()),
@@ -131,7 +132,7 @@ impl HttpOperation for PostOperation {
                 return AsyncStream::with_channel(move |sender| {
                     let error_response = crate::prelude::HttpResponse::error(
                         http::StatusCode::BAD_REQUEST,
-                        format!("URL parse error: {}", e)
+                        format!("URL parse error: {e}")
                     );
                     ystream::emit!(sender, error_response);
                 });

@@ -35,9 +35,9 @@ pub type HttpConnector = Connector;
 
 // Direct connection method implementation for Connector
 impl Connector {
-    /// Direct connection method - replaces Service::call with AsyncStream
+    /// Direct connection method - replaces `Service::call` with `AsyncStream`
     /// RETAINS: All proxy handling, TLS, timeouts, connection pooling functionality
-    /// Returns unwrapped AsyncStream<TcpConnectionChunk> per async-stream architecture
+    /// Returns unwrapped `AsyncStream`<TcpConnectionChunk> per async-stream architecture
     pub fn connect(&mut self, dst: http::Uri) -> ystream::AsyncStream<TcpConnectionChunk> {
         match &mut self.inner {
             types::ConnectorKind::WithLayers(s) => s.connect(dst),

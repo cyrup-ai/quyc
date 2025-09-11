@@ -16,16 +16,19 @@ pub struct Matcher {
 
 impl Matcher {
     /// Create new matcher with patterns
+    #[must_use] 
     pub fn new(patterns: Vec<String>) -> Self {
         Self { patterns }
     }
 
     /// Create builder for matcher configuration
+    #[must_use] 
     pub fn builder() -> super::builder::MatcherBuilder {
         super::builder::MatcherBuilder::new()
     }
 
     /// Create matcher from system environment variables
+    #[must_use] 
     pub fn from_system() -> Self {
         // Read system proxy settings from environment variables
         let no_proxy = std::env::var("NO_PROXY")
@@ -53,7 +56,7 @@ impl Matcher {
                     let url_task = ystream::spawn_task(|| -> Result<crate::Url, String> {
                         "http://localhost:8080"
                             .parse()
-                            .map_err(|e| format!("Proxy URL parse failed: {}", e))
+                            .map_err(|e| format!("Proxy URL parse failed: {e}"))
                     });
 
                     match url_task.collect().into_iter().next() {
@@ -68,7 +71,7 @@ impl Matcher {
                                             // Final fallback - this should never fail
                                             crate::Url::parse("http://0.0.0.0:8080")
                                                 .unwrap_or_else(|parse_error| {
-                                                    log::error!("All proxy matcher URL parsing failed: {}", parse_error);
+                                                    log::error!("All proxy matcher URL parsing failed: {parse_error}");
                                                     crate::Url::parse("data:text/plain,proxy-matcher-error").expect("data URL must parse")
                                                 })
                                         })
@@ -87,8 +90,7 @@ impl Matcher {
         self.patterns.iter().any(|pattern| {
             if pattern == "*" {
                 true
-            } else if pattern.starts_with("*.") {
-                let domain = &pattern[2..];
+            } else if let Some(domain) = pattern.strip_prefix("*.") {
                 host.ends_with(domain) || host == domain
             } else {
                 host == pattern

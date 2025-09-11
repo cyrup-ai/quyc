@@ -28,6 +28,7 @@ impl Default for MetricsCollector {
 
 impl MetricsCollector {
     /// Create new metrics collector
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             total_requests: AtomicUsize::new(0),
@@ -104,9 +105,12 @@ pub struct RequestMetrics {
 
 impl RequestMetrics {
     /// Calculate success rate as percentage
+    #[must_use] 
     pub fn success_rate(&self) -> f64 {
         if self.total_requests > 0 {
-            (self.successful_requests as f64 / self.total_requests as f64) * 100.0
+            // Precision loss acceptable for request success rate statistics
+            #[allow(clippy::cast_precision_loss)]
+            { (self.successful_requests as f64 / self.total_requests as f64) * 100.0 }
         } else {
             0.0
         }
@@ -126,7 +130,5 @@ pub struct OperationMetrics {
     pub success_rate: f64,
 }
 
-lazy_static::lazy_static! {
-    /// Global metrics instance
-    pub static ref GLOBAL_METRICS: MetricsCollector = MetricsCollector::new();
-}
+/// Global metrics instance
+pub static GLOBAL_METRICS: std::sync::LazyLock<MetricsCollector> = std::sync::LazyLock::new(MetricsCollector::new);

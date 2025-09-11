@@ -1,4 +1,4 @@
-//! Selector matching and evaluation logic for streaming JSONPath processing
+//! Selector matching and evaluation logic for streaming `JSONPath` processing
 //!
 //! Contains specialized logic for evaluating array indices, slices, and other
 //! selector types against the current streaming context.
@@ -7,7 +7,7 @@ use serde::de::DeserializeOwned;
 
 use super::iterator::JsonPathIterator;
 
-impl<'iter, 'data, T> JsonPathIterator<'iter, 'data, T>
+impl<T> JsonPathIterator<'_, '_, T>
 where
     T: DeserializeOwned,
 {

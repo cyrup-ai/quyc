@@ -11,7 +11,7 @@ impl<T> JsonStreamProcessor<T>
 where
     T: DeserializeOwned + ystream::prelude::MessageChunk + Default + Send + 'static,
 {
-    /// Process individual body chunk through JSONPath deserialization
+    /// Process individual body chunk through `JSONPath` deserialization
     pub(super) fn process_body_chunk<S>(
         &mut self,
         sender: &AsyncStreamSender<S>,
@@ -53,7 +53,7 @@ where
                 Ok(object) => {
                     self.stats.record_object_yield();
                     let converted_object: S = object.into();
-                    if let Err(_) = sender.send(converted_object) {
+                    if sender.send(converted_object).is_err() {
                         // Channel closed, stop processing
                         break;
                     }
@@ -112,11 +112,13 @@ where
     }
 
     /// Get current error recovery state
+    #[must_use] 
     pub fn get_circuit_state(&self) -> super::types::CircuitState {
         self.error_recovery.get_current_state()
     }
 
     /// Check if processor is healthy for new requests
+    #[must_use] 
     pub fn is_healthy(&self) -> bool {
         self.error_recovery.should_allow_request()
     }

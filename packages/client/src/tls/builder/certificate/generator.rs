@@ -13,11 +13,13 @@ pub struct CertificateGenerator {
 }
 
 impl CertificateGenerator {
+    #[must_use] 
     pub fn new() -> Self {
         Self {}
     }
 
     /// Generate certificate for single domain
+    #[must_use] 
     pub fn domain(self, domain: &str) -> CertificateGeneratorWithDomain {
         CertificateGeneratorWithDomain {
             domains: vec![domain.to_string()],
@@ -42,6 +44,7 @@ impl CertificateGenerator {
     }
 
     /// Generate wildcard certificate for domain
+    #[must_use] 
     pub fn wildcard(self, domain: &str) -> CertificateGeneratorWithDomain {
         CertificateGeneratorWithDomain {
             domains: vec![format!("*.{}", domain)],
@@ -73,6 +76,7 @@ pub struct CertificateGeneratorWithDomain {
 
 impl CertificateGeneratorWithDomain {
     /// Sign certificate with certificate authority
+    #[must_use] 
     pub fn authority(self, ca: &CertificateAuthority) -> Self {
         Self {
             authority: Some(ca.clone()),
@@ -82,6 +86,7 @@ impl CertificateGeneratorWithDomain {
     }
 
     /// Generate self-signed certificate
+    #[must_use] 
     pub fn self_signed(self) -> Self {
         Self {
             self_signed: true,
@@ -91,6 +96,7 @@ impl CertificateGeneratorWithDomain {
     }
 
     /// Set validity period in days
+    #[must_use] 
     pub fn valid_for_days(self, days: u32) -> Self {
         Self {
             valid_for_days: days,
@@ -121,7 +127,7 @@ impl CertificateGeneratorWithDomain {
                     private_key_pem: None,
                     issues: vec![GenerationIssue {
                         severity: IssueSeverity::Error,
-                        message: format!("Failed to create certificate parameters: {}", e),
+                        message: format!("Failed to create certificate parameters: {e}"),
                         suggestion: Some("Check certificate parameters and domain names".to_string()),
                     }],
                 };
@@ -139,7 +145,7 @@ impl CertificateGeneratorWithDomain {
         let now = SystemTime::now();
         params.not_before = now.into();
         params.not_after =
-            (now + std::time::Duration::from_secs(self.valid_for_days as u64 * 24 * 3600)).into();
+            (now + std::time::Duration::from_secs(u64::from(self.valid_for_days) * 24 * 3600)).into();
 
         // Add SAN entries with proper error handling
         let mut san_entries = Vec::new();
@@ -156,7 +162,7 @@ impl CertificateGeneratorWithDomain {
                             private_key_pem: None,
                             issues: vec![GenerationIssue {
                                 severity: IssueSeverity::Error,
-                                message: format!("Invalid wildcard domain '{}': {}", domain, e),
+                                message: format!("Invalid wildcard domain '{domain}': {e}"),
                                 suggestion: Some("Check domain format".to_string()),
                             }],
                         };
@@ -174,7 +180,7 @@ impl CertificateGeneratorWithDomain {
                             private_key_pem: None,
                             issues: vec![GenerationIssue {
                                 severity: IssueSeverity::Error,
-                                message: format!("Invalid domain '{}': {}", domain, e),
+                                message: format!("Invalid domain '{domain}': {e}"),
                                 suggestion: Some("Check domain format".to_string()),
                             }],
                         };
@@ -197,7 +203,7 @@ impl CertificateGeneratorWithDomain {
                     private_key_pem: None,
                     issues: vec![GenerationIssue {
                         severity: IssueSeverity::Error,
-                        message: format!("Failed to generate key pair: {}", e),
+                        message: format!("Failed to generate key pair: {e}"),
                         suggestion: Some("Check system entropy and crypto libraries".to_string()),
                     }],
                 };
@@ -218,7 +224,7 @@ impl CertificateGeneratorWithDomain {
                         private_key_pem: None,
                         issues: vec![GenerationIssue {
                             severity: IssueSeverity::Error,
-                            message: format!("Failed to generate self-signed certificate: {}", e),
+                            message: format!("Failed to generate self-signed certificate: {e}"),
                             suggestion: Some("Check certificate parameters".to_string()),
                         }],
                     };
@@ -240,7 +246,7 @@ impl CertificateGeneratorWithDomain {
                         private_key_pem: None,
                         issues: vec![GenerationIssue {
                             severity: IssueSeverity::Error,
-                            message: format!("Failed to parse CA private key: {}", e),
+                            message: format!("Failed to parse CA private key: {e}"),
                             suggestion: Some("Check CA private key format and validity".to_string()),
                         }],
                     };
@@ -259,7 +265,7 @@ impl CertificateGeneratorWithDomain {
                         private_key_pem: None,
                         issues: vec![GenerationIssue {
                             severity: IssueSeverity::Error,
-                            message: format!("Failed to create CA issuer: {}", e),
+                            message: format!("Failed to create CA issuer: {e}"),
                             suggestion: Some("Check CA certificate format and key compatibility".to_string()),
                         }],
                     };
@@ -281,7 +287,7 @@ impl CertificateGeneratorWithDomain {
                         private_key_pem: None,
                         issues: vec![GenerationIssue {
                             severity: IssueSeverity::Error,
-                            message: format!("Failed to sign certificate with CA: {}", e),
+                            message: format!("Failed to sign certificate with CA: {e}"),
                             suggestion: Some("Check CA certificate authority constraints and validity".to_string()),
                         }],
                     };
@@ -320,7 +326,7 @@ impl CertificateGeneratorWithDomain {
                     private_key_pem: Some(key_pem),
                     issues: vec![GenerationIssue {
                         severity: IssueSeverity::Error,
-                        message: format!("Failed to create directory: {}", e),
+                        message: format!("Failed to create directory: {e}"),
                         suggestion: Some("Check directory permissions".to_string()),
                     }],
                 };
@@ -339,7 +345,7 @@ impl CertificateGeneratorWithDomain {
                     private_key_pem: Some(key_pem),
                     issues: vec![GenerationIssue {
                         severity: IssueSeverity::Error,
-                        message: format!("Failed to write certificate file: {}", e),
+                        message: format!("Failed to write certificate file: {e}"),
                         suggestion: Some("Check file permissions".to_string()),
                     }],
                 };
@@ -360,7 +366,7 @@ impl CertificateGeneratorWithDomain {
                     private_key_pem: Some(key_pem),
                     issues: vec![GenerationIssue {
                         severity: IssueSeverity::Error,
-                        message: format!("Failed to write private key file: {}", e),
+                        message: format!("Failed to write private key file: {e}"),
                         suggestion: Some("Check file permissions".to_string()),
                     }],
                 };
@@ -393,7 +399,7 @@ impl CertificateGeneratorWithDomain {
                 serial_number: "1".to_string(),
                 valid_from: now,
                 valid_until: now
-                    + std::time::Duration::from_secs(self.valid_for_days as u64 * 24 * 3600),
+                    + std::time::Duration::from_secs(u64::from(self.valid_for_days) * 24 * 3600),
                 domains: self.domains.clone(),
                 is_ca: false,
                 key_algorithm: "RSA".to_string(),

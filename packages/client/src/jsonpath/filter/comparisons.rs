@@ -1,6 +1,6 @@
 //! Comparison operations with context-aware logic for filter expressions
 //!
-//! Contains logic for comparing FilterValues with proper handling of
+//! Contains logic for comparing `FilterValues` with proper handling of
 //! missing vs null semantics and context-aware comparisons.
 
 use std::collections::HashSet;
@@ -134,6 +134,8 @@ pub fn compare_values_with_context(
         }),
         // Type coercion for number/integer comparisons
         (FilterValue::Integer(a), FilterValue::Number(b)) => compare_values(
+            // Precision loss acceptable for filter value comparisons
+            #[allow(clippy::cast_precision_loss)]
             &FilterValue::Number(*a as f64),
             op,
             &FilterValue::Number(*b),
@@ -141,6 +143,8 @@ pub fn compare_values_with_context(
         (FilterValue::Number(a), FilterValue::Integer(b)) => compare_values(
             &FilterValue::Number(*a),
             op,
+            // Precision loss acceptable for filter value comparisons
+            #[allow(clippy::cast_precision_loss)]
             &FilterValue::Number(*b as f64),
         ),
         _ => Ok(false), // Other cross-type comparisons are false

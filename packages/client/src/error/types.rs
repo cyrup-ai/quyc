@@ -60,6 +60,7 @@ impl Error {
         self
     }
 
+    #[must_use] 
     pub fn with_url(mut self, url: url::Url) -> Self {
         // Store URL context for better error reporting and debugging
         let mut inner = (*self.inner).clone();
@@ -74,6 +75,7 @@ impl Error {
     }
     
     /// Get the URL associated with this error, if any
+    #[must_use] 
     pub fn url(&self) -> Option<&url::Url> {
         self.inner.url.as_ref()
     }
@@ -151,7 +153,7 @@ use ystream::prelude::MessageChunk;
 
 impl MessageChunk for Error {
     fn bad_chunk(error: String) -> Self {
-        Error::new(Kind::Request).with(std::io::Error::new(std::io::ErrorKind::Other, error))
+        Error::new(Kind::Request).with(std::io::Error::other(error))
     }
 
     fn is_error(&self) -> bool {

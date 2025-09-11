@@ -1,4 +1,4 @@
-//! Build logic for ConnectorBuilder
+//! Build logic for `ConnectorBuilder`
 //!
 //! Provides the final build method to create configured connectors.
 
@@ -11,9 +11,13 @@ use crate::error::BoxError;
 
 impl ConnectorBuilder {
     /// Build the connector with configured settings
+    /// 
+    /// # Errors
+    ///
+    /// Returns [`BoxError`] if the connector configuration is invalid.
     pub fn build(self) -> Result<Connector, BoxError> {
         let service = ConnectorService::new(
-            self.http_connector.unwrap_or_else(|| HttpConnector::new()),
+            self.http_connector.unwrap_or_else(HttpConnector::new),
             #[cfg(feature = "__rustls")]
             self.rustls_config,
             self.proxies,

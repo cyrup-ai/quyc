@@ -108,8 +108,8 @@ impl OcspCache {
         let cache_key = Self::make_cache_key(&cert.serial_number);
 
         // Check cache first
-        if let Some(cached) = self.get_cached_status(&cache_key) {
-            if !Self::is_cache_expired(&cached) {
+        if let Some(cached) = self.get_cached_status(&cache_key)
+            && !Self::is_cache_expired(&cached) {
                 self.cache_hits.fetch_add(1, Ordering::Relaxed);
                 tracing::debug!(
                     "OCSP cache hit for certificate serial: {:?}",
@@ -117,7 +117,6 @@ impl OcspCache {
                 );
                 return Ok(cached.status);
             }
-        }
 
         // Cache miss - increment counter
         self.cache_misses.fetch_add(1, Ordering::Relaxed);
@@ -213,7 +212,6 @@ impl OcspCache {
                 }
                 Err(e) => {
                     tracing::warn!("OCSP query failed for URL {}: {}", ocsp_url, e);
-                    continue;
                 }
             }
         }
@@ -241,7 +239,7 @@ impl OcspCache {
 
         // Parse OCSP URL
         let url = Url::parse(ocsp_url)
-            .map_err(|e| TlsError::OcspValidation(format!("Invalid OCSP URL: {}", e)))?;
+            .map_err(|e| TlsError::OcspValidation(format!("Invalid OCSP URL: {e}")))?;
 
         // Prepare headers for OCSP request
         let mut headers = HeaderMap::new();
@@ -303,7 +301,7 @@ impl OcspCache {
 
         // Convert serial number
         let serial = SerialNumber::new(&cert.serial_number)
-            .map_err(|e| TlsError::OcspValidation(format!("Invalid serial number: {}", e)))?;
+            .map_err(|e| TlsError::OcspValidation(format!("Invalid serial number: {e}")))?;
 
         use x509_cert::spki::AlgorithmIdentifierOwned;
 
@@ -313,10 +311,10 @@ impl OcspCache {
                 parameters: None,
             },
             issuer_name_hash: der::asn1::OctetString::new(issuer_name_hash.as_ref()).map_err(
-                |e| TlsError::OcspValidation(format!("Failed to create issuer name hash: {}", e)),
+                |e| TlsError::OcspValidation(format!("Failed to create issuer name hash: {e}")),
             )?,
             issuer_key_hash: der::asn1::OctetString::new(issuer_key_hash.as_ref()).map_err(
-                |e| TlsError::OcspValidation(format!("Failed to create issuer key hash: {}", e)),
+                |e| TlsError::OcspValidation(format!("Failed to create issuer key hash: {e}")),
             )?,
             serial_number: serial,
         };
@@ -339,7 +337,7 @@ impl OcspCache {
         };
 
         let der_bytes = request.to_der().map_err(|e| {
-            TlsError::OcspValidation(format!("Failed to encode OCSP request: {}", e))
+            TlsError::OcspValidation(format!("Failed to encode OCSP request: {e}"))
         })?;
 
         Ok((der_bytes, nonce))
@@ -352,7 +350,7 @@ impl OcspCache {
         cert_serial: &[u8],
     ) -> Result<(OcspStatus, Option<SystemTime>), TlsError> {
         let response = OcspResponse::from_der(response_bytes).map_err(|e| {
-            TlsError::OcspValidation(format!("Failed to decode OCSP response: {}", e))
+            TlsError::OcspValidation(format!("Failed to decode OCSP response: {e}"))
         })?;
 
         // Check response status
@@ -369,7 +367,7 @@ impl OcspCache {
 
         let basic_response =
             x509_ocsp::BasicOcspResponse::from_der(response_bytes.response.as_bytes()).map_err(
-                |e| TlsError::OcspValidation(format!("Failed to parse basic OCSP response: {}", e)),
+                |e| TlsError::OcspValidation(format!("Failed to parse basic OCSP response: {e}")),
             )?;
 
         // Verify nonce matches
@@ -382,13 +380,11 @@ impl OcspCache {
                     ext.extn_id == der::asn1::ObjectIdentifier::new_unwrap("1.3.6.1.5.5.7.48.1.2")
                 })
             })
-        {
-            if nonce_ext.extn_value.as_bytes() != expected_nonce {
+            && nonce_ext.extn_value.as_bytes() != expected_nonce {
                 return Err(TlsError::OcspValidation(
                     "OCSP nonce mismatch - possible replay attack".to_string(),
                 ));
             }
-        }
 
         // Find response for our certificate
         let single_response = basic_response
@@ -407,9 +403,9 @@ impl OcspCache {
         };
 
         // Extract next update time
-        let next_update = single_response.next_update.as_ref().and_then(|time| {
+        let next_update = single_response.next_update.as_ref().map(|time| {
             let unix_time = time.0.to_unix_duration().as_secs();
-            Some(SystemTime::UNIX_EPOCH + Duration::from_secs(unix_time))
+            SystemTime::UNIX_EPOCH + Duration::from_secs(unix_time)
         });
 
         Ok((status, next_update))

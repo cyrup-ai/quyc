@@ -19,6 +19,7 @@ pub struct FluentBuilder {
 
 impl FluentBuilder {
     /// Create a new fluent builder
+    #[must_use] 
     pub fn new() -> Self {
         Self {}
     }
@@ -43,6 +44,7 @@ impl DownloadBuilder {
     ///
     /// # Arguments
     /// * `stream` - Download stream from HTTP client
+    #[must_use] 
     pub fn new(stream: crate::http::response::HttpDownloadStream) -> Self {
         Self { stream }
     }
@@ -74,6 +76,7 @@ impl DownloadBuilder {
     ///     println!("Download completed: {:.1}%", percentage);
     /// }
     /// ```
+    #[must_use] 
     pub fn save(self, local_path: &str) -> ystream::AsyncStream<DownloadProgress, 1024> {
         let local_path = local_path.to_string();
         let stream = self.stream;
@@ -160,13 +163,14 @@ impl DownloadBuilder {
     ///     .download_file("https://example.com/file.zip")
     ///     .destination("/downloads/file.zip");
     /// ```
+    #[must_use] 
     pub fn destination(self, path: &str) -> ystream::AsyncStream<DownloadProgress, 1024> {
         self.save(path)
     }
 
     /// Start the download with progress monitoring
     ///
-    /// Alias for save() that emphasizes the streaming nature of the download.
+    /// Alias for `save()` that emphasizes the streaming nature of the download.
     ///
     /// # Arguments
     /// * `local_path` - Local filesystem path for the download
@@ -179,6 +183,7 @@ impl DownloadBuilder {
     ///     .download_file("https://example.com/file.zip")
     ///     .start("/downloads/file.zip");
     /// ```
+    #[must_use] 
     pub fn start(self, local_path: &str) -> ystream::AsyncStream<DownloadProgress, 1024> {
         self.save(local_path)
     }
@@ -250,12 +255,21 @@ impl DownloadProgress {
     ///     println!("Download progress: {:.1}%", percentage);
     /// }
     /// ```
+    #[must_use] 
     pub fn progress_percentage(&self) -> Option<f64> {
         self.total_size.map(|total| {
             if total == 0 {
                 100.0
             } else {
-                (self.bytes_written as f64 / total as f64) * 100.0
+                // Use saturation arithmetic to avoid overflow and maintain precision
+                // For maximum precision, convert to f64 early and avoid integer truncation
+                // Precision loss acceptable for progress percentage calculations
+                #[allow(clippy::cast_precision_loss)]
+                let bytes_written = self.bytes_written as f64;
+                #[allow(clippy::cast_precision_loss)]
+                let total_size = total as f64;
+                
+                (bytes_written / total_size) * 100.0
             }
         })
     }
@@ -278,6 +292,7 @@ impl DownloadProgress {
     ///     println!("Download completed: {}", progress.local_path);
     /// }
     /// ```
+    #[must_use] 
     pub fn is_finished(&self) -> bool {
         self.is_complete
     }
@@ -298,6 +313,7 @@ impl DownloadProgress {
     /// # };
     /// println!("Status: {}", progress.status_string());
     /// ```
+    #[must_use] 
     pub fn status_string(&self) -> String {
         if self.is_complete {
             format!(

@@ -1,4 +1,4 @@
-//! Array operations for JSONPath evaluation
+//! Array operations for `JSONPath` evaluation
 //!
 //! Specialized array handling: access, slicing, union selectors with zero-allocation patterns.
 
@@ -32,9 +32,8 @@ impl CoreJsonPathEvaluator {
                 } else {
                     Ok(vec![])
                 }
-            } else if path.starts_with("$..") {
+            } else if let Some(property) = path.strip_prefix("$..") {
                 // Handle recursive descent to array
-                let property = &path[3..];
                 let candidates = self.find_property_recursive(json, property);
                 if candidates.len() == 1 {
                     match &candidates[0] {
@@ -53,14 +52,14 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Parse array expression into path and selector components
+    #[must_use] 
     pub fn parse_array_expression(&self, expr: &str) -> Option<(String, String)> {
-        if let Some(bracket_start) = expr.rfind('[') {
-            if let Some(bracket_end) = expr[bracket_start..].find(']') {
+        if let Some(bracket_start) = expr.rfind('[')
+            && let Some(bracket_end) = expr[bracket_start..].find(']') {
                 let path = expr[..bracket_start].to_string();
                 let selector = expr[bracket_start + 1..bracket_start + bracket_end].to_string();
                 return Some((path, selector));
             }
-        }
         None
     }
 
@@ -77,6 +76,7 @@ impl CoreJsonPathEvaluator {
             // Index selector
             let actual_index = if index < 0 {
                 // Negative index - count from end (e.g., -1 means last element)
+                // Safe cast: -index is guaranteed positive since index < 0
                 let abs_index = (-index) as usize;
                 if abs_index <= arr.len() && abs_index > 0 {
                     arr.len() - abs_index
@@ -84,6 +84,7 @@ impl CoreJsonPathEvaluator {
                     return Ok(vec![]); // Index out of bounds
                 }
             } else {
+                // Safe cast: index >= 0 guaranteed by else branch
                 index as usize
             };
 
@@ -127,13 +128,17 @@ impl CoreJsonPathEvaluator {
         };
 
         let start_idx = if start < 0 {
+            // Safe cast: max(0) ensures non-negative result
             (arr.len() as i64 + start).max(0) as usize
         } else {
+            // Safe cast: start >= 0 guaranteed by else branch
             start as usize
         };
         let end_idx = if end < 0 {
+            // Safe cast: max(0) ensures non-negative result
             (arr.len() as i64 + end).max(0) as usize
         } else {
+            // Safe cast: end >= 0 guaranteed by else branch
             (end as usize).min(arr.len())
         };
 
@@ -158,6 +163,7 @@ impl CoreJsonPathEvaluator {
             if let Ok(index) = idx_str.parse::<i64>() {
                 let actual_index = if index < 0 {
                     // Negative index - count from end (e.g., -1 means last element)
+                    // Safe cast: -index is guaranteed positive since index < 0
                     let abs_index = (-index) as usize;
                     if abs_index <= arr.len() && abs_index > 0 {
                         arr.len() - abs_index
@@ -165,6 +171,7 @@ impl CoreJsonPathEvaluator {
                         continue; // Skip out of bounds indices
                     }
                 } else {
+                    // Safe cast: index >= 0 guaranteed by else branch
                     index as usize
                 };
 
@@ -187,6 +194,7 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Collect all values recursively for comprehensive traversal
+    #[must_use] 
     pub fn collect_all_values(&self, json: &Value) -> Vec<Value> {
         let mut results = Vec::new();
         self.collect_all_values_recursive(json, &mut results);
@@ -257,13 +265,13 @@ impl CoreJsonPathEvaluator {
         match array_value {
             Value::Array(arr) => {
                 let mut results = Vec::new();
-                for item in arr.iter() {
+                for item in arr {
                     if after_wildcard.is_empty() {
                         // No property after wildcard, return the array item itself
                         results.push(item.clone());
-                    } else if after_wildcard.starts_with('.') {
+                    } else if let Some(property_path) = after_wildcard.strip_prefix('.') {
                         // Property access after wildcard
-                        let property_path = &after_wildcard[1..]; // Remove leading dot
+                        // Remove leading dot
                         let property_results = self.evaluate_property_path(item, property_path)?;
                         results.extend(property_results);
                     }

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::tls::errors::TlsError;
 use super::responses::{CertificateAuthorityResponse, CaOperation};
 
-/// Format a distinguished name HashMap into a string representation
+/// Format a distinguished name `HashMap` into a string representation
 fn format_dn_hashmap(dn: &HashMap<String, String>) -> String {
     let mut parts = Vec::new();
     
@@ -18,14 +18,14 @@ fn format_dn_hashmap(dn: &HashMap<String, String>) -> String {
     
     for &key in &ordered_keys {
         if let Some(value) = dn.get(key) {
-            parts.push(format!("{}={}", key, value));
+            parts.push(format!("{key}={value}"));
         }
     }
     
     // Add any remaining keys that weren't in the standard order
     for (key, value) in dn {
         if !ordered_keys.contains(&key.as_str()) {
-            parts.push(format!("{}={}", key, value));
+            parts.push(format!("{key}={value}"));
         }
     }
     
@@ -77,6 +77,7 @@ pub enum CaSource {
 
 impl CertificateAuthority {
     /// Check if the certificate authority is currently valid
+    #[must_use] 
     pub fn is_valid(&self) -> bool {
         let now = SystemTime::now();
         now >= self.metadata.valid_from && now <= self.metadata.valid_until
@@ -115,15 +116,12 @@ impl CertificateAuthority {
         
         // Delegate to existing hostname verification logic
         // If the CA certificate itself can validate this domain, then it can sign for it
-        match verify_hostname(&ca_cert, domain) {
-            Ok(()) => {
-                tracing::debug!("CA can sign for domain '{}' - matches CA constraints", domain);
-                true
-            }
-            Err(_) => {
-                tracing::warn!("CA certificate cannot sign for domain '{}' - no matching constraints", domain);
-                false
-            }
+        if let Ok(()) = verify_hostname(&ca_cert, domain) {
+            tracing::debug!("CA can sign for domain '{}' - matches CA constraints", domain);
+            true
+        } else {
+            tracing::warn!("CA certificate cannot sign for domain '{}' - no matching constraints", domain);
+            false
         }
     }
 }
@@ -135,6 +133,7 @@ pub struct AuthorityBuilder {
 }
 
 impl AuthorityBuilder {
+    #[must_use] 
     pub fn new(name: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -153,11 +152,13 @@ impl AuthorityBuilder {
     }
 
     /// Work with keychain-based certificate authority (macOS/Windows)
+    #[must_use] 
     pub fn keychain(self) -> AuthorityKeychainBuilder {
         AuthorityKeychainBuilder { name: self.name }
     }
 
     /// Work with remote certificate authority
+    #[must_use] 
     pub fn url(self, url: &str) -> AuthorityRemoteBuilder {
         AuthorityRemoteBuilder {
             name: self.name,
@@ -179,6 +180,7 @@ pub struct AuthorityFilesystemBuilder {
 
 impl AuthorityFilesystemBuilder {
     /// Set common name for certificate authority creation
+    #[must_use] 
     pub fn common_name(self, cn: &str) -> Self {
         Self {
             common_name: Some(cn.to_string()),
@@ -187,6 +189,7 @@ impl AuthorityFilesystemBuilder {
     }
 
     /// Set validity period in years for certificate authority creation
+    #[must_use] 
     pub fn valid_for_years(self, years: u32) -> Self {
         Self {
             valid_for_years: years,
@@ -195,6 +198,7 @@ impl AuthorityFilesystemBuilder {
     }
 
     /// Set key size for certificate authority creation
+    #[must_use] 
     pub fn key_size(self, bits: u32) -> Self {
         Self {
             key_size: bits,
@@ -243,12 +247,12 @@ impl AuthorityFilesystemBuilder {
         let now = SystemTime::now();
         params.not_before = now.into();
         params.not_after = (now
-            + std::time::Duration::from_secs(365 * 24 * 3600 * self.valid_for_years as u64))
+            + std::time::Duration::from_secs(365 * 24 * 3600 * u64::from(self.valid_for_years)))
         .into();
 
         // Generate key pair
         let key_pair = KeyPair::generate()
-            .map_err(|e| format!("Failed to generate key pair: {}", e));
+            .map_err(|e| format!("Failed to generate key pair: {e}"));
 
         let key_pair = match key_pair {
             Ok(kp) => kp,
@@ -320,7 +324,7 @@ impl AuthorityFilesystemBuilder {
                 serial_number: "1".to_string(), // CA serial number
                 valid_from: now,
                 valid_until: now
-                    + std::time::Duration::from_secs(365 * 24 * 3600 * self.valid_for_years as u64),
+                    + std::time::Duration::from_secs(365 * 24 * 3600 * u64::from(self.valid_for_years)),
                 key_algorithm: "RSA".to_string(),
                 key_size: Some(self.key_size),
                 created_at: now,
@@ -710,6 +714,7 @@ pub struct AuthorityRemoteBuilder {
 
 impl AuthorityRemoteBuilder {
     /// Set timeout for remote operations
+    #[must_use] 
     pub fn with_timeout(self, timeout: Duration) -> Self {
         Self { timeout, ..self }
     }
@@ -770,7 +775,7 @@ impl AuthorityRemoteBuilder {
                 
                 // Convert to string for PEM parsing
                 let body_string = String::from_utf8(body_bytes)
-                    .map_err(|e| crate::error::network_error(format!("Invalid UTF-8 response: {}", e)))?;
+                    .map_err(|e| crate::error::network_error(format!("Invalid UTF-8 response: {e}")))?;
                 
                 Ok(body_string)
             }

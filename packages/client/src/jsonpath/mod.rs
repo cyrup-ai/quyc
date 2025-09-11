@@ -1,12 +1,12 @@
-//! High-performance JSONPath streaming deserializer for Http3
+//! High-performance `JSONPath` streaming deserializer for Http3
 //!
-//! This module provides blazing-fast, zero-allocation JSONPath expression evaluation
+//! This module provides blazing-fast, zero-allocation `JSONPath` expression evaluation
 //! over streaming HTTP responses. It enables streaming individual array elements from
-//! nested JSON structures like OpenAI's `{"data": [...]}` format.
+//! nested JSON structures like `OpenAI`'s `{"data": [...]}` format.
 //!
 //! # Features
 //!
-//! - Full JSONPath specification support
+//! - Full `JSONPath` specification support
 //! - Zero-allocation streaming deserialization
 //! - Lock-free concurrent processing
 //! - Comprehensive error handling and recovery
@@ -100,23 +100,23 @@ use ystream::prelude::MessageChunk;
 use serde::de::DeserializeOwned;
 use crate::http::response::{HttpResponse, HttpChunk};
 
-/// Process an HTTP response through JSONPath streaming infrastructure
+/// Process an HTTP response through `JSONPath` streaming infrastructure
 /// 
-/// This is the main entry point that coordinates all JSONPath components:
-/// - Extracts body stream from HttpResponse
+/// This is the main entry point that coordinates all `JSONPath` components:
+/// - Extracts body stream from `HttpResponse`
 /// - Creates streaming buffer with 8KB initial capacity  
 /// - Initializes state machine for incremental parsing
-/// - Compiles JSONPath expression once
+/// - Compiles `JSONPath` expression once
 /// - Processes chunks as they arrive
 /// - Deserializes matching objects in real-time
-/// - Emits them through AsyncStream
+/// - Emits them through `AsyncStream`
 ///
 /// # Arguments
 /// * `response` - The HTTP response to process
-/// * `jsonpath_expr` - JSONPath expression to match objects (e.g., "$.data[*]")
+/// * `jsonpath_expr` - `JSONPath` expression to match objects (e.g., "$.data[*]")
 ///
 /// # Returns
-/// AsyncStream of deserialized objects matching the JSONPath expression
+/// `AsyncStream` of deserialized objects matching the `JSONPath` expression
 ///
 /// # Type Parameters
 /// * `T` - The type to deserialize matching JSON objects into
@@ -137,7 +137,7 @@ where
         let compiled_expr = match JsonPathParser::compile(&jsonpath_expr) {
             Ok(expr) => expr,
             Err(e) => {
-                log::error!("JSONPath compilation failed: {} for expression: {}", e, jsonpath_expr);
+                log::error!("JSONPath compilation failed: {e} for expression: {jsonpath_expr}");
                 // Return early on invalid JSONPath
                 return;
             }
@@ -150,7 +150,7 @@ where
         let evaluator = match CoreJsonPathEvaluator::new(&jsonpath_expr) {
             Ok(eval) => eval,
             Err(e) => {
-                log::error!("Failed to create JSONPath evaluator: {}", e);
+                log::error!("Failed to create JSONPath evaluator: {e}");
                 return;
             }
         };
@@ -200,18 +200,18 @@ where
                                             }
                                         }
                                         Err(e) => {
-                                            log::debug!("Failed to deserialize matched object: {}", e);
+                                            log::debug!("Failed to deserialize matched object: {e}");
                                         }
                                     }
                                 }
                             }
                             Err(e) => {
-                                log::debug!("JSONPath evaluation error: {}", e);
+                                log::debug!("JSONPath evaluation error: {e}");
                             }
                         }
                     }
                     Err(e) => {
-                        log::debug!("Failed to parse JSON object: {}", e);
+                        log::debug!("Failed to parse JSON object: {e}");
                         // Continue processing - might be incomplete JSON
                     }
                 }
@@ -225,20 +225,17 @@ where
         let remaining_bytes = json_array_stream.buffer_as_bytes();
         if !remaining_bytes.is_empty() {
             // Try to parse remaining content as complete JSON
-            match serde_json::from_slice::<serde_json::Value>(remaining_bytes) {
-                Ok(json_value) => {
-                    // Evaluate JSONPath one last time
-                    if let Ok(matches) = evaluator.evaluate(&json_value) {
-                        for matched_value in matches {
-                            if let Ok(typed_obj) = serde_json::from_value::<T>(matched_value) {
-                                let _ = sender.send(typed_obj);
-                            }
+            if let Ok(json_value) = serde_json::from_slice::<serde_json::Value>(remaining_bytes) {
+                // Evaluate JSONPath one last time
+                if let Ok(matches) = evaluator.evaluate(&json_value) {
+                    for matched_value in matches {
+                        if let Ok(typed_obj) = serde_json::from_value::<T>(matched_value) {
+                            let _ = sender.send(typed_obj);
                         }
                     }
                 }
-                Err(_) => {
-                    // Incomplete JSON at end - this is expected for streaming
-                }
+            } else {
+                // Incomplete JSON at end - this is expected for streaming
             }
         }
     })
@@ -246,17 +243,17 @@ where
 
 /// Process an HTTP response for single JSON object deserialization
 /// 
-/// This function handles regular JSON responses (not JSONPath streaming) by:
-/// - Extracting the body stream from HttpResponse
+/// This function handles regular JSON responses (not `JSONPath` streaming) by:
+/// - Extracting the body stream from `HttpResponse`
 /// - Accumulating all chunks into a complete JSON document
 /// - Deserializing the complete JSON to the target type
-/// - Emitting the result through AsyncStream
+/// - Emitting the result through `AsyncStream`
 ///
 /// # Arguments
 /// * `response` - The HTTP response to process
 ///
 /// # Returns
-/// AsyncStream containing the single deserialized object
+/// `AsyncStream` containing the single deserialized object
 ///
 /// # Type Parameters
 /// * `T` - The type to deserialize the JSON response into
@@ -280,12 +277,11 @@ where
                 // Emit the deserialized object
                 if sender.send(deserialized).is_err() {
                     // Stream closed by consumer
-                    return;
                 }
             }
             Err(e) => {
                 // Create error chunk for deserialization failure
-                let error_chunk = T::bad_chunk(format!("JSON deserialization failed: {}", e));
+                let error_chunk = T::bad_chunk(format!("JSON deserialization failed: {e}"));
                 let _ = sender.send(error_chunk);
             }
         }
@@ -294,17 +290,17 @@ where
 
 /// Process an HTTP response for raw chunk streaming
 /// 
-/// This function converts HttpResponse body chunks to HttpChunk format by:
-/// - Extracting the body stream from HttpResponse
-/// - Converting each HttpBodyChunk to HttpChunk::Body
-/// - Emitting an HttpChunk::End marker when complete
+/// This function converts `HttpResponse` body chunks to `HttpChunk` format by:
+/// - Extracting the body stream from `HttpResponse`
+/// - Converting each `HttpBodyChunk` to `HttpChunk::Body`
+/// - Emitting an `HttpChunk::End` marker when complete
 /// - Emitting chunks as they arrive for true streaming
 ///
 /// # Arguments
 /// * `response` - The HTTP response to process
 ///
 /// # Returns
-/// AsyncStream of HttpChunk objects for raw response processing
+/// `AsyncStream` of `HttpChunk` objects for raw response processing
 pub fn process_raw_response(response: HttpResponse) -> AsyncStream<HttpChunk, 1024> {
     AsyncStream::with_channel(move |sender: AsyncStreamSender<HttpChunk>| {
         // Extract body stream from response

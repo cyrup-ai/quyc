@@ -5,7 +5,7 @@
 //! member with a `null` value.
 //!
 //! This module provides utilities for correctly handling this distinction
-//! throughout JSONPath evaluation.
+//! throughout `JSONPath` evaluation.
 
 #![allow(dead_code)]
 
@@ -27,30 +27,35 @@ pub struct NullSemantics;
 impl NullSemantics {
     /// Access a property with proper null vs missing distinction
     #[inline]
+    #[must_use] 
     pub fn access_property(object: &JsonValue, property_name: &str) -> PropertyAccessResult {
         property_access::access_property(object, property_name)
     }
 
     /// Access a nested property path with null vs missing distinction
     #[inline]
+    #[must_use] 
     pub fn access_property_path(root: &JsonValue, path: &[String]) -> PropertyAccessResult {
         property_access::access_property_path(root, path)
     }
 
     /// Array access with proper null vs missing distinction
     #[inline]
+    #[must_use] 
     pub fn access_array_index(array: &JsonValue, index: i64) -> PropertyAccessResult {
         array_access::access_array_index(array, index)
     }
 
     /// Check if a value should be considered "present" for filter evaluation
     #[inline]
+    #[must_use] 
     pub fn is_present(result: &PropertyAccessResult) -> bool {
         comparison::is_present(result)
     }
 
     /// Filter evaluation with proper null vs missing handling
     #[inline]
+    #[must_use] 
     pub fn evaluate_existence_filter(context: &JsonValue, property_path: &[String]) -> bool {
         comparison::evaluate_existence_filter(context, property_path)
     }
@@ -64,26 +69,30 @@ impl NullSemantics {
         comparison::compare_with_null_semantics(left, right)
     }
 
-    /// Convert PropertyAccessResult to Option<JsonValue> for compatibility
+    /// Convert `PropertyAccessResult` to Option<JsonValue> for compatibility
     #[inline]
+    #[must_use] 
     pub fn to_option(result: &PropertyAccessResult) -> Option<JsonValue> {
         conversion::to_option(result)
     }
 
-    /// Convert PropertyAccessResult to JsonValue with explicit missing representation
+    /// Convert `PropertyAccessResult` to `JsonValue` with explicit missing representation
     #[inline]
+    #[must_use] 
     pub fn to_json_with_missing_marker(result: &PropertyAccessResult) -> JsonValue {
         conversion::to_json_with_missing_marker(result)
     }
 
-    /// Check if a JsonValue is the missing marker
+    /// Check if a `JsonValue` is the missing marker
     #[inline]
+    #[must_use] 
     pub fn is_missing_marker(value: &JsonValue) -> bool {
         conversion::is_missing_marker(value)
     }
 
     /// Generate test results for different null vs missing scenarios
     #[inline]
+    #[must_use] 
     pub fn generate_test_scenarios() -> Vec<(JsonValue, &'static str, PropertyAccessResult)> {
         comparison::generate_test_scenarios()
     }

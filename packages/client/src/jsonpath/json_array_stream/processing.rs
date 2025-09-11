@@ -1,4 +1,4 @@
-//! Synchronous processing logic for JsonArrayStream
+//! Synchronous processing logic for `JsonArrayStream`
 //!
 //! Contains synchronous processing methods for complete JSON documents,
 //! including chunk processing and JSON evaluation logic.
@@ -16,7 +16,7 @@ where
     /// Process incoming bytes and return results as Vec for complete JSON
     ///
     /// This method processes complete JSON immediately without streaming timeouts.
-    /// Used internally when JSON parsing succeeds to avoid AsyncStream timeout issues.
+    /// Used internally when JSON parsing succeeds to avoid `AsyncStream` timeout issues.
     pub fn process_chunk_sync(&mut self, chunk: Bytes) -> Vec<T> {
         // Append chunk to internal buffer
         self.buffer.append_chunk(chunk);
@@ -49,13 +49,10 @@ where
         // Convert JSON values to target type T
         let mut typed_results = Vec::new();
         for value in results {
-            match serde_json::from_value::<T>(value.clone()) {
-                Ok(typed_value) => {
-                    typed_results.push(typed_value);
-                }
-                Err(_) => {
-                    // Skip invalid values
-                }
+            if let Ok(typed_value) = serde_json::from_value::<T>(value.clone()) {
+                typed_results.push(typed_value);
+            } else {
+                // Skip invalid values
             }
         }
 

@@ -14,7 +14,7 @@ impl ResponseCache {
         let mut candidates: Vec<(String, Instant, u64)> = Vec::new();
 
         // Collect candidates for eviction (key, last_accessed, size)
-        for entry_ref in self.entries.iter() {
+        for entry_ref in &self.entries {
             let key = entry_ref.key().clone();
             let entry = entry_ref.value();
             candidates.push((key, entry.last_accessed, entry.size_bytes));
@@ -28,7 +28,7 @@ impl ResponseCache {
         let mut evicted_count = 0;
 
         for (key, _, size) in candidates.iter().take(target_evictions) {
-            if let Some(_) = self.entries.remove(key) {
+            if self.entries.remove(key).is_some() {
                 self.entry_count.fetch_sub(1, Ordering::Relaxed);
                 self.memory_usage.fetch_sub(*size, Ordering::Relaxed);
                 self.stats.evictions.fetch_add(1, Ordering::Relaxed);
@@ -36,6 +36,7 @@ impl ResponseCache {
 
                 // Stop if under limits
                 let current_memory = self.memory_usage.load(Ordering::Relaxed);
+                #[allow(clippy::cast_possible_truncation)]
                 let current_entries = self.entry_count.load(Ordering::Relaxed) as usize;
 
                 if current_memory < self.config.max_memory_bytes
@@ -51,17 +52,16 @@ impl ResponseCache {
 
     /// Clean up expired entries
     pub fn cleanup_expired(&self) {
-        if !self
+        if self
             .cleanup_running
-            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
-            .is_ok()
+            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed).is_err()
         {
             return; // Cleanup already running
         }
 
         let mut expired_keys = Vec::new();
 
-        for entry_ref in self.entries.iter() {
+        for entry_ref in &self.entries {
             if entry_ref.value().is_expired() {
                 expired_keys.push(entry_ref.key().clone());
             }

@@ -1,6 +1,6 @@
 //! Core selector parser structure and main parsing logic
 //!
-//! Contains the main SelectorParser struct and the primary parse_selector method
+//! Contains the main `SelectorParser` struct and the primary `parse_selector` method
 //! that dispatches to specialized parsing functions based on token type.
 
 use std::collections::VecDeque;
@@ -11,7 +11,7 @@ use crate::jsonpath::{
     tokens::Token,
 };
 
-/// Parser for individual JSONPath selectors
+/// Parser for individual `JSONPath` selectors
 pub struct SelectorParser<'a> {
     pub(super) tokens: &'a mut VecDeque<Token>,
     pub(super) input: &'a str,
@@ -29,7 +29,7 @@ impl<'a> SelectorParser<'a> {
         }
     }
 
-    /// Parse a single JSONPath selector
+    /// Parse a single `JSONPath` selector
     pub fn parse_selector(&mut self) -> JsonPathResult<JsonSelector> {
         match self.peek_token() {
             Some(Token::Root) => {
@@ -93,12 +93,12 @@ impl<'a> SelectorParser<'a> {
             Some(actual) if self.tokens_match(&actual, &expected) => Ok(()),
             Some(actual) => Err(invalid_expression_error(
                 self.input,
-                &format!("expected {:?}, found {:?}", expected, actual),
+                format!("expected {expected:?}, found {actual:?}"),
                 Some(self.position),
             )),
             None => Err(invalid_expression_error(
                 self.input,
-                &format!("expected {:?}, found end of input", expected),
+                format!("expected {expected:?}, found end of input"),
                 Some(self.position),
             )),
         }

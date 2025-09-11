@@ -1,7 +1,7 @@
 //! Core function evaluator and dispatcher
 //!
-//! This module contains the main FunctionEvaluator struct and the central
-//! function dispatch logic for RFC 9535 JSONPath function extensions.
+//! This module contains the main `FunctionEvaluator` struct and the central
+//! function dispatch logic for RFC 9535 `JSONPath` function extensions.
 
 use crate::jsonpath::error::{JsonPathResult, invalid_expression_error};
 use crate::jsonpath::parser::{FilterExpression, FilterValue};
@@ -37,14 +37,15 @@ impl FunctionEvaluator {
             "value" => super::value::evaluate_value_function(context, args, expression_evaluator),
             _ => Err(invalid_expression_error(
                 "",
-                &format!("unknown function: {}", name),
+                format!("unknown function: {name}"),
                 None,
             )),
         }
     }
 
-    /// Convert serde_json::Value to FilterValue
+    /// Convert `serde_json::Value` to `FilterValue`
     #[inline]
+    #[must_use] 
     pub fn json_value_to_filter_value(value: &serde_json::Value) -> FilterValue {
         match value {
             serde_json::Value::Null => FilterValue::Null,

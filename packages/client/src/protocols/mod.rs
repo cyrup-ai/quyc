@@ -1,4 +1,4 @@
-//! Direct protocol implementations using ystream AsyncStream
+//! Direct protocol implementations using ystream `AsyncStream`
 //!
 //! NO middleware, NO Futures, NO abstractions - pure streaming protocols
 
@@ -41,3 +41,7 @@ pub use wire::{H2FrameParser, H3FrameParser};
 
 // Re-export response conversion utilities
 pub use response_converter::convert_http_chunks_to_response;
+
+// Include tests
+#[cfg(test)]
+mod wire_tests;

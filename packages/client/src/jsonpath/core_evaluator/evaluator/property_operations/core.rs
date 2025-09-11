@@ -1,4 +1,4 @@
-//! Core property operations for JSONPath evaluation
+//! Core property operations for `JSONPath` evaluation
 //!
 //! Basic property access and path evaluation operations.
 
@@ -6,7 +6,7 @@ use serde_json::Value;
 
 use super::super::core_types::JsonPathResult;
 
-/// Core operations for handling property access in JSONPath expressions
+/// Core operations for handling property access in `JSONPath` expressions
 pub struct PropertyOperations;
 
 impl PropertyOperations {
@@ -23,11 +23,10 @@ impl PropertyOperations {
 
             let mut next = Vec::new();
             for value in current {
-                if let Value::Object(obj) = value {
-                    if let Some(prop_value) = obj.get(property) {
+                if let Value::Object(obj) = value
+                    && let Some(prop_value) = obj.get(property) {
                         next.push(prop_value.clone());
                     }
-                }
             }
             current = next;
         }
@@ -36,6 +35,7 @@ impl PropertyOperations {
     }
 
     /// Get property value with default fallback
+    #[must_use] 
     pub fn get_property_or_default(json: &Value, property: &str, default: Value) -> Value {
         match json {
             Value::Object(obj) => obj.get(property).cloned().unwrap_or(default),

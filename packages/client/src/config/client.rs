@@ -11,7 +11,7 @@ use super::core::retry::{ConnectionReuse, RetryPolicy, RetryableError};
 impl HttpConfig {
     /// Create a new configuration optimized for AI providers
     ///
-    /// This preset is specifically tuned for interacting with AI/LLM providers like OpenAI,
+    /// This preset is specifically tuned for interacting with AI/LLM providers like `OpenAI`,
     /// Anthropic, and others. It includes settings for larger response windows, aggressive
     /// connection reuse, and enhanced retry policies for API reliability.
     ///
@@ -33,6 +33,7 @@ impl HttpConfig {
     /// assert!(config.https_only);
     /// assert!(config.quic_congestion_bbr);
     /// ```
+    #[must_use] 
     pub fn ai_optimized() -> Self {
         Self {
             pool_max_idle_per_host: 64,
@@ -130,6 +131,7 @@ impl HttpConfig {
     /// assert_eq!(config.timeout.as_secs(), 600);
     /// assert_eq!(config.http2_max_concurrent_streams, Some(10));
     /// ```
+    #[must_use] 
     pub fn streaming_optimized() -> Self {
         let mut config = Self::ai_optimized();
         config.timeout = Duration::from_secs(600); // 10 minutes for streaming
@@ -172,6 +174,7 @@ impl HttpConfig {
     /// assert_eq!(config.pool_size, 50);
     /// assert_eq!(config.retry_policy.max_retries, 10);
     /// ```
+    #[must_use] 
     pub fn batch_optimized() -> Self {
         let mut config = Self::ai_optimized();
         config.pool_max_idle_per_host = 128;
@@ -215,6 +218,7 @@ impl HttpConfig {
     /// assert_eq!(config.retry_policy.max_retries, 1);
     /// assert!(config.tls_early_data);
     /// ```
+    #[must_use] 
     pub fn low_latency() -> Self {
         let mut config = Self::ai_optimized();
         config.connect_timeout = Duration::from_secs(2);
@@ -254,6 +258,7 @@ impl HttpConfig {
     ///     .with_user_agent("MyApp/1.0.0".to_string());
     /// assert_eq!(config.user_agent, "MyApp/1.0.0");
     /// ```
+    #[must_use] 
     pub fn with_user_agent(mut self, user_agent: String) -> Self {
         self.user_agent = user_agent;
         self

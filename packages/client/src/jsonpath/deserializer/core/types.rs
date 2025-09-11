@@ -18,14 +18,14 @@ pub enum DeserializerState {
     Complete,
 }
 
-/// Complete streaming JSONPath evaluation state
+/// Complete streaming `JSONPath` evaluation state
 #[derive(Debug, Clone)]
 pub struct StreamingJsonPathState {
     // === EXISTING INTEGRATION ===
-    /// JSONPath expression selectors (from CoreJsonPathEvaluator)
+    /// `JSONPath` expression selectors (from `CoreJsonPathEvaluator`)
     pub selectors: Vec<JsonSelector>,
     
-    /// Current position in the compiled JSONPath selector chain
+    /// Current position in the compiled `JSONPath` selector chain
     /// IMPLEMENTED: Tracks which selector in the expression we're evaluating  
     pub current_selector_index: usize,
     
@@ -42,8 +42,8 @@ pub struct StreamingJsonPathState {
     pub recursive_descent_stack: Vec<RecursiveDescentFrame>,
     
     // === NAVIGATION STATE INTEGRATION ===
-    /// Navigation history for pattern backtracking and path reconstruction  
-    /// IMPLEMENTED: Enables efficient backtracking in complex JSONPath expressions
+    /// Navigation history for pattern backtracking and path reconstruction\
+    /// IMPLEMENTED: Enables efficient backtracking in complex `JSONPath` expressions
     pub path_breadcrumbs: Vec<PathNavigationFrame>,
     
     // === PERFORMANCE TRACKING ===
@@ -69,7 +69,7 @@ pub struct RecursiveDescentFrame {
     /// Index of the selector that triggered recursive descent
     pub triggering_selector_index: usize,
     
-    /// JSONPath of the node where recursive descent began
+    /// `JSONPath` of the node where recursive descent began
     pub origin_path: String,
     
     /// Whether this frame should continue searching deeper
@@ -143,7 +143,8 @@ pub enum SelectorAdvanceResult {
 }
 
 impl StreamingJsonPathState {
-    /// Create new state from compiled JSONPath expression
+    /// Create new state from compiled `JSONPath` expression
+    #[must_use] 
     pub fn new(compiled_expression: &JsonPathExpression) -> Self {
         Self {
             selectors: compiled_expression.selectors().to_vec(),
@@ -168,12 +169,14 @@ impl StreamingJsonPathState {
         // Keep evaluation_stats for cumulative performance tracking
     }
 
-    /// Check if state indicates completion of JSONPath expression evaluation
+    /// Check if state indicates completion of `JSONPath` expression evaluation
+    #[must_use] 
     pub fn is_expression_complete(&self) -> bool {
         self.current_selector_index >= self.max_selector_count
     }
 
     /// Check if current state indicates a potential match worth buffering
+    #[must_use] 
     pub fn should_buffer_current_object(&self) -> bool {
         // Buffer if we're close to completing the expression
         if self.current_selector_index >= self.max_selector_count.saturating_sub(2) {
@@ -194,6 +197,7 @@ impl StreamingJsonPathState {
     }
 
     /// Calculate the minimum buffer size needed for efficient processing
+    #[must_use] 
     pub fn required_buffer_size(&self) -> usize {
         // Base size for JSON structure parsing
         let base_size = 8192; // 8KB base
@@ -228,14 +232,18 @@ impl StreamingJsonPathState {
     }
 
     /// Get processing efficiency metrics for buffer optimization
+    #[must_use] 
     pub fn processing_efficiency(&self) -> f64 {
         if self.evaluation_stats.nodes_processed == 0 {
             return 1.0; // Start optimistically
         }
         
+        // Precision loss acceptable for JSONPath processing efficiency statistics
+        #[allow(clippy::cast_precision_loss)]
         let match_rate = self.evaluation_stats.matches_found as f64 / self.evaluation_stats.nodes_processed as f64;
         let backtrack_penalty = if self.evaluation_stats.backtrack_operations > 0 {
-            1.0 - (self.evaluation_stats.backtrack_operations as f64 / self.evaluation_stats.nodes_processed as f64)
+            #[allow(clippy::cast_precision_loss)]
+            { 1.0 - (self.evaluation_stats.backtrack_operations as f64 / self.evaluation_stats.nodes_processed as f64) }
         } else {
             1.0
         };
@@ -243,7 +251,7 @@ impl StreamingJsonPathState {
         (match_rate * backtrack_penalty).max(0.1).min(1.0)
     }
     
-    /// Advance to the next selector in the JSONPath expression
+    /// Advance to the next selector in the `JSONPath` expression
     pub fn advance_selector(&mut self) -> SelectorAdvanceResult {
         if self.current_selector_index + 1 >= self.max_selector_count {
             SelectorAdvanceResult::ExpressionComplete
@@ -322,49 +330,48 @@ impl StreamingJsonPathState {
         }
     }
     
-    /// Build current JSONPath from breadcrumbs  
+    /// Build current `JSONPath` from breadcrumbs  
     fn build_current_path(&self, new_segment: &PathSegment) -> String {
         let mut path = String::from("$");
         
         for frame in &self.path_breadcrumbs {
             match &frame.segment {
-                PathSegment::Property(key) => path.push_str(&format!(".{}", key)),
-                PathSegment::ArrayIndex(idx) => path.push_str(&format!("[{}]", idx)),
+                PathSegment::Property(key) => path.push_str(&format!(".{key}")),
+                PathSegment::ArrayIndex(idx) => path.push_str(&format!("[{idx}]")),
                 PathSegment::Wildcard => path.push_str("[*]"),
                 PathSegment::RecursiveDescent => path.push_str(".."),
-                PathSegment::FilterMatch(filter) => path.push_str(&format!("[?{}]", filter)),
+                PathSegment::FilterMatch(filter) => path.push_str(&format!("[?{filter}]")),
             }
         }
         
         // Add the new segment
         match new_segment {
-            PathSegment::Property(key) => path.push_str(&format!(".{}", key)),
-            PathSegment::ArrayIndex(idx) => path.push_str(&format!("[{}]", idx)),
+            PathSegment::Property(key) => path.push_str(&format!(".{key}")),
+            PathSegment::ArrayIndex(idx) => path.push_str(&format!("[{idx}]")),
             PathSegment::Wildcard => path.push_str("[*]"),
             PathSegment::RecursiveDescent => path.push_str(".."),
-            PathSegment::FilterMatch(filter) => path.push_str(&format!("[?{}]", filter)),
+            PathSegment::FilterMatch(filter) => path.push_str(&format!("[?{filter}]")),
         }
         
         path
     }
     
-    /// Get current JSONPath for matched node
+    /// Get current `JSONPath` for matched node
+    #[must_use] 
     pub fn current_json_path(&self) -> String {
         if self.path_breadcrumbs.is_empty() {
             "$".to_string()
         } else {
-            self.path_breadcrumbs.last()
-                .map(|frame| frame.accumulated_path.clone())
-                .unwrap_or_else(|| "$".to_string())
+            self.path_breadcrumbs.last().map_or_else(|| "$".to_string(), |frame| frame.accumulated_path.clone())
         }
     }
     
     /// Check if we should continue recursive descent at current level
+    #[must_use] 
     pub fn should_continue_recursive_descent(&self) -> bool {
         self.in_recursive_descent && 
         self.recursive_descent_stack.last()
-            .map(|frame| frame.should_continue)
-            .unwrap_or(false)
+            .is_some_and(|frame| frame.should_continue)
     }
     
     /// Update depth tracking
@@ -381,13 +388,13 @@ impl StreamingJsonPathState {
     }
 }
 
-/// High-performance streaming JSON deserializer with JSONPath navigation
+/// High-performance streaming JSON deserializer with `JSONPath` navigation
 ///
-/// Combines JSONPath expression evaluation with incremental JSON parsing to extract
+/// Combines `JSONPath` expression evaluation with incremental JSON parsing to extract
 /// individual array elements from nested JSON structures during HTTP streaming.
-/// Supports full JSONPath specification including recursive descent (..) operators.
+/// Supports full `JSONPath` specification including recursive descent (..) operators.
 pub struct JsonPathDeserializer<'a, T> {
-    /// JSONPath expression for navigation and filtering
+    /// `JSONPath` expression for navigation and filtering
     pub path_expression: &'a JsonPathExpression,
     /// Streaming buffer for efficient byte processing
     pub buffer: &'a mut StreamBuffer,
@@ -403,7 +410,7 @@ pub struct JsonPathDeserializer<'a, T> {
     pub object_buffer: Vec<u8>,
     
     // === STREAMING JSONPATH STATE INTEGRATION ===
-    /// Complete streaming JSONPath evaluation state
+    /// Complete streaming `JSONPath` evaluation state
     /// IMPLEMENTED: Replaces all previous TODO fields with working implementation
     pub streaming_state: StreamingJsonPathState,
     
@@ -458,6 +465,7 @@ where
     }
 
     /// Check if the deserializer should continue processing based on efficiency
+    #[must_use] 
     pub fn should_continue_processing(&self) -> bool {
         let efficiency = self.streaming_state.processing_efficiency();
         
@@ -478,13 +486,17 @@ where
     }
 
     /// Get detailed processing statistics for monitoring and debugging
+    #[must_use] 
     pub fn get_processing_stats(&self) -> ProcessingStats {
         ProcessingStats {
             buffer_size: self.buffer.len(),
             buffer_capacity: self.buffer.capacity(),
+            // Precision loss acceptable for buffer utilization and progress statistics
+            #[allow(clippy::cast_precision_loss)]
             buffer_utilization: self.buffer.len() as f64 / self.buffer.capacity() as f64,
             current_depth: self.current_depth,
             streaming_depth: self.streaming_state.current_depth,
+            #[allow(clippy::cast_precision_loss)]
             selector_progress: self.streaming_state.current_selector_index as f64 / self.streaming_state.max_selector_count as f64,
             in_recursive_descent: self.streaming_state.in_recursive_descent,
             navigation_frames: self.streaming_state.path_breadcrumbs.len(),
@@ -496,6 +508,7 @@ where
     }
 
     /// Estimate memory usage for capacity planning
+    #[must_use] 
     pub fn estimated_memory_usage(&self) -> usize {
         let buffer_memory = self.buffer.capacity();
         let object_buffer_memory = self.object_buffer.capacity();
@@ -509,7 +522,7 @@ where
 
     /// Process available bytes and yield deserialized objects
     ///
-    /// Incrementally parses JSON while evaluating JSONPath expressions to identify
+    /// Incrementally parses JSON while evaluating `JSONPath` expressions to identify
     /// and extract individual array elements for deserialization.
     ///
     /// # Returns
@@ -526,13 +539,13 @@ where
         JsonPathIterator::new(self)
     }
 
-    /// Process available bytes with full JSONPath streaming
+    /// Process available bytes with full `JSONPath` streaming
     pub fn process_available_with_streaming(&mut self) -> StreamingJsonPathIterator<'_, 'a, T> {
         StreamingJsonPathIterator::new(self)
     }
 }
 
-/// Streaming JSONPath iterator for enhanced streaming processing
+/// Streaming `JSONPath` iterator for enhanced streaming processing
 pub struct StreamingJsonPathIterator<'de, 'a, T> {
     deserializer: &'de mut JsonPathDeserializer<'a, T>,
 }
@@ -543,7 +556,7 @@ impl<'de, 'a, T> StreamingJsonPathIterator<'de, 'a, T> {
     }
 }
 
-impl<'de, 'a, T> Iterator for StreamingJsonPathIterator<'de, 'a, T>
+impl<T> Iterator for StreamingJsonPathIterator<'_, '_, T>
 where
     T: DeserializeOwned,
 {
@@ -636,7 +649,7 @@ where
                 }
                 Err(state_error) => {
                     // State management error - log and continue with next chunk
-                    log::warn!("JSONPath state management error: {}", state_error);
+                    log::warn!("JSONPath state management error: {state_error}");
                     self.deserializer.buffer_position = process_end;
                     continue;
                 }
@@ -685,18 +698,18 @@ enum DepthChange {
     ExitArray,
 }
 
-impl<'de, 'a, T> StreamingJsonPathIterator<'de, 'a, T>
+impl<T> StreamingJsonPathIterator<'_, '_, T>
 where
     T: DeserializeOwned,
 {
-    /// Process JSON chunk through streaming state machine with JSONPath evaluation
+    /// Process JSON chunk through streaming state machine with `JSONPath` evaluation
     fn process_json_chunk(&mut self, chunk: &[u8]) -> Result<(), JsonPathError> {
         // First perform UTF-8 security validation on the chunk
         let validation_context = crate::jsonpath::safe_parsing::SafeParsingContext::with_limits(10_000, true);
         if let Err(validation_error) = validation_context.validate_utf8_strict(chunk) {
             return Err(crate::jsonpath::error::invalid_expression_error(
                 "",
-                &format!("UTF-8 validation failed during chunk processing: {}", validation_error),
+                format!("UTF-8 validation failed during chunk processing: {validation_error}"),
                 None
             ));
         }
@@ -726,7 +739,7 @@ where
                         if in_property_name {
                             in_property_name = false;
                             // We've completed parsing a property name
-                            self.handle_property_name(&current_property)?;
+                            self.handle_property_name(&current_property);
                             current_property.clear();
                         }
                     } else {
@@ -741,23 +754,23 @@ where
                 }
                 b'}' if !in_string => {
                     brace_depth -= 1;
-                    self.handle_object_end()?;
+                    self.handle_object_end();
                     self.deserializer.streaming_state.exit_depth();
                 }
                 b'[' if !in_string => {
                     self.deserializer.streaming_state.enter_depth();
-                    self.handle_array_start()?;
+                    self.handle_array_start();
                     array_index = 0;
                 }
                 b']' if !in_string => {
-                    self.handle_array_end()?;
+                    self.handle_array_end();
                     self.deserializer.streaming_state.exit_depth();
                 }
                 b',' if !in_string => {
                     if brace_depth == 0 {
                         // Array element separator at top level
                         array_index += 1;
-                        self.handle_array_element_separator(array_index)?;
+                        self.handle_array_element_separator(array_index);
                     }
                 }
                 _ => {
@@ -801,7 +814,7 @@ where
                         if in_property_name {
                             in_property_name = false;
                             // We've completed parsing a property name
-                            self.handle_property_name(&current_property)?;
+                            self.handle_property_name(&current_property);
                             current_property.clear();
                         }
                     } else {
@@ -819,29 +832,28 @@ where
                 }
                 b'}' if !in_string => {
                     brace_depth -= 1;
-                    self.handle_object_end()?;
+                    self.handle_object_end();
                     self.deserializer.streaming_state.exit_depth();
-                    if brace_depth == 0 {
-                        if let Some(start) = current_object_start {
+                    if brace_depth == 0
+                        && let Some(start) = current_object_start {
                             object_boundaries.push((start, pos + 1));
                             current_object_start = None;
                         }
-                    }
                 }
                 b'[' if !in_string => {
                     self.deserializer.streaming_state.enter_depth();
-                    self.handle_array_start()?;
+                    self.handle_array_start();
                     array_index = 0;
                 }
                 b']' if !in_string => {
-                    self.handle_array_end()?;
+                    self.handle_array_end();
                     self.deserializer.streaming_state.exit_depth();
                 }
                 b',' if !in_string => {
                     if brace_depth == 0 {
                         // Array element separator at top level
                         array_index += 1;
-                        self.handle_array_element_separator(array_index)?;
+                        self.handle_array_element_separator(array_index);
                     }
                 }
                 _ => {
@@ -864,17 +876,15 @@ where
     }
 
     /// Apply processing results to deserializer state
-    fn apply_processing_result(&mut self, result: ProcessingResult) -> Result<(), JsonPathError> {
+    fn apply_processing_result(&mut self, result: ProcessingResult) {
         // Update buffer position tracking based on bytes processed
         self.deserializer.buffer_position += result.bytes_processed;
         
         // Handle buffer state updates if needed
         self.deserializer.streaming_state.handle_buffer_consumption(result.bytes_processed);
-        
-        Ok(())
     }
 
-    /// Check if current position matches JSONPath expression  
+    /// Check if current position matches `JSONPath` expression  
     fn matches_current_expression(&self) -> bool {
         let state = &self.deserializer.streaming_state;
         
@@ -1009,7 +1019,7 @@ where
     }
 
     /// Handle property name encountered during JSON parsing
-    fn handle_property_name(&mut self, property_name: &str) -> Result<(), JsonPathError> {
+    fn handle_property_name(&mut self, property_name: &str) {
         let state = &mut self.deserializer.streaming_state;
         
         // Check if this property matches current selector
@@ -1042,8 +1052,6 @@ where
                 }
             }
         }
-        
-        Ok(())
     }
 
     /// Handle JSON object start during parsing
@@ -1051,27 +1059,25 @@ where
         let state = &mut self.deserializer.streaming_state;
         
         // Check if we should enter recursive descent mode
-        if !state.in_recursive_descent && state.current_selector_index < state.selectors.len() {
-            if matches!(state.selectors[state.current_selector_index], crate::jsonpath::ast::JsonSelector::RecursiveDescent) {
+        if !state.in_recursive_descent && state.current_selector_index < state.selectors.len()
+            && matches!(state.selectors[state.current_selector_index], crate::jsonpath::ast::JsonSelector::RecursiveDescent) {
                 state.enter_recursive_descent(
                     format!("$.object_at_depth_{}", state.current_depth),
                     state.current_selector_index
                 )?;
             }
-        }
         
         Ok(())
     }
 
     /// Handle JSON object end during parsing
-    fn handle_object_end(&mut self) -> Result<(), JsonPathError> {
+    fn handle_object_end(&mut self) {
         // Pop navigation frame for object exit
         self.deserializer.streaming_state.pop_navigation_frame();
-        Ok(())
     }
 
     /// Handle JSON array start during parsing  
-    fn handle_array_start(&mut self) -> Result<(), JsonPathError> {
+    fn handle_array_start(&mut self) {
         let state = &mut self.deserializer.streaming_state;
         
         // Add navigation frame for array entry
@@ -1079,18 +1085,15 @@ where
             PathSegment::ArrayIndex(0),
             false // Will be updated when we process array elements
         );
-        
-        Ok(())
     }
 
     /// Handle JSON array end during parsing
-    fn handle_array_end(&mut self) -> Result<(), JsonPathError> {
+    fn handle_array_end(&mut self) {
         self.deserializer.streaming_state.pop_navigation_frame();
-        Ok(())
     }
 
     /// Handle array element separator (comma) during parsing
-    fn handle_array_element_separator(&mut self, array_index: usize) -> Result<(), JsonPathError> {
+    fn handle_array_element_separator(&mut self, array_index: usize) {
         let state = &mut self.deserializer.streaming_state;
         
         // Check if current selector expects this array index
@@ -1107,14 +1110,11 @@ where
         };
         
         // Update the current navigation frame or add new one
-        if let Some(last_frame) = state.path_breadcrumbs.last_mut() {
-            if matches!(last_frame.segment, PathSegment::ArrayIndex(_)) {
+        if let Some(last_frame) = state.path_breadcrumbs.last_mut()
+            && matches!(last_frame.segment, PathSegment::ArrayIndex(_)) {
                 last_frame.segment = PathSegment::ArrayIndex(array_index);
                 last_frame.is_match = is_match;
             }
-        }
-        
-        Ok(())
     }
 
 
@@ -1175,15 +1175,14 @@ where
         }
         
         // Handle end boundary
-        if let Some(end_bound) = end {
-            if index >= end_bound {
+        if let Some(end_bound) = end
+            && index >= end_bound {
                 return false;
             }
-        }
         
         // Check step alignment
         if step > 1 {
-            ((index - start_bound) as usize % step) == 0
+            ((index - start_bound) as usize).is_multiple_of(step)
         } else {
             true
         }

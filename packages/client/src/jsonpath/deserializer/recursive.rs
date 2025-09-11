@@ -1,6 +1,6 @@
 //! Recursive descent (..) operator support
 //!
-//! Provides state management and evaluation logic for JSONPath recursive descent
+//! Provides state management and evaluation logic for `JSONPath` recursive descent
 //! operations during streaming JSON parsing.
 //!
 //! NOTE: Methods in this module may be part of incomplete recursive descent implementation.
@@ -12,7 +12,7 @@ use crate::jsonpath::deserializer::core::types::{RecursiveDescentFrame, PathNavi
 use super::iterator::JsonPathIterator;
 use crate::jsonpath::parser::JsonSelector;
 
-impl<'iter, 'data, T> JsonPathIterator<'iter, 'data, T>
+impl<T> JsonPathIterator<'_, '_, T>
 where
     T: DeserializeOwned,
 {
@@ -60,7 +60,7 @@ where
 
     /// Check if we should enter recursive descent mode at current position
     ///
-    /// Evaluates the JSONPath expression to determine if a recursive descent
+    /// Evaluates the `JSONPath` expression to determine if a recursive descent
     /// operator should be activated based on the current parsing state.
     #[inline]
     pub(super) fn should_enter_recursive_descent(&self) -> bool {
@@ -90,7 +90,7 @@ where
                 self.deserializer.streaming_state.path_breadcrumbs.push(PathNavigationFrame {
                     segment: PathSegment::Property(name.to_string()),
                     depth: self.deserializer.current_depth,
-                    accumulated_path: format!("$.{}", name),
+                    accumulated_path: format!("$.{name}"),
                     is_match: false,
                     selector_index: self.deserializer.streaming_state.current_selector_index,
                 });

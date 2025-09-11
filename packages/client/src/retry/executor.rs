@@ -2,7 +2,7 @@ use ystream::prelude::*;
 
 use super::RetryPolicy;
 
-/// Retry executor for HTTP operations using pure AsyncStreams
+/// Retry executor for HTTP operations using pure `AsyncStreams`
 pub struct HttpRetryExecutor<F, T>
 where
     F: Fn() -> AsyncStream<T, 1024> + Send + Sync + 'static,
@@ -26,6 +26,7 @@ where
     }
 
     /// Execute operation with retry logic using pure streaming patterns
+    #[must_use] 
     pub fn execute_with_retry(&self) -> AsyncStream<T, 1024> {
         let operation = std::sync::Arc::clone(&self.operation);
         let policy = self.policy.clone();

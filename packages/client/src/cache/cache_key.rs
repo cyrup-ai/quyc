@@ -1,6 +1,6 @@
 //! Cache key generation and hashing for HTTP responses
 //!
-//! Provides CacheKey struct for generating consistent cache keys based on
+//! Provides `CacheKey` struct for generating consistent cache keys based on
 //! request URL, method, and cache-relevant headers.
 
 use std::collections::HashMap;
@@ -18,6 +18,7 @@ pub struct CacheKey {
 
 impl CacheKey {
     /// Create cache key from request components
+    #[must_use] 
     pub fn new(url: String, method: String, headers: HashMap<String, String>) -> Self {
         // Only include headers that affect caching behavior
         let cache_headers = headers
@@ -40,12 +41,13 @@ impl CacheKey {
 
         Self {
             url,
-            method,
             cache_headers,
+            method,
         }
     }
 
     /// Generate hash key for storage
+    #[must_use] 
     pub fn hash_key(&self) -> String {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};

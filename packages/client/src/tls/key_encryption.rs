@@ -23,8 +23,8 @@ fn validate_encryption_passphrase() -> Result<String, TlsError> {
     }
 
     // Enhanced entropy validation - character class requirements
-    let has_lowercase = passphrase.chars().any(|c| c.is_lowercase());
-    let has_uppercase = passphrase.chars().any(|c| c.is_uppercase());
+    let has_lowercase = passphrase.chars().any(char::is_lowercase);
+    let has_uppercase = passphrase.chars().any(char::is_uppercase);
     let has_digit = passphrase.chars().any(|c| c.is_ascii_digit());
     let has_symbol = passphrase.chars().any(|c| !c.is_alphanumeric());
 

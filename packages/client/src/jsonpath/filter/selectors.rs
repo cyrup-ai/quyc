@@ -1,17 +1,17 @@
-//! JSONPath selector evaluation for filter expressions
+//! `JSONPath` selector evaluation for filter expressions
 //!
-//! Handles evaluation of complex JSONPath selectors within filter contexts,
+//! Handles evaluation of complex `JSONPath` selectors within filter contexts,
 //! including child access, wildcards, and array indexing.
 
 use super::property::PropertyResolver;
 use crate::jsonpath::error::JsonPathResult;
 use crate::jsonpath::parser::{FilterValue, JsonSelector};
 
-/// JSONPath selector evaluation utilities
+/// `JSONPath` selector evaluation utilities
 pub struct SelectorEvaluator;
 
 impl SelectorEvaluator {
-    /// Evaluate complex JSONPath selectors relative to current context
+    /// Evaluate complex `JSONPath` selectors relative to current context
     #[inline]
     pub fn evaluate_jsonpath_selectors(
         context: &serde_json::Value,

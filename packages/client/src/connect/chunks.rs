@@ -1,6 +1,6 @@
 //! TCP connection chunk types for fluent-ai streaming architecture
 //!
-//! Provides MessageChunk implementations for TCP connection events,
+//! Provides `MessageChunk` implementations for TCP connection events,
 //! following the streams-first architecture with no Result wrapping.
 
 use std::net::SocketAddr;
@@ -105,6 +105,7 @@ impl Default for TcpConnectionChunk {
 
 impl TcpConnectionChunk {
     /// Get the connection ID for this chunk
+    #[must_use] 
     pub fn connection_id(&self) -> u64 {
         match self {
             Self::Connected { connection_id, .. }
@@ -128,6 +129,7 @@ impl TcpConnectionChunk {
     }
 
     /// Create a disconnected chunk
+    #[must_use] 
     pub fn disconnected(connection_id: u64, reason: String) -> Self {
         Self::Disconnected {
             connection_id,
@@ -136,6 +138,7 @@ impl TcpConnectionChunk {
     }
 
     /// Create a data received chunk
+    #[must_use] 
     pub fn data_received(connection_id: u64, data: Vec<u8>) -> Self {
         Self::DataReceived {
             connection_id,
@@ -144,6 +147,7 @@ impl TcpConnectionChunk {
     }
 
     /// Create a data sent chunk
+    #[must_use] 
     pub fn data_sent(connection_id: u64, bytes_sent: usize) -> Self {
         Self::DataSent {
             connection_id,
@@ -152,6 +156,7 @@ impl TcpConnectionChunk {
     }
 
     /// Create a connection closed chunk
+    #[must_use] 
     pub fn connection_closed(connection_id: u64, reason: String) -> Self {
         Self::ConnectionClosed {
             connection_id,

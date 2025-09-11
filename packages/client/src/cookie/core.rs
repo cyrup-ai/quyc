@@ -21,7 +21,7 @@ pub trait CookieStore: Send + Sync {
 #[derive(Clone)]
 pub struct Cookie<'a>(cookie::Cookie<'a>);
 
-impl<'a> MessageChunk for Cookie<'a> {
+impl MessageChunk for Cookie<'_> {
     fn bad_chunk(error: String) -> Self {
         // Create an error cookie with invalid name/value
         let error_cookie = cookie::Cookie::build(("ERROR", error)).build();
@@ -41,7 +41,7 @@ impl<'a> MessageChunk for Cookie<'a> {
     }
 }
 
-impl<'a> Default for Cookie<'a> {
+impl Default for Cookie<'_> {
     fn default() -> Self {
         let default_cookie = cookie::Cookie::build(("default", "")).build();
         Cookie(default_cookie)
@@ -74,51 +74,61 @@ impl<'a> Cookie<'a> {
     }
 
     /// The name of the cookie.
+    #[must_use] 
     pub fn name(&self) -> &str {
         self.0.name()
     }
 
     /// The value of the cookie.
+    #[must_use] 
     pub fn value(&self) -> &str {
         self.0.value()
     }
 
-    /// Returns true if the 'HttpOnly' directive is enabled.
+    /// Returns true if the '`HttpOnly`' directive is enabled.
+    #[must_use] 
     pub fn http_only(&self) -> bool {
         self.0.http_only().unwrap_or(false)
     }
 
     /// Returns true if the 'Secure' directive is enabled.
+    #[must_use] 
     pub fn secure(&self) -> bool {
         self.0.secure().unwrap_or(false)
     }
 
-    /// Returns true if  'SameSite' directive is 'Lax'.
+    /// Returns true if  '`SameSite`' directive is 'Lax'.
+    #[must_use] 
     pub fn same_site_lax(&self) -> bool {
         self.0.same_site() == Some(cookie::SameSite::Lax)
     }
 
-    /// Returns true if  'SameSite' directive is 'Strict'.
+    /// Returns true if  '`SameSite`' directive is 'Strict'.
+    #[must_use] 
     pub fn same_site_strict(&self) -> bool {
         self.0.same_site() == Some(cookie::SameSite::Strict)
     }
 
     /// Returns the path directive of the cookie, if set.
+    #[must_use] 
     pub fn path(&self) -> Option<&str> {
         self.0.path()
     }
 
     /// Returns the domain directive of the cookie, if set.
+    #[must_use] 
     pub fn domain(&self) -> Option<&str> {
         self.0.domain()
     }
 
     /// Get the Max-Age information.
+    #[must_use] 
     pub fn max_age(&self) -> Option<std::time::Duration> {
         self.0.max_age().and_then(|d| d.try_into().ok())
     }
 
     /// The cookie expiration time.
+    #[must_use] 
     pub fn expires(&self) -> Option<SystemTime> {
         match self.0.expires() {
             Some(cookie::Expiration::DateTime(offset)) => Some(SystemTime::from(offset)),
@@ -127,21 +137,21 @@ impl<'a> Cookie<'a> {
     }
 }
 
-impl<'a> fmt::Debug for Cookie<'a> {
+impl fmt::Debug for Cookie<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.0.fmt(f)
     }
 }
 
-pub(crate) fn extract_response_cookie_headers<'a>(
-    headers: &'a hyper::HeaderMap,
-) -> impl Iterator<Item = &'a HeaderValue> + 'a {
+pub(crate) fn extract_response_cookie_headers(
+    headers: &hyper::HeaderMap,
+) -> impl Iterator<Item = &HeaderValue> + '_ {
     headers.get_all(SET_COOKIE).iter()
 }
 
-pub(crate) fn extract_response_cookies<'a>(
-    headers: &'a hyper::HeaderMap,
-) -> impl Iterator<Item = Result<Cookie<'a>, CookieParseError>> + 'a {
+pub(crate) fn extract_response_cookies(
+    headers: &hyper::HeaderMap,
+) -> impl Iterator<Item = Result<Cookie<'_>, CookieParseError>> + '_ {
     headers
         .get_all(SET_COOKIE)
         .iter()
@@ -190,13 +200,12 @@ impl Jar {
     pub fn add_cookie_str(&self, cookie: &str, url: &url::Url) {
         let cookies = cookie::Cookie::parse(cookie)
             .ok()
-            .map(|c| c.into_owned())
+            .map(cookie::Cookie::into_owned)
             .into_iter();
-        if let Ok(mut store_guard) = self.0.write() {
-            if let Some(ref mut store) = store_guard.as_mut() {
+        if let Ok(mut store_guard) = self.0.write()
+            && let Some(ref mut store) = store_guard.as_mut() {
                 store.store_response_cookies(cookies, url);
             }
-        }
     }
 }
 
@@ -211,22 +220,21 @@ impl CookieStore for Jar {
         let cookies: Vec<_> = cookie_headers
             .filter_map(|val| {
                 cookie::Cookie::parse(val.to_str().unwrap_or(""))
-                    .map(|c| c.into_owned())
+                    .map(cookie::Cookie::into_owned)
                     .ok()
             })
             .collect();
 
-        if let Ok(mut store_guard) = self.0.write() {
-            if let Some(ref mut store) = store_guard.as_mut() {
+        if let Ok(mut store_guard) = self.0.write()
+            && let Some(ref mut store) = store_guard.as_mut() {
                 store.store_response_cookies(cookies.into_iter(), url);
             }
-        }
     }
 
     fn cookies(&self, url: &url::Url) -> Option<HeaderValue> {
         let s = match self.0.read() {
             Ok(store_guard) => {
-                if let Some(ref store) = store_guard.as_ref() {
+                if let Some(store) = store_guard.as_ref() {
                     store
                         .get_request_values(url)
                         .map(|(name, value)| format!("{name}={value}"))

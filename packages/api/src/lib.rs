@@ -17,13 +17,14 @@ pub use quyc_client::{
 };
 pub use quyc_client::builder::fluent::DownloadBuilder;
 
-/// Error chunk for MessageChunk pattern compatibility
+/// Error chunk for `MessageChunk` pattern compatibility
 #[derive(Debug, Clone)]
 pub struct BadChunk {
     pub error: String,
 }
 
 impl BadChunk {
+    #[must_use] 
     pub fn new(error: String) -> Self {
         Self { error }
     }
@@ -41,6 +42,7 @@ impl Http3 {
     /// Create a new JSON HTTP builder
     /// 
     /// Shorthand for `Http3Builder::json()`
+    #[must_use] 
     pub fn json() -> Http3Builder {
         Http3Builder::json()
     }
@@ -50,6 +52,7 @@ impl Http3 {
     /// Create a new form-urlencoded HTTP builder
     /// 
     /// Shorthand for `Http3Builder::form_urlencoded()`
+    #[must_use] 
     pub fn form_urlencoded() -> Http3Builder {
         Http3Builder::form_urlencoded()
     }
@@ -57,10 +60,11 @@ impl Http3 {
     /// Create a new HTTP builder with custom client
     /// 
     /// # Arguments
-    /// * `client` - Custom HttpClient instance
+    /// * `client` - Custom `HttpClient` instance
     /// 
     /// # Returns
     /// `Http3Builder` for method chaining
+    #[must_use] 
     pub fn with_client(client: &HttpClient) -> Http3Builder {
         Http3Builder::new(client)
     }
@@ -69,6 +73,7 @@ impl Http3 {
 /// Create a new JSON HTTP builder
 /// 
 /// Shorthand for `Http3Builder::json()`
+#[must_use] 
 pub fn json() -> Http3Builder {
     Http3Builder::json()
 }
@@ -76,6 +81,7 @@ pub fn json() -> Http3Builder {
 /// Create a new form-urlencoded HTTP builder
 /// 
 /// Shorthand for `Http3Builder::form_urlencoded()`
+#[must_use] 
 pub fn form() -> Http3Builder {
     Http3Builder::form_urlencoded()
 }
@@ -83,10 +89,11 @@ pub fn form() -> Http3Builder {
 /// Create a new HTTP builder with custom client
 /// 
 /// # Arguments
-/// * `client` - Custom HttpClient instance
+/// * `client` - Custom `HttpClient` instance
 /// 
 /// # Returns
 /// `Http3Builder` for method chaining
+#[must_use] 
 pub fn with_client(client: &HttpClient) -> Http3Builder {
     Http3Builder::new(client)
 }

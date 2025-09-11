@@ -167,14 +167,19 @@ impl BufferGuard {
 
     /// Gets a mutable reference to the underlying buffer
     #[inline]
-    fn as_mut(&mut self) -> &mut Vec<u8> {
-        self.buffer.as_mut().unwrap()
+    fn as_mut(&mut self) -> Result<&mut Vec<u8>, crate::error::HttpError> {
+        self.buffer.as_mut().ok_or_else(|| 
+            crate::error::HttpError::new(crate::error::types::Kind::Request)
+                .with("Buffer pool exhausted"))
     }
 
     /// Gets an immutable reference to the underlying buffer
     #[inline]
-    fn as_ref(&self) -> &Vec<u8> {
-        self.buffer.as_ref().unwrap()
+    #[allow(dead_code)]
+    fn as_ref(&self) -> Result<&Vec<u8>, crate::error::HttpError> {
+        self.buffer.as_ref().ok_or_else(|| 
+            crate::error::HttpError::new(crate::error::types::Kind::Request)
+                .with("Buffer pool exhausted"))
     }
 }
 
@@ -242,11 +247,11 @@ pub fn compress_bytes_with_metrics(
     
     let result = match algorithm {
         CompressionAlgorithm::Gzip => {
-            let compression_level = FlateCompression::new(level.unwrap_or(6) as u32);
+            let compression_level = FlateCompression::new(level.unwrap_or(6));
             compress_gzip(data, compression_level)
         },
         CompressionAlgorithm::Deflate => {
-            let compression_level = FlateCompression::new(level.unwrap_or(6) as u32);
+            let compression_level = FlateCompression::new(level.unwrap_or(6));
             compress_deflate(data, compression_level)
         },
         CompressionAlgorithm::Brotli => {
@@ -261,14 +266,31 @@ pub fn compress_bytes_with_metrics(
         Ok(compressed) => {
             let compression_time = start_time.elapsed();
             
-            // Check if compression is worthwhile
+            // Check if compression is worthwhile  
+            // Precision loss acceptable for compression ratio calculations
+            #[allow(clippy::cast_precision_loss)]
             let ratio = data.len() as f64 / compressed.len() as f64;
             if ratio >= MIN_COMPRESSION_RATIO {
                 // Record successful compression metrics
                 if let Some(stats) = stats {
                     stats.compression_applied.fetch_add(1, Ordering::Relaxed);
                     stats.bytes_after_compression.fetch_add(compressed.len() as u64, Ordering::Relaxed);
-                    stats.compression_time_micros.fetch_add(compression_time.as_micros() as u64, Ordering::Relaxed);
+                    let compression_micros = compression_time.as_micros();
+                    let compression_micros_u64 = if compression_micros > u64::MAX as u128 {
+                        tracing::warn!(
+                            target: "quyc::compression",
+                            compression_micros = compression_micros,
+                            max_u64 = u64::MAX,
+                            "Compression time exceeds u64 limits, clamping to max"
+                        );
+                        u64::MAX
+                    } else {
+                        #[allow(clippy::cast_possible_truncation)]
+                        {
+                            compression_micros as u64
+                        }
+                    };
+                    stats.compression_time_micros.fetch_add(compression_micros_u64, Ordering::Relaxed);
                 }
                 
                 tracing::debug!(
@@ -374,7 +396,22 @@ pub fn decompress_bytes_with_metrics(
             if let Some(stats) = stats {
                 stats.decompression_applied.fetch_add(1, Ordering::Relaxed);
                 stats.bytes_after_decompression.fetch_add(decompressed.len() as u64, Ordering::Relaxed);
-                stats.decompression_time_micros.fetch_add(decompression_time.as_micros() as u64, Ordering::Relaxed);
+                let decompression_micros = decompression_time.as_micros();
+                let decompression_micros_u64 = if decompression_micros > u64::MAX as u128 {
+                    tracing::warn!(
+                        target: "quyc::compression",
+                        decompression_micros = decompression_micros,
+                        max_u64 = u64::MAX,
+                        "Decompression time exceeds u64 limits, clamping to max"
+                    );
+                    u64::MAX
+                } else {
+                    #[allow(clippy::cast_possible_truncation)]
+                    {
+                        decompression_micros as u64
+                    }
+                };
+                stats.decompression_time_micros.fetch_add(decompression_micros_u64, Ordering::Relaxed);
             }
             
             tracing::debug!(
@@ -409,7 +446,7 @@ pub fn decompress_bytes_with_metrics(
 #[inline]
 fn compress_gzip(data: &[u8], compression_level: FlateCompression) -> Result<Vec<u8>, HttpError> {
     let mut buffer_guard = BufferGuard::new(data.len() / 4); // Estimate compressed size
-    let output_buffer = buffer_guard.as_mut();
+    let output_buffer = buffer_guard.as_mut()?;
     
     {
         let mut encoder = GzEncoder::new(&mut *output_buffer, compression_level);
@@ -431,7 +468,7 @@ fn compress_gzip(data: &[u8], compression_level: FlateCompression) -> Result<Vec
 #[inline]
 fn compress_deflate(data: &[u8], compression_level: FlateCompression) -> Result<Vec<u8>, HttpError> {
     let mut buffer_guard = BufferGuard::new(data.len() / 4); // Estimate compressed size
-    let output_buffer = buffer_guard.as_mut();
+    let output_buffer = buffer_guard.as_mut()?;
     
     {
         let mut encoder = DeflateEncoder::new(&mut *output_buffer, compression_level);
@@ -453,7 +490,7 @@ fn compress_deflate(data: &[u8], compression_level: FlateCompression) -> Result<
 #[inline]
 fn decompress_gzip(data: &[u8]) -> Result<Vec<u8>, HttpError> {
     let mut buffer_guard = BufferGuard::new(data.len() * 4); // Estimate decompressed size
-    let output_buffer = buffer_guard.as_mut();
+    let output_buffer = buffer_guard.as_mut()?;
     
     let mut decoder = GzDecoder::new(std::io::Cursor::new(data));
     let mut total_read = 0;
@@ -482,7 +519,7 @@ fn decompress_gzip(data: &[u8]) -> Result<Vec<u8>, HttpError> {
             },
             Err(e) => {
                 return Err(HttpError::new(crate::error::types::Kind::Request)
-                    .with(format!("Decompression read failed: {}", e)));
+                    .with(format!("Decompression read failed: {e}")));
             }
         }
     }
@@ -494,7 +531,7 @@ fn decompress_gzip(data: &[u8]) -> Result<Vec<u8>, HttpError> {
 #[inline]
 fn decompress_deflate(data: &[u8]) -> Result<Vec<u8>, HttpError> {
     let mut buffer_guard = BufferGuard::new(data.len() * 4); // Estimate decompressed size
-    let output_buffer = buffer_guard.as_mut();
+    let output_buffer = buffer_guard.as_mut()?;
     
     let mut decoder = DeflateDecoder::new(std::io::Cursor::new(data));
     let mut total_read = 0;
@@ -535,7 +572,7 @@ fn decompress_deflate(data: &[u8]) -> Result<Vec<u8>, HttpError> {
 #[inline]
 fn compress_with_brotli(data: &[u8], level: u32) -> Result<Vec<u8>, HttpError> {
     let mut buffer_guard = BufferGuard::new(data.len() / 4);
-    let output_buffer = buffer_guard.as_mut();
+    let output_buffer = buffer_guard.as_mut()?;
     
     let cursor = std::io::Cursor::new(data);
     let params = brotli::enc::BrotliEncoderParams {
@@ -555,7 +592,7 @@ fn compress_with_brotli(data: &[u8], level: u32) -> Result<Vec<u8>, HttpError> {
             Ok(n) => output_buffer.extend_from_slice(&temp_buf[..n]),
             Err(e) => {
                 return Err(HttpError::new(crate::error::types::Kind::Request)
-                    .with(format!("Brotli compression failed: {}", e)));
+                    .with(format!("Brotli compression failed: {e}")));
             }
         }
     }
@@ -567,7 +604,7 @@ fn compress_with_brotli(data: &[u8], level: u32) -> Result<Vec<u8>, HttpError> {
 #[inline]
 fn decompress_with_brotli(data: &[u8]) -> Result<Vec<u8>, HttpError> {
     let mut buffer_guard = BufferGuard::new(data.len() * 4);
-    let output_buffer = buffer_guard.as_mut();
+    let output_buffer = buffer_guard.as_mut()?;
     
     let cursor = std::io::Cursor::new(data);
     let mut decoder = BrotliDecoder::new(cursor, DEFAULT_BUFFER_SIZE);
@@ -602,7 +639,7 @@ fn decompress_with_brotli(data: &[u8]) -> Result<Vec<u8>, HttpError> {
             },
             Err(e) => {
                 return Err(HttpError::new(crate::error::types::Kind::Request)
-                    .with(format!("Brotli decompression failed: {}", e)));
+                    .with(format!("Brotli decompression failed: {e}")));
             }
         }
     }
@@ -679,8 +716,7 @@ impl<R: Read> Read for CompressReader<R> {
                         Ok(to_copy)
                     },
                     Err(_) => {
-                        Err(std::io::Error::new(
-                            std::io::ErrorKind::Other, 
+                        Err(std::io::Error::other(
                             "Compression failed"
                         ))
                     }
@@ -757,8 +793,7 @@ impl<R: Read> Read for DecompressReader<R> {
                         Ok(to_copy)
                     },
                     Err(_) => {
-                        Err(std::io::Error::new(
-                            std::io::ErrorKind::Other,
+                        Err(std::io::Error::other(
                             "Decompression failed"
                         ))
                     }
@@ -782,6 +817,7 @@ impl<R: Read> Read for DecompressReader<R> {
 /// * `true` if content should be compressed
 /// * `false` if compression should be skipped
 #[inline]
+#[must_use] 
 pub fn should_compress_content_type(content_type: Option<&str>, config: &HttpConfig) -> bool {
     // If compression is disabled, never compress
     if !config.request_compression {
@@ -819,7 +855,7 @@ pub fn should_compress_content_type(content_type: Option<&str>, config: &HttpCon
     ];
 
     // Use binary search for efficient lookup (types are sorted)
-    !UNCOMPRESSIBLE_TYPES.binary_search(&content_type).is_ok()
+    UNCOMPRESSIBLE_TYPES.binary_search(&content_type).is_err()
 }
 
 #[cfg(test)]
@@ -845,8 +881,10 @@ mod tests {
         let original = b"Hello, world! This is a test of compression and decompression.";
         
         for algorithm in [CompressionAlgorithm::Gzip, CompressionAlgorithm::Deflate, CompressionAlgorithm::Brotli] {
-            let compressed = compress_bytes(original, algorithm, None).unwrap();
-            let decompressed = decompress_bytes(&compressed, algorithm).unwrap();
+            let compressed = compress_bytes(original, algorithm, None)
+                .expect("Compression should succeed in test");
+            let decompressed = decompress_bytes(&compressed, algorithm)
+                .expect("Decompression should succeed in test");
             assert_eq!(original, decompressed.as_slice());
         }
     }

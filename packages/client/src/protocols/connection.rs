@@ -51,6 +51,7 @@ impl MessageChunk for Connection {
 impl Connection {
     /// Create new H2 connection with real network addresses
     #[inline]
+    #[must_use] 
     pub fn new_h2_with_addr(_local_addr: std::net::SocketAddr, _remote_addr: std::net::SocketAddr) -> Self {
         Connection::H2(H2Connection::new())
     }
@@ -111,9 +112,10 @@ impl Connection {
         ))
     }
 
-    /// Create new H2 connection (deprecated - use new_h2_with_addr)
+    /// Create new H2 connection (deprecated - use `new_h2_with_addr`)
     #[inline]
     #[deprecated(note = "Use new_h2_with_addr for real network connections")]
+    #[must_use] 
     pub fn new_h2(_is_client: bool) -> Self {
         match ("127.0.0.1:0".parse(), "127.0.0.1:0".parse()) {
             (Ok(local_addr), Ok(remote_addr)) => Self::new_h2_with_addr(local_addr, remote_addr),
@@ -121,9 +123,10 @@ impl Connection {
         }
     }
 
-    /// Create new H3 connection (deprecated - use new_h3_with_addr)
+    /// Create new H3 connection (deprecated - use `new_h3_with_addr`)
     #[inline]
     #[deprecated(note = "Use new_h3_with_addr for real network connections")]
+    #[must_use] 
     pub fn new_h3(_is_client: bool) -> Self {
         match ("127.0.0.1:0".parse(), "127.0.0.1:0".parse()) {
             (Ok(local_addr), Ok(remote_addr)) => Self::new_h3_with_addr(local_addr, remote_addr),
@@ -213,9 +216,9 @@ impl Connection {
     }
 }
 
-/// Connection manager using ONLY AsyncStream patterns
+/// Connection manager using ONLY `AsyncStream` patterns
 ///
-/// This is the CANONICAL ConnectionManager that handles all protocol connections.
+/// This is the CANONICAL `ConnectionManager` that handles all protocol connections.
 #[derive(Debug)]
 pub struct ConnectionManager {
     connections: HashMap<String, Connection>,
@@ -232,6 +235,7 @@ impl Default for ConnectionManager {
 impl ConnectionManager {
     /// Create new connection manager
     #[inline]
+    #[must_use] 
     pub fn new() -> Self {
         ConnectionManager {
             connections: HashMap::new(),
@@ -247,7 +251,7 @@ impl ConnectionManager {
         id
     }
 
-    /// Create H2 connection using AsyncStream patterns
+    /// Create H2 connection using `AsyncStream` patterns
     pub fn create_h2_connection(&mut self, _is_client: bool) -> AsyncStream<Connection, 1024> {
         let connection_id = self.next_id();
         let connection = match ("127.0.0.1:0".parse(), "127.0.0.1:0".parse()) {
@@ -265,7 +269,7 @@ impl ConnectionManager {
         })
     }
 
-    /// Create H3 connection using AsyncStream patterns
+    /// Create H3 connection using `AsyncStream` patterns
     pub fn create_h3_connection(&mut self, _is_client: bool) -> AsyncStream<Connection, 1024> {
         let connection_id = self.next_id();
         let connection = match ("127.0.0.1:0".parse(), "127.0.0.1:0".parse()) {
@@ -285,6 +289,7 @@ impl ConnectionManager {
 
     /// Get connection by ID
     #[inline]
+    #[must_use] 
     pub fn get_connection(&self, id: &str) -> Option<&Connection> {
         self.connections.get(id)
     }
@@ -303,12 +308,14 @@ impl ConnectionManager {
 
     /// List all connection IDs
     #[inline]
+    #[must_use] 
     pub fn connection_ids(&self) -> Vec<String> {
         self.connections.keys().cloned().collect()
     }
 
     /// Get connection count
     #[inline]
+    #[must_use] 
     pub fn connection_count(&self) -> usize {
         self.connections.len()
     }
@@ -340,6 +347,7 @@ pub struct ConnectionStats {
 
 impl ConnectionManager {
     /// Get connection statistics
+    #[must_use] 
     pub fn stats(&self) -> ConnectionStats {
         let mut h2_count = 0;
         let mut h3_count = 0;

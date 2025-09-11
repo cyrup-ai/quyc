@@ -1,6 +1,6 @@
-//! Core ResponseCache structure and initialization
+//! Core `ResponseCache` structure and initialization
 //!
-//! Provides the main ResponseCache struct with lock-free storage using crossbeam SkipMap
+//! Provides the main `ResponseCache` struct with lock-free storage using crossbeam `SkipMap`
 //! and atomic counters for concurrent operations.
 
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -27,6 +27,7 @@ pub struct ResponseCache {
 
 impl ResponseCache {
     /// Create new response cache with configuration
+    #[must_use] 
     pub fn new(config: CacheConfig) -> Self {
         Self {
             entries: SkipMap::new(),
@@ -39,10 +40,6 @@ impl ResponseCache {
     }
 
     /// Create cache with default configuration
-    pub fn default() -> Self {
-        Self::new(CacheConfig::default())
-    }
-
     /// Get cache statistics
     pub fn stats(&self) -> &CacheStats {
         &self.stats
@@ -50,8 +47,11 @@ impl ResponseCache {
 
     /// Get current cache size information
     pub fn size_info(&self) -> (usize, u64, f64) {
-        let entries = self.entry_count.load(Ordering::Relaxed) as usize;
+        let entries = self.entry_count.load(Ordering::Relaxed).min(usize::MAX as u64);
+        #[allow(clippy::cast_possible_truncation)]
+        let entries = entries as usize;
         let memory = self.memory_usage.load(Ordering::Relaxed);
+        #[allow(clippy::cast_precision_loss)]
         let memory_pct = (memory as f64 / self.config.max_memory_bytes as f64) * 100.0;
 
         (entries, memory, memory_pct)
@@ -62,5 +62,11 @@ impl ResponseCache {
         self.entries.clear();
         self.entry_count.store(0, Ordering::Relaxed);
         self.memory_usage.store(0, Ordering::Relaxed);
+    }
+}
+
+impl Default for ResponseCache {
+    fn default() -> Self {
+        Self::new(CacheConfig::default())
     }
 }

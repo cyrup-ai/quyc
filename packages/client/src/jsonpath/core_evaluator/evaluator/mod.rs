@@ -1,6 +1,6 @@
-//! JSONPath core evaluator module
+//! `JSONPath` core evaluator module
 //!
-//! This module provides the main JSONPath evaluation functionality decomposed into
+//! This module provides the main `JSONPath` evaluation functionality decomposed into
 //! logical components for better maintainability and organization.
 
 pub mod core_types;
@@ -18,7 +18,7 @@ pub use timeout_handler::{TimeoutConfig, TimeoutHandler};
 
 // Main evaluator implementation combining all components
 impl CoreJsonPathEvaluator {
-    /// Evaluate JSONPath expression against JSON value using AST-based evaluation
+    /// Evaluate `JSONPath` expression against JSON value using AST-based evaluation
     pub fn evaluate(&self, json: &serde_json::Value) -> JsonPathResult<Vec<serde_json::Value>> {
         // Add timeout protection for deep nesting patterns
         TimeoutHandler::evaluate_with_timeout(self, json, None)

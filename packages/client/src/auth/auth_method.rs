@@ -5,7 +5,7 @@
 
 use http::HeaderMap;
 
-use crate::auth::auth::BasicAuth;
+use crate::auth::basic_auth::BasicAuth;
 use crate::auth::{ApiKey, ApiKeyPlacement, AuthProvider, BearerToken};
 
 /// Legacy-compatible `AuthMethod` wrapper
@@ -52,6 +52,14 @@ impl AuthProvider for AuthMethod {
             Self::Bearer(bearer) => bearer.apply_auth(headers),
             Self::ApiKey(api_key) => api_key.apply_auth(headers),
             Self::Basic(basic) => basic.apply_auth(headers),
+        }
+    }
+
+    fn apply_url_auth(&self, url: &mut url::Url) -> Result<(), crate::error::HttpError> {
+        match self {
+            Self::Bearer(bearer) => bearer.apply_url_auth(url),
+            Self::ApiKey(api_key) => api_key.apply_url_auth(url),
+            Self::Basic(basic) => basic.apply_url_auth(url),
         }
     }
 

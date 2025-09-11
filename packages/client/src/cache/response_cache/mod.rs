@@ -5,11 +5,11 @@
 //!
 //! The functionality is organized into logical modules:
 //!
-//! - `core`: ResponseCache struct and basic initialization
+//! - `core`: `ResponseCache` struct and basic initialization
 //! - `operations`: Cache get/put operations and HTTP semantics
 //! - `eviction`: LRU eviction and expired entry cleanup
 //!
-//! All modules maintain lock-free concurrent access using crossbeam SkipMap.
+//! All modules maintain lock-free concurrent access using crossbeam `SkipMap`.
 
 pub mod core;
 pub mod eviction;

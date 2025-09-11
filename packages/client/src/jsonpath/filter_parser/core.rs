@@ -1,13 +1,13 @@
 //! Core filter parser structure and initialization
 //!
-//! Contains the main FilterParser struct and basic initialization logic
-//! for parsing JSONPath filter expressions.
+//! Contains the main `FilterParser` struct and basic initialization logic
+//! for parsing `JSONPath` filter expressions.
 
 use std::collections::VecDeque;
 
 use crate::jsonpath::{ast::FilterExpression, error::JsonPathResult, tokens::Token};
 
-/// Parser for JSONPath filter expressions
+/// Parser for `JSONPath` filter expressions
 pub struct FilterParser<'a> {
     pub(super) tokens: &'a mut VecDeque<Token>,
     pub(super) input: &'a str,
@@ -66,11 +66,11 @@ impl<'a> FilterParser<'a> {
             }
             Some(token) => Err(crate::jsonpath::error::JsonPathError::new(
                 crate::jsonpath::error::ErrorKind::InvalidPath,
-                format!("Expected {:?}, found {:?}", expected, token),
+                format!("Expected {expected:?}, found {token:?}"),
             )),
             None => Err(crate::jsonpath::error::JsonPathError::new(
                 crate::jsonpath::error::ErrorKind::InvalidPath,
-                format!("Expected {:?}, but reached end of input", expected),
+                format!("Expected {expected:?}, but reached end of input"),
             )),
         }
     }
@@ -89,6 +89,7 @@ impl<'a> FilterParser<'a> {
 
     /// Peek at the next token without consuming it
     #[inline]
+    #[must_use] 
     pub fn peek_token(&self) -> Option<&Token> {
         self.tokens.front()
     }

@@ -1,7 +1,7 @@
 //! Array-specific selector operations
 //!
 //! Handles Index and Slice selectors for array access with support for
-//! negative indexing, from_end indexing, and slice operations with step.
+//! negative indexing, `from_end` indexing, and slice operations with step.
 
 use serde_json::Value;
 

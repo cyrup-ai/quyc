@@ -7,7 +7,7 @@ use serde::de::DeserializeOwned;
 
 use super::types::{DeserializerState, JsonPathDeserializer};
 
-impl<'a, T> JsonPathDeserializer<'a, T>
+impl<T> JsonPathDeserializer<'_, T>
 where
     T: DeserializeOwned,
 {
@@ -81,11 +81,10 @@ where
                 // Potential property name - need to check if it matches our target
                 if self.target_property.is_some() {
                     let property_name = self.read_property_name()?;
-                    if let Some(ref target_prop) = self.target_property {
-                        if property_name == *target_prop {
+                    if let Some(ref target_prop) = self.target_property
+                        && property_name == *target_prop {
                             self.in_target_property = true;
                         }
-                    }
                 } else {
                     // Skip string content normally
                     let mut escaped = false;

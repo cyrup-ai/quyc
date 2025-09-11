@@ -13,12 +13,19 @@ pub struct GlobalRetryStats {
     total_successes: AtomicU64,
 }
 
+impl Default for GlobalRetryStats {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GlobalRetryStats {
     /// Create new global retry statistics
     ///
     /// Initializes all atomic counters to zero for clean startup state.
     /// This is a const function to allow static initialization.
     #[inline]
+    #[must_use] 
     pub const fn new() -> Self {
         Self {
             total_operations: AtomicU64::new(0),
@@ -67,7 +74,7 @@ impl GlobalRetryStats {
     /// Get current statistics snapshot
     ///
     /// Returns a consistent snapshot of all counters read atomically.
-    /// Values represent: (total_operations, total_retries, total_successes, total_failures)
+    /// Values represent: (`total_operations`, `total_retries`, `total_successes`, `total_failures`)
     #[inline]
     pub fn snapshot(&self) -> (u64, u64, u64, u64) {
         (
@@ -86,7 +93,9 @@ impl GlobalRetryStats {
     pub fn success_rate(&self) -> f64 {
         let (total_ops, _, successes, _) = self.snapshot();
         if total_ops > 0 {
-            (successes as f64 / total_ops as f64) * 100.0
+            // Precision loss acceptable for retry success rate statistics
+            #[allow(clippy::cast_precision_loss)]
+            { (successes as f64 / total_ops as f64) * 100.0 }
         } else {
             0.0
         }
@@ -95,12 +104,14 @@ impl GlobalRetryStats {
     /// Calculate failure rate percentage
     ///
     /// Returns the percentage of operations that failed permanently.
-    /// Complements the success rate (success_rate + failure_rate = 100%).
+    /// Complements the success rate (`success_rate` + `failure_rate` = 100%).
     #[inline]
     pub fn failure_rate(&self) -> f64 {
         let (total_ops, _, _, failures) = self.snapshot();
         if total_ops > 0 {
-            (failures as f64 / total_ops as f64) * 100.0
+            // Precision loss acceptable for retry failure rate statistics
+            #[allow(clippy::cast_precision_loss)]
+            { (failures as f64 / total_ops as f64) * 100.0 }
         } else {
             0.0
         }
@@ -114,7 +125,9 @@ impl GlobalRetryStats {
     pub fn avg_retries_per_operation(&self) -> f64 {
         let (total_ops, total_retries, _, _) = self.snapshot();
         if total_ops > 0 {
-            total_retries as f64 / total_ops as f64
+            // Precision loss acceptable for retry average statistics  
+            #[allow(clippy::cast_precision_loss)]
+            { total_retries as f64 / total_ops as f64 }
         } else {
             0.0
         }

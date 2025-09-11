@@ -1,6 +1,6 @@
 //! Conversion utilities for null vs missing semantics
 //!
-//! Provides utilities for converting between PropertyAccessResult and other
+//! Provides utilities for converting between `PropertyAccessResult` and other
 //! types while maintaining or handling the null vs missing distinction.
 
 use serde_json::Value as JsonValue;
@@ -11,26 +11,26 @@ use super::property_access::PropertyAccessResult;
 pub struct Conversion;
 
 impl Conversion {
-    /// Convert PropertyAccessResult to Option<JsonValue>
+    /// Convert `PropertyAccessResult` to Option<JsonValue>
     #[inline]
     pub fn to_option(result: &PropertyAccessResult) -> Option<JsonValue> {
         to_option(result)
     }
 
-    /// Convert PropertyAccessResult to JsonValue with missing marker
+    /// Convert `PropertyAccessResult` to `JsonValue` with missing marker
     #[inline]
     pub fn to_json_with_missing_marker(result: &PropertyAccessResult) -> JsonValue {
         to_json_with_missing_marker(result)
     }
 
-    /// Check if a JsonValue is a missing marker
+    /// Check if a `JsonValue` is a missing marker
     #[inline]
     pub fn is_missing_marker(value: &JsonValue) -> bool {
         is_missing_marker(value)
     }
 }
 
-/// Convert PropertyAccessResult to Option<JsonValue> for compatibility
+/// Convert `PropertyAccessResult` to Option<JsonValue> for compatibility
 ///
 /// Used when interacting with existing code that expects Option<JsonValue>.
 /// Note: This loses the null vs missing distinction.
@@ -43,7 +43,7 @@ pub fn to_option(result: &PropertyAccessResult) -> Option<JsonValue> {
     }
 }
 
-/// Convert PropertyAccessResult to JsonValue with explicit missing representation
+/// Convert `PropertyAccessResult` to `JsonValue` with explicit missing representation
 ///
 /// For cases where the distinction needs to be preserved, this converts
 /// missing values to a special sentinel value that can be detected later.
@@ -60,7 +60,7 @@ pub fn to_json_with_missing_marker(result: &PropertyAccessResult) -> JsonValue {
     }
 }
 
-/// Check if a JsonValue is the missing marker
+/// Check if a `JsonValue` is the missing marker
 #[inline]
 pub fn is_missing_marker(value: &JsonValue) -> bool {
     matches!(

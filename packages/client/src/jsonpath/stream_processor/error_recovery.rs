@@ -1,9 +1,9 @@
-//! Error recovery mechanisms for JSONPath stream processing
+//! Error recovery mechanisms for `JSONPath` stream processing
 //!
 //! Provides strategies for handling and recovering from errors during
-//! streaming JSON processing with JSONPath evaluation.
+//! streaming JSON processing with `JSONPath` evaluation.
 
-use crate::jsonpath::error::{JsonPathError, JsonPathResult};
+use crate::jsonpath::error::JsonPathError;
 
 /// Error recovery strategy
 #[derive(Debug, Clone, PartialEq)]
@@ -28,6 +28,7 @@ pub struct RecoveryContext {
 }
 
 /// Determine recovery strategy based on error type and context
+#[must_use] 
 pub fn determine_recovery_strategy(
     error: &JsonPathError,
     context: &RecoveryContext,
@@ -51,24 +52,24 @@ pub fn determine_recovery_strategy(
 pub fn attempt_recovery(
     strategy: RecoveryStrategy,
     context: &mut RecoveryContext,
-) -> JsonPathResult<bool> {
+) -> bool {
     match strategy {
         RecoveryStrategy::SkipObject => {
             // Skip to next object boundary
-            Ok(true)
+            true
         }
         RecoveryStrategy::ResetArray => {
             // Reset array processing state
             context.object_count = 0;
-            Ok(true)
+            true
         }
         RecoveryStrategy::ContinuePartial => {
             // Continue with what we have
-            Ok(true)
+            true
         }
         RecoveryStrategy::Abort => {
             // Cannot recover
-            Ok(false)
+            false
         }
     }
 }

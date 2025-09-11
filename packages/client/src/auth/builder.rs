@@ -9,12 +9,15 @@ use crate::builder::Http3Builder;
 /// Trait for authentication methods
 pub trait AuthMethod {
     /// Set API key authentication header
+    #[must_use]
     fn api_key(self, key: &str) -> Self;
 
     /// Set bearer token authentication header
+    #[must_use]
     fn bearer_auth(self, token: &str) -> Self;
 
     /// Set basic authentication header
+    #[must_use]
     fn basic_auth(self, username: &str, password: Option<&str>) -> Self;
 }
 

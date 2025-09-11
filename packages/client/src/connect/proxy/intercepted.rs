@@ -1,6 +1,6 @@
 //! Intercepted proxy configuration
 //!
-//! This module contains the Intercepted struct and ProxyConfig for managing
+//! This module contains the Intercepted struct and `ProxyConfig` for managing
 //! proxy connections and interception logic.
 
 use http::Uri;
@@ -22,6 +22,7 @@ pub struct ProxyConfig {
 
 impl Intercepted {
     /// Creates an intercepted configuration with no proxies.
+    #[must_use] 
     pub fn none() -> Self {
         Self {
             proxies: Vec::new(),
@@ -110,16 +111,19 @@ impl Intercepted {
 
     /// Returns the URI of the first proxy, or None if no proxies configured.
     /// Safe alternative that doesn't return Result.
+    #[must_use] 
     pub fn first_uri(&self) -> Option<&Uri> {
         self.proxies.first().map(|p| &p.uri)
     }
 
     /// Check if there are any proxies configured
+    #[must_use] 
     pub fn has_proxies(&self) -> bool {
         !self.proxies.is_empty()
     }
 
     /// Get the first available proxy, if any
+    #[must_use] 
     pub fn first_proxy(&self) -> Option<&ProxyConfig> {
         self.proxies.first()
     }
@@ -157,11 +161,13 @@ impl Intercepted {
     }
 
     /// Returns basic authentication credentials for the first proxy.
+    #[must_use] 
     pub fn basic_auth(&self) -> Option<&str> {
         self.proxies.first()?.basic_auth.as_deref()
     }
 
     /// Returns custom headers for the first proxy.
+    #[must_use] 
     pub fn custom_headers(&self) -> Option<&hyper::HeaderMap> {
         self.proxies.first()?.custom_headers.as_ref()
     }

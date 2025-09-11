@@ -79,6 +79,7 @@ pub enum PropertyAccessResult {
 impl PropertyAccessResult {
     /// Check if this result represents a present value (null or non-null)
     #[inline]
+    #[must_use] 
     pub fn is_present(&self) -> bool {
         match self {
             PropertyAccessResult::NullValue => true, // null is present
@@ -89,18 +90,21 @@ impl PropertyAccessResult {
 
     /// Check if this result represents a missing property
     #[inline]
+    #[must_use] 
     pub fn is_missing(&self) -> bool {
         matches!(self, PropertyAccessResult::Missing)
     }
 
     /// Check if this result represents a null value
     #[inline]
+    #[must_use] 
     pub fn is_null(&self) -> bool {
         matches!(self, PropertyAccessResult::NullValue)
     }
 
-    /// Get the JsonValue if present, otherwise return None
+    /// Get the `JsonValue` if present, otherwise return None
     #[inline]
+    #[must_use] 
     pub fn value(&self) -> Option<&JsonValue> {
         match self {
             PropertyAccessResult::Value(v) => Some(v),
@@ -109,8 +113,9 @@ impl PropertyAccessResult {
         }
     }
 
-    /// Get the JsonValue with null preserved
+    /// Get the `JsonValue` with null preserved
     #[inline]
+    #[must_use] 
     pub fn value_with_null(&self) -> Option<JsonValue> {
         match self {
             PropertyAccessResult::Value(v) => Some(v.clone()),
@@ -122,7 +127,7 @@ impl PropertyAccessResult {
 
 /// Access a property with proper null vs missing distinction
 ///
-/// Returns PropertyAccessResult to distinguish between:
+/// Returns `PropertyAccessResult` to distinguish between:
 /// - A property that exists with null value
 /// - A property that does not exist (missing)
 /// - A property that exists with a non-null value

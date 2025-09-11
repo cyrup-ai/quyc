@@ -14,6 +14,7 @@ pub struct MatcherBuilder {
 
 impl MatcherBuilder {
     /// Create new builder
+    #[must_use] 
     pub fn new() -> Self {
         Self {
             all_patterns: Vec::new(),
@@ -22,12 +23,14 @@ impl MatcherBuilder {
     }
 
     /// Add pattern to match all requests
+    #[must_use] 
     pub fn all(mut self, pattern: String) -> Self {
         self.all_patterns.push(pattern);
         self
     }
 
     /// Add pattern to exclude from proxy
+    #[must_use] 
     pub fn no(mut self, pattern: &str) -> Self {
         if !pattern.is_empty() {
             self.no_patterns.push(pattern.to_string());
@@ -36,18 +39,21 @@ impl MatcherBuilder {
     }
 
     /// Add HTTP proxy pattern
+    #[must_use] 
     pub fn http(mut self, url: String) -> Self {
         self.all_patterns.push(url);
         self
     }
 
     /// Add HTTPS proxy pattern
+    #[must_use] 
     pub fn https(mut self, url: String) -> Self {
         self.all_patterns.push(url);
         self
     }
 
     /// Build the configured matcher
+    #[must_use] 
     pub fn build(self) -> Matcher {
         // Combine patterns with exclusions taking precedence
         let mut final_patterns = self.all_patterns;

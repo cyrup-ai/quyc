@@ -1,9 +1,9 @@
-//! JSONPath Abstract Syntax Tree (AST) definitions
+//! `JSONPath` Abstract Syntax Tree (AST) definitions
 //!
-//! Core type definitions for representing JSONPath expressions as structured data.
+//! Core type definitions for representing `JSONPath` expressions as structured data.
 //! Provides zero-allocation AST nodes optimized for streaming evaluation.
 
-/// Individual JSONPath selector component
+/// Individual `JSONPath` selector component
 #[derive(Debug, Clone)]
 pub enum JsonSelector {
     /// Root selector ($)
@@ -54,7 +54,7 @@ pub enum JsonSelector {
     },
 }
 
-/// Filter expression AST for JSONPath predicates
+/// Filter expression AST for `JSONPath` predicates
 #[derive(Debug, Clone)]
 pub enum FilterExpression {
     /// Current node reference (@)
@@ -66,9 +66,9 @@ pub enum FilterExpression {
         path: Vec<String>,
     },
 
-    /// Complex JSONPath expressions (@.items[*], @.data[0:5], etc.)
+    /// Complex `JSONPath` expressions (@.items[*], @.data[0:5], etc.)
     JsonPath {
-        /// Selectors in the JSONPath expression
+        /// Selectors in the `JSONPath` expression
         selectors: Vec<JsonSelector>,
     },
 
@@ -172,7 +172,7 @@ pub enum LogicalOp {
     Or,
 }
 
-/// Comprehensive complexity metrics for JSONPath expression analysis
+/// Comprehensive complexity metrics for `JSONPath` expression analysis
 ///
 /// Provides detailed breakdown of complexity factors for performance optimization guidance.
 /// All metrics are computed at compile time for zero runtime overhead.
@@ -190,9 +190,16 @@ pub struct ComplexityMetrics {
     pub union_selector_count: u32,
 }
 
+impl Default for ComplexityMetrics {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ComplexityMetrics {
     /// Create new complexity metrics with zero values
     #[inline]
+    #[must_use] 
     pub const fn new() -> Self {
         Self {
             recursive_descent_depth: 0,
@@ -203,7 +210,7 @@ impl ComplexityMetrics {
         }
     }
 
-    /// Add metrics from another ComplexityMetrics instance
+    /// Add metrics from another `ComplexityMetrics` instance
     #[inline]
     pub fn add(&mut self, other: &ComplexityMetrics) {
         self.recursive_descent_depth = self
@@ -225,6 +232,7 @@ impl ComplexityMetrics {
 impl FilterExpression {
     /// Calculate complexity score for filter expressions
     #[inline]
+    #[must_use] 
     pub fn complexity_score(&self) -> u32 {
         match self {
             FilterExpression::Current => 1,
@@ -240,7 +248,7 @@ impl FilterExpression {
                 5 + target.complexity_score() // Regex operations are more expensive
             }
             FilterExpression::Function { args, .. } => {
-                5 + args.iter().map(|arg| arg.complexity_score()).sum::<u32>()
+                5 + args.iter().map(FilterExpression::complexity_score).sum::<u32>()
             }
             FilterExpression::JsonPath { selectors } => {
                 selectors.len() as u32 * 2 // Complex JSONPath expressions are more expensive
