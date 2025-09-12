@@ -32,9 +32,100 @@ pub use client::ClientConfig;
 pub use validation::{ConfigValidator, ConfigDefaults};
 
 
+/// TCP connection configuration
+#[derive(Debug, Clone)]
+pub struct TcpConfig {
+    pub nodelay: bool,
+    pub keepalive: Option<Duration>,
+}
+
+impl Default for TcpConfig {
+    fn default() -> Self {
+        Self {
+            nodelay: true,
+            keepalive: Some(Duration::from_secs(60)),
+        }
+    }
+}
+
+/// TLS connection configuration
+#[derive(Debug, Clone)]
+pub struct TlsConfig {
+    pub use_native_certs: bool,
+    pub early_data: bool,
+    pub https_only: bool,
+}
+
+impl Default for TlsConfig {
+    fn default() -> Self {
+        Self {
+            use_native_certs: true,
+            early_data: false,
+            https_only: false,
+        }
+    }
+}
+
+/// Compression algorithm configuration
+#[derive(Debug, Clone)]
+pub struct CompressionAlgorithm {
+    pub enabled: bool,
+    pub level: Option<u32>,
+}
+
+impl CompressionAlgorithm {
+    #[must_use]
+    pub fn new(enabled: bool, level: Option<u32>) -> Self {
+        Self { enabled, level }
+    }
+    
+    #[must_use]
+    pub fn enabled_with_level(level: u32) -> Self {
+        Self {
+            enabled: true,
+            level: Some(level),
+        }
+    }
+    
+    #[must_use]
+    pub fn disabled() -> Self {
+        Self {
+            enabled: false,
+            level: None,
+        }
+    }
+}
+
+impl Default for CompressionAlgorithm {
+    fn default() -> Self {
+        Self::enabled_with_level(6)
+    }
+}
+
+/// Compression configuration
+#[derive(Debug, Clone)]
+pub struct CompressionConfig {
+    pub request_compression: bool,
+    pub response_compression: bool,
+    pub gzip: CompressionAlgorithm,
+    pub brotli: CompressionAlgorithm,
+    pub deflate: CompressionAlgorithm,
+}
+
+impl Default for CompressionConfig {
+    fn default() -> Self {
+        Self {
+            request_compression: true,
+            response_compression: true,
+            gzip: CompressionAlgorithm::default(),
+            brotli: CompressionAlgorithm::default(),
+            deflate: CompressionAlgorithm::default(),
+        }
+    }
+}
+
 /// HTTP-specific configuration for client behavior
 #[derive(Debug, Clone)]
-#[allow(clippy::struct_excessive_bools)]
 pub struct HttpConfig {
     // Request/Response timeouts
     pub timeout: Duration,
@@ -46,14 +137,10 @@ pub struct HttpConfig {
     pub pool_idle_timeout: Duration,
     pub pool_size: usize,
     
-    // TCP settings
-    pub tcp_nodelay: bool,
-    pub tcp_keepalive: Option<Duration>,
-    
-    // TLS settings
-    pub use_native_certs: bool,
-    pub tls_early_data: bool,
-    pub https_only: bool,
+    // Structured configuration objects
+    pub tcp: TcpConfig,
+    pub tls: TlsConfig,
+    pub compression: CompressionConfig,
     
     // HTTP/2 settings
     pub http2_keep_alive_interval: Option<Duration>,
@@ -64,16 +151,6 @@ pub struct HttpConfig {
     pub quic_stream_receive_window: Option<u32>,
     pub quic_receive_window: Option<u32>,
     pub quic_send_window: Option<u32>,
-    
-    // Compression settings
-    pub request_compression: bool,
-    pub response_compression: bool,
-    pub gzip_enabled: bool,
-    pub brotli_enabled: bool,
-    pub deflate: bool,
-    pub gzip_level: Option<u32>,
-    pub brotli_level: Option<u32>,
-    pub deflate_level: Option<u32>,
     
     // User agent
     pub user_agent: String,
@@ -92,14 +169,10 @@ impl Default for HttpConfig {
             pool_idle_timeout: Duration::from_secs(90),
             pool_size: 100,
             
-            // TCP
-            tcp_nodelay: true,
-            tcp_keepalive: Some(Duration::from_secs(60)),
-            
-            // TLS
-            use_native_certs: true,
-            tls_early_data: false,
-            https_only: false,
+            // Structured configuration objects
+            tcp: TcpConfig::default(),
+            tls: TlsConfig::default(),
+            compression: CompressionConfig::default(),
             
             // HTTP/2
             http2_keep_alive_interval: Some(Duration::from_secs(30)),
@@ -111,19 +184,79 @@ impl Default for HttpConfig {
             quic_receive_window: Some(1_048_576),
             quic_send_window: Some(1_048_576),
             
-            // Compression
-            request_compression: true,
-            response_compression: true,
-            gzip_enabled: true,
-            brotli_enabled: true,
-            deflate: true,
-            gzip_level: Some(6),
-            brotli_level: Some(6),
-            deflate_level: Some(6),
-            
             // User agent
             user_agent: "quyc-http3-client/0.1.0".to_string(),
         }
+    }
+}
+
+impl HttpConfig {
+    /// Backward compatibility methods for TCP settings
+    #[deprecated(since = "0.1.0", note = "Use `config.tcp.nodelay` instead")]
+    pub fn tcp_nodelay(&self) -> bool {
+        self.tcp.nodelay
+    }
+    
+    #[deprecated(since = "0.1.0", note = "Use `config.tcp.keepalive` instead")]
+    pub fn tcp_keepalive(&self) -> Option<Duration> {
+        self.tcp.keepalive
+    }
+    
+    /// Backward compatibility methods for TLS settings
+    #[deprecated(since = "0.1.0", note = "Use `config.tls.use_native_certs` instead")]
+    pub fn use_native_certs(&self) -> bool {
+        self.tls.use_native_certs
+    }
+    
+    #[deprecated(since = "0.1.0", note = "Use `config.tls.early_data` instead")]
+    pub fn tls_early_data(&self) -> bool {
+        self.tls.early_data
+    }
+    
+    #[deprecated(since = "0.1.0", note = "Use `config.tls.https_only` instead")]
+    pub fn https_only(&self) -> bool {
+        self.tls.https_only
+    }
+    
+    /// Backward compatibility methods for compression settings
+    #[deprecated(since = "0.1.0", note = "Use `config.compression.request_compression` instead")]
+    pub fn request_compression(&self) -> bool {
+        self.compression.request_compression
+    }
+    
+    #[deprecated(since = "0.1.0", note = "Use `config.compression.response_compression` instead")]
+    pub fn response_compression(&self) -> bool {
+        self.compression.response_compression
+    }
+    
+    #[deprecated(since = "0.1.0", note = "Use `config.compression.gzip.enabled` instead")]
+    pub fn gzip_enabled(&self) -> bool {
+        self.compression.gzip.enabled
+    }
+    
+    #[deprecated(since = "0.1.0", note = "Use `config.compression.brotli.enabled` instead")]
+    pub fn brotli_enabled(&self) -> bool {
+        self.compression.brotli.enabled
+    }
+    
+    #[deprecated(since = "0.1.0", note = "Use `config.compression.deflate.enabled` instead")]
+    pub fn deflate(&self) -> bool {
+        self.compression.deflate.enabled
+    }
+    
+    #[deprecated(since = "0.1.0", note = "Use `config.compression.gzip.level` instead")]
+    pub fn gzip_level(&self) -> Option<u32> {
+        self.compression.gzip.level
+    }
+    
+    #[deprecated(since = "0.1.0", note = "Use `config.compression.brotli.level` instead")]
+    pub fn brotli_level(&self) -> Option<u32> {
+        self.compression.brotli.level
+    }
+    
+    #[deprecated(since = "0.1.0", note = "Use `config.compression.deflate.level` instead")]
+    pub fn deflate_level(&self) -> Option<u32> {
+        self.compression.deflate.level
     }
 }
 

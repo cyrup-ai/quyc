@@ -36,8 +36,8 @@ mod tests {
         // Verify key headers are preserved
         assert_eq!(parsed.len(), original_headers.len());
         for (key, expected_value) in &original_headers {
-            assert!(parsed.contains_key(key), "Missing header: {}", key);
-            assert_eq!(parsed[key], *expected_value, "Value mismatch for header: {}", key);
+            assert!(parsed.contains_key(key), "Missing header: {key}");
+            assert_eq!(parsed[key], *expected_value, "Value mismatch for header: {key}");
         }
     }
 
@@ -68,8 +68,8 @@ mod tests {
         // Verify headers are preserved
         assert_eq!(parsed.len(), original_headers.len());
         for (key, expected_value) in &original_headers {
-            assert!(parsed.contains_key(key), "Missing header: {}", key);
-            assert_eq!(parsed[key], *expected_value, "Value mismatch for header: {}", key);
+            assert!(parsed.contains_key(key), "Missing header: {key}");
+            assert_eq!(parsed[key], *expected_value, "Value mismatch for header: {key}");
         }
     }
 

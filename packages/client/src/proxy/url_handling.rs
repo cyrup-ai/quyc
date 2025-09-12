@@ -41,9 +41,9 @@ impl MessageChunk for ProxyUrl {
                     log::error!("Critical: All proxy URL parsing failed: {parse_error}");
                     // Absolute last resort - return a synthetic URL
                     crate::Url::parse("data:text/plain,proxy-url-error").unwrap_or_else(|data_error| {
-                        log::error!("Proxy URL data URL failed: {}", data_error);
+                        log::error!("Proxy URL data URL failed: {data_error}");
                         crate::Url::parse("http://127.0.0.1/proxy-url-error").unwrap_or_else(|final_error| {
-                            log::error!("All proxy URL parsing failed: {}", final_error);
+                            log::error!("All proxy URL parsing failed: {final_error}");
                             // Return a working URL that will fail gracefully during connection
                             crate::Url::parse("http://localhost/").unwrap_or_else(|_| {
                                 // If even basic localhost fails, the URL system is completely broken

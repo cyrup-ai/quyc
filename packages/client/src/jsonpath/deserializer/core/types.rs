@@ -1046,11 +1046,9 @@ where
         // Advance selector if we have a match
         if is_match {
             match state.advance_selector() {
-                crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::Advanced(_) => {
-                    // Successfully advanced to next selector
-                }
-                crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::ExpressionComplete => {
-                    // Reached end of expression
+                crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::Advanced(_) 
+                | crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::ExpressionComplete => {
+                    // Successfully advanced to next selector or reached end of expression
                 }
             }
         }

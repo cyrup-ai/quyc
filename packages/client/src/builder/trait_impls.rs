@@ -111,6 +111,7 @@ impl Default for Http3Builder<BodyNotSet> {
 impl<S> Http3Builder<S> {
     /// Enable HTTP/3 prior knowledge
     #[inline]
+    #[must_use = "Builder methods return a new builder and should be used"]
     pub fn http3_prior_knowledge(mut self, enable: bool) -> Self {
         self.request = self.request.h2_prior_knowledge(enable);
         self
@@ -118,6 +119,7 @@ impl<S> Http3Builder<S> {
 
     /// Set HTTP/3 maximum idle timeout
     #[inline]
+    #[must_use = "Builder methods return a new builder and should be used"]
     pub fn http3_max_idle_timeout(mut self, timeout: std::time::Duration) -> Self {
         self.request = self.request.with_timeout(timeout);
         self
@@ -125,6 +127,7 @@ impl<S> Http3Builder<S> {
 
     /// Set HTTP/3 stream receive window
     #[inline]
+    #[must_use = "Builder methods return a new builder and should be used"]
     pub fn http3_stream_receive_window(mut self, window: u32) -> Self {
         self.protocol_config.h3_stream_receive_window = Some(window);
         self
@@ -132,6 +135,7 @@ impl<S> Http3Builder<S> {
 
     /// Set HTTP/3 connection receive window
     #[inline]
+    #[must_use = "Builder methods return a new builder and should be used"]
     pub fn http3_conn_receive_window(mut self, window: u32) -> Self {
         self.protocol_config.h3_conn_receive_window = Some(window);
         self
@@ -139,6 +143,7 @@ impl<S> Http3Builder<S> {
 
     /// Set HTTP/3 send window
     #[inline]
+    #[must_use = "Builder methods return a new builder and should be used"]
     pub fn http3_send_window(mut self, window: u32) -> Self {
         self.protocol_config.h3_send_window = Some(window);
         self
@@ -146,6 +151,7 @@ impl<S> Http3Builder<S> {
 
     /// Enable HTTP/3 BBR congestion control
     #[inline]
+    #[must_use = "Builder methods return a new builder and should be used"]
     pub fn http3_congestion_bbr(mut self, enable: bool) -> Self {
         self.protocol_config.h3_congestion_bbr = Some(enable);
         self
@@ -153,6 +159,7 @@ impl<S> Http3Builder<S> {
 
     /// Set HTTP/3 maximum field section size
     #[inline]
+    #[must_use = "Builder methods return a new builder and should be used"]
     pub fn http3_max_field_section_size(mut self, size: u64) -> Self {
         self.protocol_config.h3_max_field_section_size = Some(size);
         self
@@ -160,6 +167,7 @@ impl<S> Http3Builder<S> {
 
     /// Enable HTTP/3 GREASE sending
     #[inline]
+    #[must_use = "Builder methods return a new builder and should be used"]
     pub fn http3_send_grease(mut self, enable: bool) -> Self {
         self.protocol_config.h3_send_grease = Some(enable);
         self
@@ -167,6 +175,7 @@ impl<S> Http3Builder<S> {
 
     /// Enable HTTP/2 prior knowledge
     #[inline]
+    #[must_use = "Builder methods return a new builder and should be used"]
     pub fn http2_prior_knowledge(mut self, enable: bool) -> Self {
         self.request = self.request.h2_prior_knowledge(enable);
         self
@@ -174,6 +183,7 @@ impl<S> Http3Builder<S> {
 
     /// Set HTTP/2 adaptive window
     #[inline]
+    #[must_use = "Builder methods return a new builder and should be used"]
     pub fn http2_adaptive_window(mut self, enable: bool) -> Self {
         self.protocol_config.h2_adaptive_window = Some(enable);
         self
@@ -181,6 +191,7 @@ impl<S> Http3Builder<S> {
 
     /// Set HTTP/2 maximum frame size
     #[inline]
+    #[must_use = "Builder methods return a new builder and should be used"]
     pub fn http2_max_frame_size(mut self, size: u32) -> Self {
         self.protocol_config.h2_max_frame_size = Some(size);
         self

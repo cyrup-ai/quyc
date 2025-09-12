@@ -3,6 +3,14 @@
 //! This module provides security-conscious hostname validation for DNS operations.
 
 /// Validate hostname format for security
+///
+/// # Errors
+/// 
+/// Returns `String` error if:
+/// - Hostname is empty or contains only whitespace
+/// - Hostname exceeds maximum length (253 characters per DNS standards)
+/// - Hostname contains invalid characters (non-ASCII, spaces, or forbidden symbols)
+/// - Hostname format violates DNS naming conventions or security policies
 pub fn validate_hostname(hostname: &str) -> Result<(), String> {
     if hostname.is_empty() {
         return Err("Empty hostname".to_string());

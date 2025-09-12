@@ -39,8 +39,7 @@ pub fn evaluate_length_function(
             serde_json::Value::Array(arr) => arr.len() as i64,
             serde_json::Value::Object(obj) => obj.len() as i64,
             serde_json::Value::String(s) => s.chars().count() as i64, // Unicode-aware
-            serde_json::Value::Null => return Ok(FilterValue::Null),
-            _ => return Ok(FilterValue::Null), // Primitives return null per RFC
+            _ => return Ok(FilterValue::Null), // Null and primitives return null per RFC
         };
         Ok(FilterValue::Integer(len))
     } else {
@@ -50,8 +49,7 @@ pub fn evaluate_length_function(
             FilterValue::Integer(_) | FilterValue::Number(_) | FilterValue::Boolean(_) => {
                 Ok(FilterValue::Null) // Primitives return null per RFC
             }
-            FilterValue::Null => Ok(FilterValue::Null),
-            FilterValue::Missing => Ok(FilterValue::Null), /* Missing properties have no length */
+            FilterValue::Null | FilterValue::Missing => Ok(FilterValue::Null), /* Null and missing properties have no length */
         }
     }
 }

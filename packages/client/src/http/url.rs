@@ -3,6 +3,14 @@
 use url::Url;
 
 /// Validate URL string format and accessibility
+///
+/// # Errors
+/// 
+/// Returns `HttpError` if:
+/// - URL string is malformed or contains invalid syntax
+/// - Scheme is missing or not supported (must be http/https)
+/// - Host component is missing or invalid
+/// - URL contains forbidden characters or encoding issues
 #[inline]
 pub fn validate_url(url_str: &str) -> Result<(), crate::error::HttpError> {
     Url::parse(url_str).map(|_| ()).map_err(|_e| {
@@ -18,6 +26,14 @@ pub fn validate_url(url_str: &str) -> Result<(), crate::error::HttpError> {
 }
 
 /// Normalize URL by removing fragments and sorting query parameters
+///
+/// # Errors
+/// 
+/// Returns `HttpError` if:
+/// - URL string is malformed or contains invalid syntax
+/// - URL parsing fails due to unsupported schemes or invalid components
+/// - Query parameter processing encounters encoding issues
+/// - URL reconstruction fails due to internal errors
 #[inline]
 pub fn normalize_url(url_str: &str) -> Result<String, crate::error::HttpError> {
     let mut url = Url::parse(url_str).map_err(|_e| {
@@ -49,6 +65,14 @@ pub fn normalize_url(url_str: &str) -> Result<String, crate::error::HttpError> {
 }
 
 /// Parse and validate URL string
+///
+/// # Errors
+/// 
+/// Returns `HttpError` if:
+/// - URL string is malformed, empty, or contains invalid syntax
+/// - Scheme is missing, unsupported, or violates URL standards
+/// - Host component is missing, malformed, or contains invalid characters
+/// - URL components exceed length limits or contain forbidden characters
 #[inline]
 pub fn parse_url(url_str: &str) -> Result<Url, crate::error::HttpError> {
     Url::parse(url_str).map_err(|_e| {
@@ -88,6 +112,14 @@ pub fn extract_port(url: &Url) -> u16 {
 }
 
 /// Build URL with path and query parameters
+///
+/// # Errors
+/// 
+/// Returns `HttpError` if:
+/// - Base URL is malformed or contains invalid syntax
+/// - Path contains invalid characters or violates URL encoding rules
+/// - Query parameters contain invalid characters or exceed length limits
+/// - URL construction results in malformed or oversized URLs
 #[inline]
 pub fn build_url(
     base: &str,

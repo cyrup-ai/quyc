@@ -32,6 +32,13 @@ pub fn html_escape(input: &str) -> String {
 }
 
 /// URL decode function for compatibility
+///
+/// # Errors
+/// 
+/// Returns `std::fmt::Error` if:
+/// - Input contains invalid percent-encoding sequences
+/// - Decoded bytes do not form valid UTF-8 strings
+/// - Input contains malformed escape sequences or forbidden characters
 pub fn url_decode(input: &str) -> Result<String, std::fmt::Error> {
     urlencoding::decode(input)
         .map(std::borrow::Cow::into_owned)

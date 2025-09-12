@@ -679,22 +679,16 @@ impl H3Connection {
         );
 
         // Create basic QUIC configuration with no fancy options
-        let mut basic_config = match quiche::Config::new(quiche::PROTOCOL_VERSION) {
-            Ok(config) => config,
-            Err(_) => {
-                // If even basic config fails, try older version
-                match quiche::Config::new(0x1) {
-                    Ok(old_config) => old_config,
-                    Err(_) => {
-                        // This should never happen in practice
-                        tracing::error!("CRITICAL: Cannot create any QUIC config - library broken");
-                        // Since this is a marker for complete failure, we must create something
-                        // In practice, this branch should never execute
-                        panic!("QUIC library completely broken - cannot create basic configuration");
-                    }
-                }
-            }
-        };
+        let mut basic_config = quiche::Config::new(quiche::PROTOCOL_VERSION).unwrap_or_else(|_| {
+            // If even basic config fails, try older version
+            quiche::Config::new(0x1).unwrap_or_else(|_| {
+                // This should never happen in practice
+                tracing::error!("CRITICAL: Cannot create any QUIC config - library broken");
+                // Since this is a marker for complete failure, we must create something
+                // In practice, this branch should never execute
+                panic!("QUIC library completely broken - cannot create basic configuration");
+            })
+        });
 
         // Set absolute minimal parameters
         basic_config.set_max_idle_timeout(0); // No timeout

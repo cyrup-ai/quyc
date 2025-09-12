@@ -1,47 +1,79 @@
-warning: this function has too many arguments (8/7)
-  --> packages/client/src/connect/builder/tls.rs:26:5
+warning: item in documentation is missing backticks
+  --> packages/client/src/connect/builder/tls.rs:41:47
    |
-26 | /     pub fn new_rustls_tls(
-27 | |         http: HttpConnector,
-28 | |         config: rustls::ClientConfig,
-29 | |         proxies: arrayvec::ArrayVec<crate::proxy::Proxy, 4>,
-...  |
-46 | |         tls_info: bool,
-47 | |     ) -> Result<Self, BoxError> {
-   | |_______________________________^
+41 |     /// Whether to disable Nagle's algorithm (TCP_NODELAY)
+   |                                               ^^^^^^^^^^^
    |
-   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_arguments
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#doc_markdown
 note: the lint level is defined here
-  --> packages/client/src/lib.rs:25:9
+  --> packages/client/src/lib.rs:26:9
    |
-25 | #![warn(clippy::all)]
-   |         ^^^^^^^^^^^
-   = note: `#[warn(clippy::too_many_arguments)]` implied by `#[warn(clippy::all)]`
+26 | #![warn(clippy::pedantic)]
+   |         ^^^^^^^^^^^^^^^^
+   = note: `#[warn(clippy::doc_markdown)]` implied by `#[warn(clippy::pedantic)]`
+help: try
+   |
+41 -     /// Whether to disable Nagle's algorithm (TCP_NODELAY)
+41 +     /// Whether to disable Nagle's algorithm (`TCP_NODELAY`)
+   |
 
 warning: this function has too many arguments (8/7)
-  --> packages/client/src/connect/builder/tls.rs:75:5
+   --> packages/client/src/connect/builder/tls.rs:83:5
+    |
+ 83 | /     pub fn new_rustls_tls(
+ 84 | |         http: HttpConnector,
+ 85 | |         config: rustls::ClientConfig,
+ 86 | |         proxies: arrayvec::ArrayVec<crate::proxy::Proxy, 4>,
+...   |
+103 | |         tls_info: bool,
+104 | |     ) -> Result<Self, BoxError> {
+    | |_______________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_arguments
+note: the lint level is defined here
+   --> packages/client/src/lib.rs:25:9
+    |
+ 25 | #![warn(clippy::all)]
+    |         ^^^^^^^^^^^
+    = note: `#[warn(clippy::too_many_arguments)]` implied by `#[warn(clippy::all)]`
+
+warning: this function has too many arguments (8/7)
+   --> packages/client/src/connect/builder/tls.rs:132:5
+    |
+132 | /     pub fn from_built_rustls_tls(
+133 | |         http: HttpConnector,
+134 | |         config: rustls::ClientConfig,
+135 | |         proxies: arrayvec::ArrayVec<crate::proxy::Proxy, 4>,
+...   |
+152 | |         tls_info: bool,
+153 | |     ) -> Result<Self, BoxError> {
+    | |_______________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_arguments
+
+warning: item in documentation is missing backticks
+  --> packages/client/src/connect/service/core.rs:33:47
    |
-75 | /     pub fn from_built_rustls_tls(
-76 | |         http: HttpConnector,
-77 | |         config: rustls::ClientConfig,
-78 | |         proxies: arrayvec::ArrayVec<crate::proxy::Proxy, 4>,
-...  |
-95 | |         tls_info: bool,
-96 | |     ) -> Result<Self, BoxError> {
-   | |_______________________________^
+33 |     /// Whether to disable Nagle's algorithm (TCP_NODELAY)
+   |                                               ^^^^^^^^^^^
    |
-   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_arguments
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#doc_markdown
+help: try
+   |
+33 -     /// Whether to disable Nagle's algorithm (TCP_NODELAY)
+33 +     /// Whether to disable Nagle's algorithm (`TCP_NODELAY`)
+   |
 
 warning: this function has too many arguments (10/7)
-  --> packages/client/src/connect/service/core.rs:44:5
+  --> packages/client/src/connect/service/core.rs:83:5
    |
-44 | /     pub fn new(
-45 | |         http: HttpConnector,
-46 | |         #[cfg(feature = "__rustls")] rustls_config: Option<rustls::ClientConfig>,
-47 | |         proxies: arrayvec::ArrayVec<crate::proxy::Proxy, 4>,
+83 | /     pub fn new(
+84 | |         http: HttpConnector,
+85 | |         #[cfg(feature = "__rustls")] rustls_config: Option<rustls::ClientConfig>,
+86 | |         proxies: arrayvec::ArrayVec<crate::proxy::Proxy, 4>,
 ...  |
-54 | |         tls_info: bool,
-55 | |     ) -> Result<Self, BoxError> {
+93 | |         tls_info: bool,
+94 | |     ) -> Result<Self, BoxError> {
    | |_______________________________^
    |
    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_arguments
@@ -53,11 +85,6 @@ warning: this argument is passed by value, but not consumed in the function body
    |                                          ^^^
    |
    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_pass_by_value
-note: the lint level is defined here
-  --> packages/client/src/lib.rs:26:9
-   |
-26 | #![warn(clippy::pedantic)]
-   |         ^^^^^^^^^^^^^^^^
    = note: `#[warn(clippy::needless_pass_by_value)]` implied by `#[warn(clippy::pedantic)]`
 help: consider taking a reference instead
    |
@@ -71,7 +98,6 @@ warning: item in documentation is missing backticks
    |                     ^^^^^^^^^^^
    |
    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#doc_markdown
-   = note: `#[warn(clippy::doc_markdown)]` implied by `#[warn(clippy::pedantic)]`
 help: try
    |
 14 - /// - Failed to set TCP_NODELAY socket option
@@ -1866,75 +1892,51 @@ warning: casting `i64` to `usize` may lose the sign of the value
      |
      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cast_sign_loss
 
-warning: these match arms have identical bodies
-    --> packages/client/src/jsonpath/deserializer/core/types.rs:1049:17
-     |
-1049 | /                 crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::Advanced(_) => {
-1050 | |                     // Successfully advanced to next selector
-1051 | |                 }
-     | |_________________^
-1052 | /                 crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::ExpressionComplete => {
-1053 | |                     // Reached end of expression
-1054 | |                 }
-     | |_________________^
-     |
-     = help: if this is unintentional make the arms return different values
-     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#match_same_arms
-     = note: `#[warn(clippy::match_same_arms)]` implied by `#[warn(clippy::pedantic)]`
-help: otherwise merge the patterns into a single arm
-     |
-1049 -                 crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::Advanced(_) => {
-1050 -                     // Successfully advanced to next selector
-1051 -                 }
-1052 -                 crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::ExpressionComplete => {
-1049 +                 crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::Advanced(_) | crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::ExpressionComplete => {
-     |
-
 warning: casting `usize` to `i64` may wrap around the value on targets with 64-bit wide pointers
-    --> packages/client/src/jsonpath/deserializer/core/types.rs:1105:21
+    --> packages/client/src/jsonpath/deserializer/core/types.rs:1103:21
      |
-1105 |                     array_index as i64 == *index
+1103 |                     array_index as i64 == *index
      |                     ^^^^^^^^^^^^^^^^^^
      |
      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cast_possible_wrap
 
 warning: casting `i64` to `usize` may lose the sign of the value
-    --> packages/client/src/jsonpath/deserializer/core/types.rs:1138:82
+    --> packages/client/src/jsonpath/deserializer/core/types.rs:1136:82
      |
-1138 |                     matches!(&frame.segment, PathSegment::ArrayIndex(i) if *i == *index as usize)
+1136 |                     matches!(&frame.segment, PathSegment::ArrayIndex(i) if *i == *index as usize)
      |                                                                                  ^^^^^^^^^^^^^^^
      |
      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cast_sign_loss
 
 warning: unused `self` argument
-    --> packages/client/src/jsonpath/deserializer/core/types.rs:1171:28
+    --> packages/client/src/jsonpath/deserializer/core/types.rs:1169:28
      |
-1171 |     fn index_matches_slice(&self, index: usize, start: Option<i64>, end: Option<i64>, step: Option<i64>) -> bool {
+1169 |     fn index_matches_slice(&self, index: usize, start: Option<i64>, end: Option<i64>, step: Option<i64>) -> bool {
      |                            ^^^^^
      |
      = help: consider refactoring to an associated function
      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unused_self
 
 warning: casting `i64` to `usize` may lose the sign of the value
-    --> packages/client/src/jsonpath/deserializer/core/types.rs:1172:20
+    --> packages/client/src/jsonpath/deserializer/core/types.rs:1170:20
      |
-1172 |         let step = step.unwrap_or(1).max(1) as usize; // Ensure positive step
+1170 |         let step = step.unwrap_or(1).max(1) as usize; // Ensure positive step
      |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
      |
      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cast_sign_loss
 
 warning: casting `usize` to `i64` may wrap around the value on targets with 64-bit wide pointers
-    --> packages/client/src/jsonpath/deserializer/core/types.rs:1173:21
+    --> packages/client/src/jsonpath/deserializer/core/types.rs:1171:21
      |
-1173 |         let index = index as i64;
+1171 |         let index = index as i64;
      |                     ^^^^^^^^^^^^
      |
      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cast_possible_wrap
 
 warning: casting `i64` to `usize` may lose the sign of the value
-    --> packages/client/src/jsonpath/deserializer/core/types.rs:1189:13
+    --> packages/client/src/jsonpath/deserializer/core/types.rs:1187:13
      |
-1189 |             ((index - start_bound) as usize).is_multiple_of(step)
+1187 |             ((index - start_bound) as usize).is_multiple_of(step)
      |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
      |
      = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cast_sign_loss
@@ -1949,31 +1951,6 @@ warning: this could be rewritten as `let...else`
    | |______________^ help: consider writing: `let Some(byte) = self.deserializer.read_next_byte()? else { return Ok(None) };`
    |
    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#manual_let_else
-
-warning: these match arms have identical bodies
-  --> packages/client/src/jsonpath/deserializer/iterator.rs:91:17
-   |
-91 | /                 JsonProcessResult::NeedMoreData => {
-92 | |                     // Need more bytes to complete parsing
-93 | |                     return Ok(None);
-94 | |                 }
-   | |_________________^
-95 | /                 JsonProcessResult::Complete => {
-96 | |                     // Processing complete (end of stream)
-97 | |                     return Ok(None);
-98 | |                 }
-   | |_________________^
-   |
-   = help: if this is unintentional make the arms return different values
-   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#match_same_arms
-help: otherwise merge the patterns into a single arm
-   |
-91 ~                 JsonProcessResult::NeedMoreData | JsonProcessResult::Complete => {
-92 |                     // Need more bytes to complete parsing
-93 |                     return Ok(None);
-94 |                 }
-95 ~                 }
-   |
 
 warning: match expression looks like `matches!` macro
   --> packages/client/src/jsonpath/deserializer/path_evaluator.rs:18:9
@@ -2009,90 +1986,46 @@ warning: docs for function returning `Result` missing `# Errors` section
    |
    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#missing_errors_doc
 
-warning: these match arms have identical bodies
-  --> packages/client/src/jsonpath/deserializer/processor/state_processors.rs:21:13
-   |
-21 |             b' ' | b'\t' | b'\n' | b'\r' => JsonProcessResult::Continue, // Skip whitespace
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
-43 |             _ => JsonProcessResult::Continue,
-   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the wildcard arm
-   |
-   = help: if this is unintentional make the arms return different values
-   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#match_same_arms
-help: otherwise remove the non-wildcard arm
-   |
-21 -             b' ' | b'\t' | b'\n' | b'\r' => JsonProcessResult::Continue, // Skip whitespace
-21 +             // Skip whitespace
-   |
-
 warning: this function's return value is unnecessarily wrapped by `Result`
-  --> packages/client/src/jsonpath/deserializer/processor/state_processors.rs:48:5
+  --> packages/client/src/jsonpath/deserializer/processor/state_processors.rs:47:5
    |
-48 | /     pub(super) fn process_navigating_byte(
-49 | |         &mut self,
-50 | |         byte: u8,
-51 | |     ) -> JsonPathResult<JsonProcessResult> {
+47 | /     pub(super) fn process_navigating_byte(
+48 | |         &mut self,
+49 | |         byte: u8,
+50 | |     ) -> JsonPathResult<JsonProcessResult> {
    | |__________________________________________^
    |
    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_wraps
 help: remove `Result` from the return type...
    |
-51 -     ) -> JsonPathResult<JsonProcessResult> {
-51 +     ) -> jsonpath::deserializer::processor::core::JsonProcessResult {
+50 -     ) -> JsonPathResult<JsonProcessResult> {
+50 +     ) -> jsonpath::deserializer::processor::core::JsonProcessResult {
    |
 help: ...and then remove the surrounding `Ok()` from returning expressions
    |
-58 ~             b' ' | b'\t' | b'\n' | b'\r' => JsonProcessResult::Continue, // Skip whitespace
-59 |             b'{' => {
-...
-71 |                     self.deserializer.object_buffer.push(byte);
+70 ~                     JsonProcessResult::Continue
+71 |                 } else {
 72 ~                     JsonProcessResult::Continue
-73 |                 } else {
-74 ~                     JsonProcessResult::Continue
-75 |                 }
+73 |                 }
 ...
-93 |                 }
-94 ~                 JsonProcessResult::Continue
-95 |             }
+91 |                 }
+92 ~                 JsonProcessResult::Continue
+93 |             }
 ...
-106|                     self.deserializer.transition_to_complete();
-107~                     JsonProcessResult::Complete
-108|                 } else {
-109~                     JsonProcessResult::Continue
-110|                 }
+104|                     self.deserializer.transition_to_complete();
+105~                     JsonProcessResult::Complete
+106|                 } else {
+107~                     JsonProcessResult::Continue
+108|                 }
 ...
-116|                     self.deserializer.transition_to_complete();
-117~                     JsonProcessResult::Complete
-118|                 } else {
-119~                     JsonProcessResult::Continue
-120|                 }
-121|             }
-122~             b',' => JsonProcessResult::Continue, // Array/object separator
-123~             _ => JsonProcessResult::Continue,
+114|                     self.deserializer.transition_to_complete();
+115~                     JsonProcessResult::Complete
+116|                 } else {
+117~                     JsonProcessResult::Continue
+118|                 }
+119|             }
+120~             _ => JsonProcessResult::Continue, // Skip whitespace, separators, and other characters
    |
-
-warning: these match arms have identical bodies
-   --> packages/client/src/jsonpath/deserializer/processor/state_processors.rs:58:13
-    |
- 58 |             b' ' | b'\t' | b'\n' | b'\r' => Ok(JsonProcessResult::Continue), // Skip whitespace
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-...
-122 |             b',' => Ok(JsonProcessResult::Continue), // Array/object separator
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-123 |             _ => Ok(JsonProcessResult::Continue),
-    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the wildcard arm
-    |
-    = help: if this is unintentional make the arms return different values
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#match_same_arms
-help: otherwise remove the non-wildcard arms
-    |
- 58 ~             // Skip whitespace
- 59 |             b'{' => {
-...
-121 |             }
-122 ~             // Array/object separator
-    |
 
 warning: casting `i64` to `usize` may lose the sign of the value
    --> packages/client/src/jsonpath/deserializer/recursive.rs:103:58
@@ -2174,6 +2107,7 @@ warning: these match arms have identical bodies
     |
     = help: if this is unintentional make the arms return different values
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#match_same_arms
+    = note: `#[warn(clippy::match_same_arms)]` implied by `#[warn(clippy::pedantic)]`
 help: otherwise merge the patterns into a single arm
     |
 123 -             (FilterValue::Missing, _) => Ok(false),
@@ -5136,60 +5070,59 @@ warning: adding items after statements is confusing, since items exist from the 
     |
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#items_after_statements
 
-warning: large size difference between variants
-  --> packages/client/src/protocols/h2/strategy.rs:17:1
+warning: item in documentation is missing backticks
+  --> packages/client/src/protocols/h2/strategy.rs:19:18
    |
-17 | / enum H2Stream {
-18 | |     Tls(tokio_rustls::client::TlsStream<TcpStream>),
+19 | /// for internal execute_with_runtime function.
+   |                  ^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#doc_markdown
+help: try
+   |
+19 - /// for internal execute_with_runtime function.
+19 + /// for internal `execute_with_runtime` function.
+   |
+
+warning: large size difference between variants
+  --> packages/client/src/protocols/h2/strategy.rs:32:1
+   |
+32 | / enum H2Stream {
+33 | |     Tls(tokio_rustls::client::TlsStream<TcpStream>),
    | |     ----------------------------------------------- the largest variant contains at least 1104 bytes
-19 | |     Plain(TcpStream),
+34 | |     Plain(TcpStream),
    | |     ---------------- the second-largest variant contains at least 40 bytes
-20 | | }
+35 | | }
    | |_^ the entire enum is at least 1104 bytes
    |
    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#large_enum_variant
    = note: `#[warn(clippy::large_enum_variant)]` implied by `#[warn(clippy::all)]`
 help: consider boxing the large fields or introducing indirection in some other way to reduce the total size of the enum
    |
-18 -     Tls(tokio_rustls::client::TlsStream<TcpStream>),
-18 +     Tls(Box<tokio_rustls::client::TlsStream<TcpStream>>),
+33 -     Tls(tokio_rustls::client::TlsStream<TcpStream>),
+33 +     Tls(Box<tokio_rustls::client::TlsStream<TcpStream>>),
    |
 
-warning: this function has too many arguments (8/7)
-   --> packages/client/src/protocols/h2/strategy.rs:157:5
+warning: this function has too many lines (125/100)
+   --> packages/client/src/protocols/h2/strategy.rs:198:5
     |
-157 | /     fn execute_with_runtime(
-158 | |         url: &url::Url,
-159 | |         host: &str,
-160 | |         port: u16,
-...   |
-165 | |         body_bytes: Option<Bytes>,
-166 | |     ) -> Result<(http::StatusCode, http::HeaderMap, h2::RecvStream), String> {
-    | |____________________________________________________________________________^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_arguments
-
-warning: this function has too many lines (118/100)
-   --> packages/client/src/protocols/h2/strategy.rs:189:5
-    |
-189 |     fn execute(&self, request: HttpRequest) -> HttpResponse {
+198 |     fn execute(&self, request: HttpRequest) -> HttpResponse {
     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_lines
 
 warning: these match arms have identical bodies
-   --> packages/client/src/protocols/h2/strategy.rs:199:17
+   --> packages/client/src/protocols/h2/strategy.rs:208:17
     |
-199 |                 "http" => 80,
+208 |                 "http" => 80,
     |                 ^^^^^^^^^^^^
-200 |                 _ => 80,
+209 |                 _ => 80,
     |                 ^^^^^^^ the wildcard arm
     |
     = help: if this is unintentional make the arms return different values
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#match_same_arms
 help: otherwise remove the non-wildcard arm
     |
-199 -                 "http" => 80,
+208 -                 "http" => 80,
     |
 
 warning: these match arms have identical bodies
@@ -5661,26 +5594,39 @@ help: ...and then remove the surrounding `Ok()` from returning expressions
 1116 +     default_headers
      |
 
-warning: adding items after statements is confusing, since items exist from the start of the scope
-  --> packages/client/src/protocols/h3/strategy/core.rs:66:9
+warning: item in documentation is missing backticks
+  --> packages/client/src/protocols/h3/strategy/core.rs:20:18
    |
-66 |         use std::convert::TryFrom;
+20 | /// for internal execute_with_runtime function.
+   |                  ^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#doc_markdown
+help: try
+   |
+20 - /// for internal execute_with_runtime function.
+20 + /// for internal `execute_with_runtime` function.
+   |
+
+warning: adding items after statements is confusing, since items exist from the start of the scope
+  --> packages/client/src/protocols/h3/strategy/core.rs:81:9
+   |
+81 |         use std::convert::TryFrom;
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^
    |
    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#items_after_statements
 
 warning: adding items after statements is confusing, since items exist from the start of the scope
-  --> packages/client/src/protocols/h3/strategy/core.rs:95:9
-   |
-95 |         use crate::protocols::strategy::CongestionControl;
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   |
-   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#items_after_statements
+   --> packages/client/src/protocols/h3/strategy/core.rs:110:9
+    |
+110 |         use crate::protocols::strategy::CongestionControl;
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#items_after_statements
 
 warning: use of a fallible conversion when an infallible one could be used
-  --> packages/client/src/protocols/h3/strategy/core.rs:77:13
+  --> packages/client/src/protocols/h3/strategy/core.rs:92:13
    |
-77 |             usize::try_from(self.config.max_udp_payload_size).unwrap_or_else(|_| {
+92 |             usize::try_from(self.config.max_udp_payload_size).unwrap_or_else(|_| {
    |             ^^^^^^^^^^^^^^^ help: use: `From::from`
    |
    = note: converting `u16` to `usize` cannot fail
@@ -5688,163 +5634,137 @@ warning: use of a fallible conversion when an infallible one could be used
    = note: `#[warn(clippy::unnecessary_fallible_conversions)]` implied by `#[warn(clippy::all)]`
 
 warning: use of a fallible conversion when an infallible one could be used
-  --> packages/client/src/protocols/h3/strategy/core.rs:83:13
+  --> packages/client/src/protocols/h3/strategy/core.rs:98:13
    |
-83 |             usize::try_from(self.config.max_udp_payload_size).unwrap_or_else(|_| {
+98 |             usize::try_from(self.config.max_udp_payload_size).unwrap_or_else(|_| {
    |             ^^^^^^^^^^^^^^^ help: use: `From::from`
    |
    = note: converting `u16` to `usize` cannot fail
    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_fallible_conversions
 
 warning: item in documentation is missing backticks
-   --> packages/client/src/protocols/h3/strategy/core.rs:139:22
+   --> packages/client/src/protocols/h3/strategy/core.rs:154:22
     |
-139 |     /// - Configured local_bind_address (if specified)
+154 |     /// - Configured local_bind_address (if specified)
     |                      ^^^^^^^^^^^^^^^^^^
     |
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#doc_markdown
 help: try
     |
-139 -     /// - Configured local_bind_address (if specified)
-139 +     /// - Configured `local_bind_address` (if specified)
+154 -     /// - Configured local_bind_address (if specified)
+154 +     /// - Configured `local_bind_address` (if specified)
     |
 
 warning: item in documentation is missing backticks
-   --> packages/client/src/protocols/h3/strategy/core.rs:143:19
+   --> packages/client/src/protocols/h3/strategy/core.rs:158:19
     |
-143 |     /// Returns a SocketAddr suitable for binding the UDP socket.
+158 |     /// Returns a SocketAddr suitable for binding the UDP socket.
     |                   ^^^^^^^^^^
     |
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#doc_markdown
 help: try
     |
-143 -     /// Returns a SocketAddr suitable for binding the UDP socket.
-143 +     /// Returns a `SocketAddr` suitable for binding the UDP socket.
+158 -     /// Returns a SocketAddr suitable for binding the UDP socket.
+158 +     /// Returns a `SocketAddr` suitable for binding the UDP socket.
     |
 
 warning: this function's return value is unnecessarily wrapped by `Result`
-   --> packages/client/src/protocols/h3/strategy/core.rs:144:5
+   --> packages/client/src/protocols/h3/strategy/core.rs:159:5
     |
-144 |     fn resolve_local_address(config: &crate::protocols::strategy::H3Config, remote_addr: &SocketAddr) -> Result<SocketAddr, String> {
+159 |     fn resolve_local_address(config: &crate::protocols::strategy::H3Config, remote_addr: &SocketAddr) -> Result<SocketAddr, String> {
     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     |
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#unnecessary_wraps
 help: remove `Result` from the return type...
     |
-144 -     fn resolve_local_address(config: &crate::protocols::strategy::H3Config, remote_addr: &SocketAddr) -> Result<SocketAddr, String> {
-144 +     fn resolve_local_address(config: &crate::protocols::strategy::H3Config, remote_addr: &SocketAddr) -> std::net::SocketAddr {
+159 -     fn resolve_local_address(config: &crate::protocols::strategy::H3Config, remote_addr: &SocketAddr) -> Result<SocketAddr, String> {
+159 +     fn resolve_local_address(config: &crate::protocols::strategy::H3Config, remote_addr: &SocketAddr) -> std::net::SocketAddr {
     |
 help: ...and then remove the surrounding `Ok()` from returning expressions
     |
-149 ~             return addr;
-150 |         }
+164 ~             return addr;
+165 |         }
 ...
-173 |         // Use port 0 for automatic port assignment
-174 ~         SocketAddr::new(local_ip, 0)
+188 |         // Use port 0 for automatic port assignment
+189 ~         SocketAddr::new(local_ip, 0)
     |
-
-warning: this function has too many arguments (8/7)
-   --> packages/client/src/protocols/h3/strategy/core.rs:283:5
-    |
-283 | /     fn execute_with_runtime(
-284 | |         _url: &url::Url,
-285 | |         host: &str,
-286 | |         port: u16,
-...   |
-291 | |         body_data: Option<crate::http::request::RequestBody>,
-292 | |     ) -> Result<(http::StatusCode, http::HeaderMap, AsyncStream<crate::http::HttpChunk, 1024>), String> {
-    | |_______________________________________________________________________________________________________^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#too_many_arguments
-
-warning: this argument is passed by value, but not consumed in the function body
-   --> packages/client/src/protocols/h3/strategy/core.rs:290:18
-    |
-290 |         headers: http::HeaderMap,
-    |                  ^^^^^^^^^^^^^^^
-    |
-    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_pass_by_value
-help: consider taking a reference instead
-    |
-290 |         headers: &http::HeaderMap,
-    |                  +
 
 warning: this expression creates a reference which is immediately dereferenced by the compiler
-   --> packages/client/src/protocols/h3/strategy/core.rs:303:58
+   --> packages/client/src/protocols/h3/strategy/core.rs:319:58
     |
-303 |             let local_addr = Self::resolve_local_address(&h3_config, &peer_addr)?;
+319 |             let local_addr = Self::resolve_local_address(&h3_config, &peer_addr)?;
     |                                                          ^^^^^^^^^^ help: change this to: `h3_config`
     |
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_borrow
     = note: `#[warn(clippy::needless_borrow)]` implied by `#[warn(clippy::all)]`
 
 warning: casting `u128` to `u64` may truncate the value
-   --> packages/client/src/protocols/h3/strategy/core.rs:352:21
+   --> packages/client/src/protocols/h3/strategy/core.rs:368:21
     |
-352 |       let timestamp = SystemTime::now()
+368 |       let timestamp = SystemTime::now()
     |  _____________________^
-353 | |         .duration_since(SystemTime::UNIX_EPOCH)
-354 | |         .unwrap_or_default()
-355 | |         .as_nanos() as u64;
+369 | |         .duration_since(SystemTime::UNIX_EPOCH)
+370 | |         .unwrap_or_default()
+371 | |         .as_nanos() as u64;
     | |__________________________^
     |
     = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#cast_possible_truncation
 help: ... or use `try_from` and handle the error accordingly
     |
-352 ~     let timestamp = u64::try_from(SystemTime::now()
-353 +         .duration_since(SystemTime::UNIX_EPOCH)
-354 +         .unwrap_or_default()
-355 ~         .as_nanos());
+368 ~     let timestamp = u64::try_from(SystemTime::now()
+369 +         .duration_since(SystemTime::UNIX_EPOCH)
+370 +         .unwrap_or_default()
+371 ~         .as_nanos());
     |
 
 warning: these match arms have identical bodies
-   --> packages/client/src/protocols/h3/strategy/core.rs:497:13
+   --> packages/client/src/protocols/h3/strategy/core.rs:513:13
     |
-497 | /             crate::http::HttpChunk::Data(data) => {
-498 | |                 body_bytes.extend_from_slice(&data);
-499 | |             },
+513 | /             crate::http::HttpChunk::Data(data) => {
+514 | |                 body_bytes.extend_from_slice(&data);
+515 | |             },
     | |_____________^
-500 | /             crate::http::HttpChunk::Body(data) => {
-501 | |                 body_bytes.extend_from_slice(&data);
-502 | |             },
+516 | /             crate::http::HttpChunk::Body(data) => {
+517 | |                 body_bytes.extend_from_slice(&data);
+518 | |             },
     | |_____________^
-503 | /             crate::http::HttpChunk::Chunk(data) => {
-504 | |                 body_bytes.extend_from_slice(&data);
-505 | |             },
+519 | /             crate::http::HttpChunk::Chunk(data) => {
+520 | |                 body_bytes.extend_from_slice(&data);
+521 | |             },
     | |_____________^
     |
     = help: if this is unintentional make the arms return different values
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#match_same_arms
 help: otherwise merge the patterns into a single arm
     |
-497 -             crate::http::HttpChunk::Data(data) => {
-498 -                 body_bytes.extend_from_slice(&data);
-499 -             },
-500 -             crate::http::HttpChunk::Body(data) => {
-497 +             crate::http::HttpChunk::Data(data) | crate::http::HttpChunk::Body(data) | crate::http::HttpChunk::Chunk(data) => {
+513 -             crate::http::HttpChunk::Data(data) => {
+514 -                 body_bytes.extend_from_slice(&data);
+515 -             },
+516 -             crate::http::HttpChunk::Body(data) => {
+513 +             crate::http::HttpChunk::Data(data) | crate::http::HttpChunk::Body(data) | crate::http::HttpChunk::Chunk(data) => {
     |
 
 warning: docs for function returning `Result` missing `# Errors` section
-   --> packages/client/src/protocols/h3/strategy/core.rs:519:1
+   --> packages/client/src/protocols/h3/strategy/core.rs:535:1
     |
-519 | / pub fn serialize_multipart_form_data_public(
-520 | |     fields: &[crate::http::request::MultipartField],
-521 | |     headers: &mut http::HeaderMap,
-522 | | ) -> Result<Vec<u8>, String> {
+535 | / pub fn serialize_multipart_form_data_public(
+536 | |     fields: &[crate::http::request::MultipartField],
+537 | |     headers: &mut http::HeaderMap,
+538 | | ) -> Result<Vec<u8>, String> {
     | |____________________________^
     |
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#missing_errors_doc
 
 warning: docs for function returning `Result` missing `# Errors` section
-   --> packages/client/src/protocols/h3/strategy/core.rs:526:1
+   --> packages/client/src/protocols/h3/strategy/core.rs:542:1
     |
-526 | / pub fn serialize_http_request_for_h3_public(
-527 | |     method: &http::Method,
-528 | |     uri: &str,
-529 | |     headers: &mut http::HeaderMap,
-530 | |     body_data: Option<&crate::http::request::RequestBody>,
-531 | | ) -> Result<Vec<u8>, String> {
+542 | / pub fn serialize_http_request_for_h3_public(
+543 | |     method: &http::Method,
+544 | |     uri: &str,
+545 | |     headers: &mut http::HeaderMap,
+546 | |     body_data: Option<&crate::http::request::RequestBody>,
+547 | | ) -> Result<Vec<u8>, String> {
     | |____________________________^
     |
     = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#missing_errors_doc
@@ -8158,8 +8078,8 @@ help: ... or use `try_from` and handle the error accordingly
 93 +         let mut encoded = vec![u8::try_from(test_string.len())];
    |
 
-warning: `quyc_client` (lib) generated 627 warnings (run `cargo clippy --fix --lib -p quyc_client` to apply 31 suggestions)
-warning: `quyc_client` (lib test) generated 628 warnings (627 duplicates)
+warning: `quyc_client` (lib) generated 624 warnings (run `cargo clippy --fix --lib -p quyc_client` to apply 35 suggestions)
+warning: `quyc_client` (lib test) generated 625 warnings (624 duplicates)
 warning: this `continue` expression is redundant
    --> packages/api/src/builder/headers.rs:118:27
     |
@@ -8229,4 +8149,4 @@ note: this field is unused
 
 warning: `quyc` (lib) generated 4 warnings
 warning: `quyc` (lib test) generated 4 warnings (4 duplicates)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.85s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.30s

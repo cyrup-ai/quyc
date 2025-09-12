@@ -82,6 +82,7 @@ impl CertificateValidatorWithInput {
     }
 
     /// Validate certificate for multiple domains
+    #[must_use = "Certificate validator builder methods return a new validator and should be used"]
     pub fn domains(self, domains: &[&str]) -> Self {
         Self {
             domains: Some(domains.iter().map(std::string::ToString::to_string).collect()),

@@ -81,6 +81,7 @@ impl PutOperation {
     ///
     /// # Returns
     /// `Self` for method chaining - errors silently ignored, handled during execution
+    #[must_use = "Operation builder methods return a new operation and should be used"]
     pub fn binary(mut self, data: Vec<u8>, content_type: &str) -> Self {
         if let Ok(header_value) = HeaderValue::from_str(content_type) {
             self.headers
@@ -100,6 +101,7 @@ impl PutOperation {
     ///
     /// # Returns
     /// `Self` for method chaining - errors silently ignored, handled during execution
+    #[must_use = "Operation builder methods return a new operation and should be used"]
     pub fn text(mut self, data: String, content_type: &str) -> Self {
         if let Ok(header_value) = HeaderValue::from_str(content_type) {
             self.headers
@@ -118,6 +120,7 @@ impl PutOperation {
     ///
     /// # Returns
     /// `Self` for method chaining - errors silently ignored, handled during execution
+    #[must_use = "Operation builder methods return a new operation and should be used"]
     pub fn if_match(mut self, etag: &str) -> Self {
         if let Ok(header_value) = HeaderValue::from_str(etag) {
             self.headers.insert(http::header::IF_MATCH, header_value);

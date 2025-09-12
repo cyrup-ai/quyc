@@ -13,6 +13,21 @@ use crate::protocols::strategy_trait::ProtocolStrategy;
 use crate::protocols::response_converter::convert_http_chunks_to_response;
 use crate::protocols::strategy::H2Config;
 
+/// Request execution context for H2 protocol
+///
+/// Groups request parameters to reduce function parameter count
+/// for internal execute_with_runtime function.
+#[derive(Debug)]
+struct RequestExecutionContext<'a> {
+    url: &'a url::Url,
+    host: &'a str,
+    port: u16,
+    method: &'a http::Method,
+    uri: &'a str,
+    headers: http::HeaderMap,
+    body_bytes: Option<Bytes>,
+}
+
 /// Connection type for H2 strategy
 enum H2Stream {
     Tls(tokio_rustls::client::TlsStream<TcpStream>),
@@ -155,21 +170,15 @@ impl H2Strategy {
 
     /// Execute request with proper runtime handling (no duplication)
     fn execute_with_runtime(
-        url: &url::Url,
-        host: &str,
-        port: u16,
+        context: RequestExecutionContext<'_>,
         h2_config: &H2Config,
-        method: &http::Method,
-        uri: &str,
-        headers: http::HeaderMap,
-        body_bytes: Option<Bytes>,
     ) -> Result<(http::StatusCode, http::HeaderMap, h2::RecvStream), String> {
         let execute_async = async {
             // Create connection (HTTPS vs HTTP abstracted)
-            let stream = Self::create_connection(url, host, port).await?;
+            let stream = Self::create_connection(context.url, context.host, context.port).await?;
             
             // Execute H2 request (same logic for both connection types)
-            Self::execute_h2_request(stream, h2_config, method, uri, headers, body_bytes).await
+            Self::execute_h2_request(stream, h2_config, context.method, context.uri, context.headers, context.body_bytes).await
         };
 
         // Use existing runtime handle if available, create minimal runtime only if needed
@@ -244,9 +253,16 @@ impl ProtocolStrategy for H2Strategy {
             
             let connection_and_request_task = spawn_task(move || {
                 // Execute request with proper runtime handling (no duplication)
-                Self::execute_with_runtime(
-                    &url, &host, port, &h2_config, &method, &uri, headers, body_bytes
-                )
+                let context = RequestExecutionContext {
+                    url: &url,
+                    host: &host,
+                    port,
+                    method: &method,
+                    uri: &uri,
+                    headers,
+                    body_bytes,
+                };
+                Self::execute_with_runtime(context, &h2_config)
             });
             
             match connection_and_request_task.collect() {

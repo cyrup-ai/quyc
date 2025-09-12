@@ -32,6 +32,7 @@ where
     }
 
     /// Add chunk processing handler for custom transformations
+    #[must_use = "Stream processor builder methods return a new processor and should be used"]
     pub fn with_chunk_handler<F>(mut self, handler: F) -> Self
     where
         F: FnMut(Result<T, JsonPathError>) -> Result<T, JsonPathError> + Send + 'static,

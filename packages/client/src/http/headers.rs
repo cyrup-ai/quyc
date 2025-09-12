@@ -23,6 +23,7 @@ impl HeaderManager {
     }
 
     /// Sets a header, consuming the manager and returning a new one.
+    #[must_use = "Header builder methods return a new HeaderManager and should be used"]
     pub fn set(mut self, key: HeaderName, value: HeaderValue) -> Self {
         // If there's already an error, preserve it
         if self.error.is_some() {
@@ -33,6 +34,7 @@ impl HeaderManager {
     }
 
     /// Sets the Content-Type header.
+    #[must_use = "Header builder methods return a new HeaderManager and should be used"]
     pub fn content_type(self, content_type: &str) -> Self {
         match HeaderValue::from_str(content_type) {
             Ok(value) => self.set(header::CONTENT_TYPE, value),
@@ -44,6 +46,7 @@ impl HeaderManager {
     }
 
     /// Sets the Authorization header with a bearer token.
+    #[must_use = "Header builder methods return a new HeaderManager and should be used"]
     pub fn bearer_token(self, token: &str) -> Self {
         let auth_header = format!("Bearer {token}");
         match HeaderValue::from_str(&auth_header) {
@@ -56,6 +59,7 @@ impl HeaderManager {
     }
 
     /// Sets basic authentication.
+    #[must_use = "Header builder methods return a new HeaderManager and should be used"]
     pub fn basic_auth(self, user: &str, pass: Option<&str>) -> Self {
         let credentials = format!("{}:{}", user, pass.unwrap_or_default());
         let encoded = general_purpose::STANDARD.encode(credentials);
@@ -110,6 +114,14 @@ impl From<http::header::InvalidHeaderValue> for HeaderError {
 // Additional header utilities merged from util/header_utils.rs
 
 /// Parse headers from string format
+///
+/// # Errors
+/// 
+/// Returns `HttpError` if:
+/// - Header line format is invalid (missing colon separator)
+/// - Header name contains invalid characters or is empty
+/// - Header value contains invalid characters (non-ASCII or control characters)
+/// - Header name or value length exceeds HTTP limits
 #[inline]
 pub fn parse_headers(header_str: &str) -> Result<HeaderMap, crate::error::HttpError> {
     let mut headers = HeaderMap::new();
@@ -153,6 +165,13 @@ pub fn format_headers(headers: &HeaderMap) -> String {
 }
 
 /// Validate header name and value combination
+///
+/// # Errors
+/// 
+/// Returns `HttpError` if:
+/// - Header name is empty, contains invalid characters, or violates HTTP standards
+/// - Header value contains invalid characters (non-ASCII or control characters)
+/// - Header name or value length exceeds HTTP protocol limits
 #[inline]
 pub fn validate_header(name: &str, value: &str) -> Result<(), crate::error::HttpError> {
     create_header_name(name)?;
@@ -161,6 +180,13 @@ pub fn validate_header(name: &str, value: &str) -> Result<(), crate::error::Http
 }
 
 /// Create header value from string
+///
+/// # Errors
+/// 
+/// Returns `HttpError` if:
+/// - Value contains invalid characters (non-ASCII visible or control characters)
+/// - Value contains null bytes or other forbidden HTTP header characters
+/// - Value length exceeds reasonable limits for HTTP header values
 #[inline]
 pub fn create_header_value(value: &str) -> Result<HeaderValue, crate::error::HttpError> {
     HeaderValue::from_str(value)
@@ -168,6 +194,13 @@ pub fn create_header_value(value: &str) -> Result<HeaderValue, crate::error::Htt
 }
 
 /// Create header name from string
+///
+/// # Errors
+/// 
+/// Returns `HttpError` if:
+/// - Header name is empty or contains only whitespace
+/// - Header name contains invalid characters (non-ASCII, spaces, or special chars)
+/// - Header name violates HTTP token specifications (RFC 7230)
 #[inline]
 pub fn create_header_name(name: &str) -> Result<HeaderName, crate::error::HttpError> {
     HeaderName::from_bytes(name.as_bytes())
@@ -241,9 +274,9 @@ impl CompressionAlgorithm {
     #[must_use] 
     pub fn is_supported(&self, config: &crate::config::HttpConfig) -> bool {
         match self {
-            CompressionAlgorithm::Gzip => config.gzip_enabled,
-            CompressionAlgorithm::Brotli => config.brotli_enabled,
-            CompressionAlgorithm::Deflate => config.deflate,
+            CompressionAlgorithm::Gzip => config.compression.gzip.enabled,
+            CompressionAlgorithm::Brotli => config.compression.brotli.enabled,
+            CompressionAlgorithm::Deflate => config.compression.deflate.enabled,
             CompressionAlgorithm::Identity => true,
         }
     }
@@ -262,7 +295,7 @@ pub fn detect_compression_algorithm(headers: &HeaderMap) -> Option<CompressionAl
 #[inline]
 #[must_use] 
 pub fn needs_decompression(headers: &HeaderMap, config: &crate::config::HttpConfig) -> Option<CompressionAlgorithm> {
-    if !config.response_compression {
+    if !config.compression.response_compression {
         return None;
     }
 
@@ -299,15 +332,15 @@ pub fn replace_headers(headers: &mut HeaderMap, new_headers: HeaderMap) {
 pub fn build_accept_encoding_header(config: &crate::config::HttpConfig) -> Option<HeaderValue> {
     let mut encodings = Vec::new();
     
-    if config.gzip_enabled {
+    if config.compression.gzip.enabled {
         encodings.push("gzip");
     }
     
-    if config.brotli_enabled {
+    if config.compression.brotli.enabled {
         encodings.push("br");
     }
     
-    if config.deflate {
+    if config.compression.deflate.enabled {
         encodings.push("deflate");
     }
     
@@ -326,7 +359,7 @@ pub fn build_accept_encoding_header(config: &crate::config::HttpConfig) -> Optio
 #[inline]
 pub fn add_compression_headers(headers: &mut HeaderMap, config: &crate::config::HttpConfig) {
     // Only add Accept-Encoding if response compression is enabled
-    if config.response_compression
+    if config.compression.response_compression
         && let Some(accept_encoding) = build_accept_encoding_header(config) {
             headers.insert(http::header::ACCEPT_ENCODING, accept_encoding);
         }

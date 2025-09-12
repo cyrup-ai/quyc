@@ -391,6 +391,14 @@ impl HttpResponse {
     }
     
     /// Deserialize response body as JSON
+    ///
+    /// # Errors
+    /// 
+    /// Returns `serde_json::Error` if:
+    /// - Response body does not contain valid JSON syntax
+    /// - JSON structure does not match the expected type `T`
+    /// - JSON contains unsupported data types or values for the target type
+    /// - Deserialization fails due to type constraints or validation rules
     pub fn body_json<T: serde::de::DeserializeOwned>(&self) -> Result<T, serde_json::Error> {
         serde_json::from_slice(&self.body())
     }

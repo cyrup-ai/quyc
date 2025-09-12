@@ -12,6 +12,63 @@ use rustls;
 use super::types::ConnectorBuilder;
 use crate::error::BoxError;
 
+/// Configuration for TLS connector builder
+///
+/// Groups network and TLS-specific settings to reduce parameter count
+/// and improve API ergonomics.
+#[derive(Debug, Clone)]
+pub struct TlsConnectorConfig {
+    /// Proxy configurations (max 4 proxies supported)
+    pub proxies: arrayvec::ArrayVec<crate::proxy::Proxy, 4>,
+    /// User agent header value for requests
+    pub user_agent: Option<http::HeaderValue>,
+    /// Local IP address to bind to
+    pub local_address: Option<std::net::IpAddr>,
+    /// Network interface to bind to (platform-specific)
+    #[cfg(any(
+        target_os = "android",
+        target_os = "fuchsia", 
+        target_os = "illumos",
+        target_os = "ios",
+        target_os = "linux",
+        target_os = "macos",
+        target_os = "solaris",
+        target_os = "tvos",
+        target_os = "visionos",
+        target_os = "watchos",
+    ))]
+    pub interface: Option<String>,
+    /// Whether to disable Nagle's algorithm (TCP_NODELAY)
+    pub nodelay: bool,
+    /// Whether to collect TLS connection information
+    pub tls_info: bool,
+}
+
+impl Default for TlsConnectorConfig {
+    fn default() -> Self {
+        Self {
+            proxies: arrayvec::ArrayVec::new(),
+            user_agent: None,
+            local_address: None,
+            #[cfg(any(
+                target_os = "android",
+                target_os = "fuchsia",
+                target_os = "illumos", 
+                target_os = "ios",
+                target_os = "linux",
+                target_os = "macos",
+                target_os = "solaris",
+                target_os = "tvos",
+                target_os = "visionos",
+                target_os = "watchos",
+            ))]
+            interface: None,
+            nodelay: true,
+            tls_info: false,
+        }
+    }
+}
+
 impl ConnectorBuilder {
 
     /// Create new connector with Rustls TLS
@@ -22,6 +79,7 @@ impl ConnectorBuilder {
     /// is used for API consistency and future extensibility. May return errors in
     /// future versions if TLS configuration validation is added.
     #[cfg(feature = "__rustls")]
+    #[must_use = "Connector builders return a new connector and should be used"]
     pub fn new_rustls_tls(
         http: HttpConnector,
         config: rustls::ClientConfig,
@@ -70,6 +128,7 @@ impl ConnectorBuilder {
     /// is used for API consistency and future extensibility. May return errors in
     /// future versions if TLS configuration validation is added.
     #[cfg(feature = "__rustls")]
+    #[must_use = "Connector builders return a new connector and should be used"]
     pub fn from_built_rustls_tls(
         http: HttpConnector,
         config: rustls::ClientConfig,
@@ -113,6 +172,88 @@ impl ConnectorBuilder {
             interface,
             nodelay,
             tls_info,
+        )
+    }
+
+    /// Create new connector with Rustls TLS using config struct
+    ///
+    /// This is the recommended approach for new code as it reduces parameter count
+    /// and improves API ergonomics.
+    ///
+    /// # Errors
+    ///
+    /// Currently this function does not return errors, but the `Result` return type
+    /// is used for API consistency and future extensibility. May return errors in
+    /// future versions if TLS configuration validation is added.
+    #[cfg(feature = "__rustls")]
+    #[must_use = "Connector builders return a new connector and should be used"]
+    pub fn with_rustls_tls_config(
+        http: HttpConnector,
+        rustls_config: rustls::ClientConfig,
+        tls_config: TlsConnectorConfig,
+    ) -> Result<Self, BoxError> {
+        Self::new_rustls_tls(
+            http,
+            rustls_config,
+            tls_config.proxies,
+            tls_config.user_agent,
+            tls_config.local_address,
+            #[cfg(any(
+                target_os = "android",
+                target_os = "fuchsia",
+                target_os = "illumos",
+                target_os = "ios",
+                target_os = "linux",
+                target_os = "macos",
+                target_os = "solaris",
+                target_os = "tvos",
+                target_os = "visionos",
+                target_os = "watchos",
+            ))]
+            tls_config.interface.as_deref(),
+            tls_config.nodelay,
+            tls_config.tls_info,
+        )
+    }
+
+    /// Creates a connector from pre-built Rustls TLS components using config struct
+    ///
+    /// This is the recommended approach for new code as it reduces parameter count
+    /// and improves API ergonomics.
+    ///
+    /// # Errors
+    ///
+    /// Currently this function does not return errors, but the `Result` return type
+    /// is used for API consistency and future extensibility. May return errors in
+    /// future versions if TLS configuration validation is added.
+    #[cfg(feature = "__rustls")]
+    #[must_use = "Connector builders return a new connector and should be used"]
+    pub fn from_built_rustls_tls_config(
+        http: HttpConnector,
+        rustls_config: rustls::ClientConfig,
+        tls_config: TlsConnectorConfig,
+    ) -> Result<Self, BoxError> {
+        Self::from_built_rustls_tls(
+            http,
+            rustls_config,
+            tls_config.proxies,
+            tls_config.user_agent,
+            tls_config.local_address,
+            #[cfg(any(
+                target_os = "android",
+                target_os = "fuchsia",
+                target_os = "illumos",
+                target_os = "ios",
+                target_os = "linux",
+                target_os = "macos",
+                target_os = "solaris",
+                target_os = "tvos",
+                target_os = "visionos",
+                target_os = "watchos",
+            ))]
+            tls_config.interface.as_deref(),
+            tls_config.nodelay,
+            tls_config.tls_info,
         )
     }
 }

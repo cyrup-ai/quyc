@@ -18,8 +18,7 @@ impl FilterUtils {
             FilterValue::Integer(i) => *i != 0,
             FilterValue::Number(f) => *f != 0.0 && !f.is_nan(),
             FilterValue::String(s) => !s.is_empty(),
-            FilterValue::Null => false,
-            FilterValue::Missing => false,
+            FilterValue::Null | FilterValue::Missing => false,
         }
     }
 }

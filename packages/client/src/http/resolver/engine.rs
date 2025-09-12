@@ -24,6 +24,14 @@ impl ResolutionEngine {
     }
 
     /// Perform DNS resolution with timeout and retry logic
+    ///
+    /// # Errors
+    /// 
+    /// Returns `ResolverError` if:
+    /// - Hostname is invalid, empty, or contains forbidden characters
+    /// - DNS resolution fails after all configured retry attempts
+    /// - Network timeouts occur consistently across retry attempts
+    /// - System DNS resolver is unavailable or misconfigured
     pub fn resolve_with_timeout_and_retry(
         &self,
         hostname: &str,

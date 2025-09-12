@@ -22,11 +22,11 @@ impl HttpConfig {
     ///
     /// let config = HttpConfig::default()
     ///     .with_tcp_keepalive(Some(Duration::from_secs(30)));
-    /// assert_eq!(config.tcp_keepalive, Some(Duration::from_secs(30)));
+    /// assert_eq!(config.tcp.keepalive, Some(Duration::from_secs(30)));
     /// ```
     #[must_use] 
     pub fn with_tcp_keepalive(mut self, duration: Option<Duration>) -> Self {
-        self.tcp_keepalive = duration;
+        self.tcp.keepalive = duration;
         self
     }
 

@@ -154,9 +154,9 @@ impl TlsConfig {
         Self {
             enable_ocsp: true, // Always enable for enterprise
             enable_crl: true,  // Always enable for enterprise
-            use_system_certs: http_config.use_native_certs,
+            use_system_certs: http_config.tls.use_native_certs,
             custom_root_certs: Vec::new(),
-            enable_early_data: http_config.tls_early_data,
+            enable_early_data: http_config.tls.early_data,
             connect_timeout: Duration::from_secs(10),
             validation_timeout: Duration::from_secs(5),
         }

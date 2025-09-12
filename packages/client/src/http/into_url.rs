@@ -29,6 +29,14 @@ impl IntoUrl for &String {}
 pub trait IntoUrlSealed {
     // Besides parsing as a valid `Url`, the `Url` must be a valid
     // `http::Uri`, in that it makes sense to use in a network request.
+    ///
+    /// # Errors
+    /// 
+    /// Returns `HttpError` if:
+    /// - URL string is malformed or contains invalid syntax
+    /// - URL scheme is not supported for network requests (must be http/https)
+    /// - URL lacks required components (host) for network operations
+    /// - URL contains characters or structures incompatible with HTTP requests
     fn into_url(self) -> std::result::Result<Url, crate::HttpError>;
 
     fn as_str(&self) -> &str;

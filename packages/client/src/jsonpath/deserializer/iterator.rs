@@ -88,12 +88,8 @@ where
                 JsonProcessResult::Continue => {
                     // Continue parsing
                 }
-                JsonProcessResult::NeedMoreData => {
-                    // Need more bytes to complete parsing
-                    return Ok(None);
-                }
-                JsonProcessResult::Complete => {
-                    // Processing complete (end of stream)
+                JsonProcessResult::NeedMoreData | JsonProcessResult::Complete => {
+                    // Need more bytes to complete parsing or processing complete (end of stream)
                     return Ok(None);
                 }
             }

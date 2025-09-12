@@ -52,7 +52,7 @@ impl HttpClientBuilder {
 
 
     pub fn tcp_nodelay(mut self, enable: bool) -> Self {
-        self.config.tcp_nodelay = enable;
+        self.config.tcp.nodelay = enable;
         self
     }
 
@@ -64,13 +64,13 @@ impl HttpClientBuilder {
 
 
     pub fn tls_built_in_root_certs(mut self, enable: bool) -> Self {
-        self.config.use_native_certs = enable;
+        self.config.tls.use_native_certs = enable;
         self
     }
 
 
     pub fn https_only(mut self, enable: bool) -> Self {
-        self.config.https_only = enable;
+        self.config.tls.https_only = enable;
         self
     }
 
@@ -82,19 +82,19 @@ impl HttpClientBuilder {
 
 
     pub fn gzip(mut self, enable: bool) -> Self {
-        self.config.gzip_enabled = enable;
+        self.config.compression.gzip.enabled = enable;
         self
     }
 
 
     pub fn brotli(mut self, enable: bool) -> Self {
-        self.config.brotli_enabled = enable;
+        self.config.compression.brotli.enabled = enable;
         self
     }
 
 
     pub fn deflate(mut self, enable: bool) -> Self {
-        self.config.deflate = enable;
+        self.config.compression.deflate.enabled = enable;
         self
     }
 
@@ -107,7 +107,7 @@ impl HttpClientBuilder {
     /// * Returns `HttpError` if level is 0 or greater than 9
     pub fn gzip_level(mut self, level: u32) -> Result<Self, HttpError> {
         if (1..=9).contains(&level) {
-            self.config.gzip_level = Some(level);
+            self.config.compression.gzip.level = Some(level);
             Ok(self)
         } else {
             Err(HttpError::new(crate::error::types::Kind::Request)
@@ -124,7 +124,7 @@ impl HttpClientBuilder {
     /// * Returns `HttpError` if level is greater than 11
     pub fn brotli_level(mut self, level: u32) -> Result<Self, HttpError> {
         if level <= 11 {
-            self.config.brotli_level = Some(level);
+            self.config.compression.brotli.level = Some(level);
             Ok(self)
         } else {
             Err(HttpError::new(crate::error::types::Kind::Request)
@@ -141,7 +141,7 @@ impl HttpClientBuilder {
     /// * Returns `HttpError` if level is 0 or greater than 9
     pub fn deflate_level(mut self, level: u32) -> Result<Self, HttpError> {
         if (1..=9).contains(&level) {
-            self.config.deflate_level = Some(level);
+            self.config.compression.deflate.level = Some(level);
             Ok(self)
         } else {
             Err(HttpError::new(crate::error::types::Kind::Request)

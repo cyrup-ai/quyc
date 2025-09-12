@@ -14,6 +14,21 @@ use crate::http::HttpChunk;
 use crate::protocols::response_converter::convert_http_chunks_to_response;
 use crate::protocols::h3::connection::H3Connection;
 
+/// Request execution context for H3 protocol
+///
+/// Groups request parameters to reduce function parameter count
+/// for internal execute_with_runtime function.
+#[derive(Debug)]
+struct RequestExecutionContext<'a> {
+    _url: &'a url::Url, // Currently unused but kept for API consistency
+    host: &'a str,
+    port: u16,
+    method: &'a http::Method,
+    uri: &'a str,
+    headers: http::HeaderMap,
+    body_data: Option<crate::http::request::RequestBody>,
+}
+
 // Global connection ID counter for H3 connections
 static NEXT_CONNECTION_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -198,9 +213,16 @@ impl ProtocolStrategy for H3Strategy {
             
             let connection_and_request_task = spawn_task(move || {
                 // Execute request with proper runtime handling (no duplication)
-                Self::execute_with_runtime(
-                    &url, &host, port, &h3_config, &method, &uri, headers, body_data
-                )
+                let context = RequestExecutionContext {
+                    _url: &url,
+                    host: &host,
+                    port,
+                    method: &method,
+                    uri: &uri,
+                    headers,
+                    body_data,
+                };
+                Self::execute_with_runtime(context, &h3_config)
             });
             
             match connection_and_request_task.collect() {
@@ -281,14 +303,8 @@ impl ProtocolStrategy for H3Strategy {
 impl H3Strategy {
     /// Execute H3 request with proper runtime handling and real response parsing
     fn execute_with_runtime(
-        _url: &url::Url,
-        host: &str,
-        port: u16,
+        context: RequestExecutionContext<'_>,
         h3_config: &H3Config,
-        method: &http::Method,
-        uri: &str,
-        headers: http::HeaderMap,
-        body_data: Option<crate::http::request::RequestBody>,
     ) -> Result<(http::StatusCode, http::HeaderMap, AsyncStream<crate::http::HttpChunk, 1024>), String> {
         let execute_async = async {
             // Create QUIC config
@@ -298,7 +314,7 @@ impl H3Strategy {
             
             // Create QUIC connection
             let scid = generate_connection_id();
-            let peer_addr = format!("{host}:{port}").parse()
+            let peer_addr = format!("{}:{}", context.host, context.port).parse()
                 .map_err(|e| format!("Peer address parse error: {e}"))?;
             let local_addr = Self::resolve_local_address(&h3_config, &peer_addr)?;
 
@@ -314,19 +330,19 @@ impl H3Strategy {
             });
 
             // Serialize request body only (headers are passed separately for HTTP/3)
-            let body_bytes = serialize_http_request_for_h3(method, uri, &mut headers.clone(), body_data)
+            let body_bytes = serialize_http_request_for_h3(context.method, context.uri, &mut context.headers.clone(), context.body_data)
                 .map_err(|e| format!("Request body serialization failed: {e}"))?;
 
             // Parse URI for HTTP/3 headers
-            let parsed_uri = url::Url::parse(uri)
+            let parsed_uri = url::Url::parse(context.uri)
                 .map_err(|e| format!("URI parsing failed: {e}"))?;
 
             // Send request with structured components (RFC 9114 compliant)
             let stream_id = NEXT_STREAM_ID.fetch_add(2, Ordering::SeqCst);
             let (status, response_headers, body_stream) = connection.send_request_separated(
-                method, 
+                context.method, 
                 &parsed_uri, 
-                &headers, 
+                &context.headers, 
                 &body_bytes, 
                 stream_id
             )?;
@@ -444,11 +460,11 @@ fn serialize_multipart_form_data(
     // Serialize each field
     for field in fields {
         // Write boundary
-        body.extend_from_slice(format!("--{}\r\n", boundary).as_bytes());
+        body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
         
         // Write Content-Disposition header
         let disposition = if let Some(filename) = &field.filename {
-            format!("Content-Disposition: form-data; name=\"{}\"; filename=\"{}\"\r\n", field.name, filename)
+            format!("Content-Disposition: form-data; name=\"{}\"; filename=\"{filename}\"\r\n", field.name)
         } else {
             format!("Content-Disposition: form-data; name=\"{}\"\r\n", field.name)
         };
@@ -456,7 +472,7 @@ fn serialize_multipart_form_data(
         
         // Write Content-Type header if specified
         if let Some(content_type) = &field.content_type {
-            body.extend_from_slice(format!("Content-Type: {}\r\n", content_type).as_bytes());
+            body.extend_from_slice(format!("Content-Type: {content_type}\r\n").as_bytes());
         } else if field.filename.is_some() {
             // Default content-type for files
             body.extend_from_slice(b"Content-Type: application/octet-stream\r\n");
@@ -479,7 +495,7 @@ fn serialize_multipart_form_data(
     }
     
     // Write final boundary
-    body.extend_from_slice(format!("--{}--\r\n", boundary).as_bytes());
+    body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
     
     Ok(body)
 }

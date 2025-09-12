@@ -203,11 +203,20 @@ impl Drop for BufferGuard {
 /// * `Ok(Vec<u8>)` - Compressed data
 /// * `Err(HttpError)` - Compression failed
 ///
+/// # Errors
+/// 
+/// Returns `HttpError` with `Kind::Request` if:
+/// - Memory allocation fails during buffer creation or compression operations
+/// - Compression engine encounters I/O errors during data processing
+/// - Compression finalization fails due to data corruption or resource exhaustion
+/// - Unsupported compression level is specified for the algorithm
+///
 /// # Performance Notes
 /// * Uses zero-allocation buffer pool for intermediate operations
 /// * Optimized for common compression scenarios
 /// * Early return for incompressible data
 #[inline]
+#[must_use = "Compressed bytes should be used or errors should be handled"]
 pub fn compress_bytes(
     data: &[u8], 
     algorithm: CompressionAlgorithm, 
@@ -220,8 +229,18 @@ pub fn compress_bytes(
 /// 
 /// This is the internal implementation that supports metrics tracking
 /// for telemetry and monitoring.
+///
+/// # Errors
+/// 
+/// Returns `HttpError` with `Kind::Request` if:
+/// - Memory allocation fails during buffer creation or compression operations
+/// - Compression engine encounters I/O errors during data processing
+/// - Compression finalization fails due to data corruption or resource exhaustion
+/// - Unsupported compression level is specified for the algorithm
+/// - Telemetry recording fails due to system resource exhaustion
 #[inline]
 #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
+#[must_use = "Compressed bytes should be used or errors should be handled"]
 pub fn compress_bytes_with_metrics(
     data: &[u8], 
     algorithm: CompressionAlgorithm, 
@@ -269,7 +288,7 @@ pub fn compress_bytes_with_metrics(
             
             // Check if compression is worthwhile  
             // Use safe precision-aware ratio calculation for large data sizes
-            let ratio = if compressed.len() == 0 {
+            let ratio = if compressed.is_empty() {
                 f64::INFINITY // Avoid division by zero, treat as maximum compression
             } else if data.len() > (1u64 << 53) as usize || compressed.len() > (1u64 << 53) as usize {
                 // For very large sizes that might lose precision in f64, use integer comparison
@@ -357,6 +376,15 @@ pub fn compress_bytes_with_metrics(
 /// * `data` - Compressed input data
 /// * `algorithm` - Compression algorithm used
 ///
+/// # Errors
+/// 
+/// Returns `HttpError` with `Kind::Request` if:
+/// - Input data is corrupted or invalid for the specified algorithm
+/// - Decompressed data size would exceed memory safety limits
+/// - I/O errors occur during decompression operations
+/// - Memory allocation fails during decompression
+/// - Unsupported compression format or algorithm variant is encountered
+///
 /// # Returns
 /// * `Ok(Vec<u8>)` - Decompressed data
 /// * `Err(HttpError)` - Decompression failed
@@ -366,6 +394,7 @@ pub fn compress_bytes_with_metrics(
 /// * Memory-bounded operation with size limits
 /// * Optimized for common decompression scenarios
 #[inline]
+#[must_use = "Decompressed bytes should be used or errors should be handled"]
 pub fn decompress_bytes(data: &[u8], algorithm: CompressionAlgorithm) -> Result<Vec<u8>, HttpError> {
     decompress_bytes_with_metrics(data, algorithm, None)
 }
@@ -383,6 +412,7 @@ pub fn decompress_bytes(data: &[u8], algorithm: CompressionAlgorithm) -> Result<
 /// - I/O errors occur during decompression operations
 /// - Memory allocation fails during decompression
 #[inline]
+#[must_use = "Decompressed bytes should be used or errors should be handled"]
 pub fn decompress_bytes_with_metrics(
     data: &[u8], 
     algorithm: CompressionAlgorithm,
@@ -847,7 +877,7 @@ impl<R: Read> Read for DecompressReader<R> {
 #[must_use] 
 pub fn should_compress_content_type(content_type: Option<&str>, config: &HttpConfig) -> bool {
     // If compression is disabled, never compress
-    if !config.request_compression {
+    if !config.compression.request_compression {
         return false;
     }
 
@@ -909,19 +939,17 @@ mod tests {
         
         for algorithm in [CompressionAlgorithm::Gzip, CompressionAlgorithm::Deflate, CompressionAlgorithm::Brotli] {
             let compressed = compress_bytes(original, algorithm, None)
-                .unwrap_or_else(|e| panic!("Compression should succeed in test but failed: {}", e));
+                .unwrap_or_else(|e| panic!("Compression should succeed in test but failed: {e}"));
             let decompressed = decompress_bytes(&compressed, algorithm)
-                .unwrap_or_else(|e| panic!("Decompression should succeed in test but failed: {}", e));
+                .unwrap_or_else(|e| panic!("Decompression should succeed in test but failed: {e}"));
             assert_eq!(original, decompressed.as_slice());
         }
     }
 
     #[test]
     fn test_should_compress_content_type() {
-        let config = HttpConfig {
-            request_compression: true,
-            ..Default::default()
-        };
+        let mut config = HttpConfig::default();
+        config.compression.request_compression = true;
 
         // Should compress
         assert!(should_compress_content_type(Some("text/plain"), &config));

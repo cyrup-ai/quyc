@@ -108,8 +108,7 @@ impl PropertyAccessResult {
     pub fn value(&self) -> Option<&JsonValue> {
         match self {
             PropertyAccessResult::Value(v) => Some(v),
-            PropertyAccessResult::NullValue => None, // Explicitly null
-            PropertyAccessResult::Missing => None,   // Missing
+            PropertyAccessResult::NullValue | PropertyAccessResult::Missing => None, // Explicitly null or missing
         }
     }
 

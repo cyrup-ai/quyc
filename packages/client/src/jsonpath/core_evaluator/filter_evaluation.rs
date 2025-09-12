@@ -44,6 +44,7 @@ impl CoreJsonPathEvaluator {
         filter_expr: &str,
         _index: usize,
     ) -> JsonPathResult<bool> {
+        let _ = self; // Acknowledge unused self parameter
         // Basic filter evaluation - can be extended for more complex expressions
         if filter_expr.contains("@.") {
             // Property-based filter

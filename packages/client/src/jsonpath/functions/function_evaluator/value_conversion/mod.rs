@@ -31,8 +31,7 @@ pub fn to_number_value(value: &Value) -> JsonPathResult<Value> {
             }
         }
         Value::Bool(true) => Ok(Value::Number(serde_json::Number::from(1))),
-        Value::Bool(false) => Ok(Value::Number(serde_json::Number::from(0))),
-        _ => Ok(Value::Number(serde_json::Number::from(0))),
+        _ => Ok(Value::Number(serde_json::Number::from(0))), // False and other values convert to 0
     }
 }
 

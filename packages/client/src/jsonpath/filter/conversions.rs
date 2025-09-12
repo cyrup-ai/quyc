@@ -27,8 +27,7 @@ pub(super) fn json_value_to_filter_value(value: &serde_json::Value) -> FilterVal
         serde_json::Value::String(s) => FilterValue::String(s.clone()),
         // Arrays and objects should not convert to null - they're distinct values
         // For comparison purposes, we'll handle them specially in compare_values
-        serde_json::Value::Array(_) => FilterValue::Boolean(true), // Arrays are truthy
-        serde_json::Value::Object(_) => FilterValue::Boolean(true), // Objects are truthy
+        serde_json::Value::Array(_) | serde_json::Value::Object(_) => FilterValue::Boolean(true), // Arrays and objects are truthy
     }
 }
 

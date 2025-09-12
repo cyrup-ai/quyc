@@ -45,6 +45,14 @@ impl RateLimiter {
         self
     }
     
+    /// Check if DNS query is within rate limits
+    ///
+    /// # Errors
+    /// 
+    /// Returns `String` error if:
+    /// - Query rate exceeds configured limits for the hostname/query_type combination
+    /// - Rate limiter window calculation fails due to time arithmetic errors
+    /// - Internal rate tracking data structures encounter consistency issues
     pub fn check_rate_limit(&self, hostname: &str, query_type: &str) -> Result<(), String> {
         if !self.enabled {
             return Ok(());
@@ -97,18 +105,15 @@ impl RateLimiter {
         let key = format!("{hostname}:{query_type}");
         self.limits.get(&key).map(|entry| {
             let state = entry.value();
-            let current_requests = match u32::try_from(state.timestamps.len()) {
-                Ok(count) => count,
-                Err(_) => {
-                    tracing::warn!(
-                        target: "quyc::rate_limiter",
-                        timestamps_len = state.timestamps.len(),
-                        max_u32 = u32::MAX,
-                        "Timestamp count exceeds u32 limits, clamping to max"
-                    );
-                    u32::MAX
-                }
-            };
+            let current_requests = u32::try_from(state.timestamps.len()).unwrap_or_else(|_| {
+                tracing::warn!(
+                    target: "quyc::rate_limiter",
+                    timestamps_len = state.timestamps.len(),
+                    max_u32 = u32::MAX,
+                    "Timestamp count exceeds u32 limits, clamping to max"
+                );
+                u32::MAX
+            });
             RateLimitMetrics {
                 current_requests,
                 total_requests: state.total_requests.load(Ordering::Relaxed),

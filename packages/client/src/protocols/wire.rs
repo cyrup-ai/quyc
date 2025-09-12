@@ -37,8 +37,7 @@ impl H2FrameParser {
                     "Frame data length exceeds u32 limits"
                 );
                 Err(format!(
-                    "Frame data length too large: {} bytes", 
-                    data_len
+                    "Frame data length too large: {data_len} bytes"
                 ))
             }
         }
@@ -1012,7 +1011,7 @@ impl H3FrameParser {
                     }
                 } else {
                     // Dynamic table - simplified handling
-                    headers.push(("x-dynamic".to_string(), format!("index-{}", index)));
+                    headers.push(("x-dynamic".to_string(), format!("index-{index}")));
                 }
             } else if first_byte & 0x40 == 0x40 {
                 // Literal Header Field with Name Reference (01xxxxxx)
@@ -1029,7 +1028,7 @@ impl H3FrameParser {
                         .map(|(n, _)| n.clone())
                         .unwrap_or_else(|| "unknown".to_string())
                 } else {
-                    format!("dynamic-name-{}", name_index)
+                    format!("dynamic-name-{name_index}")
                 };
                 
                 // Decode value string
@@ -1165,7 +1164,7 @@ impl H3FrameParser {
                     break;
                 }
                 Err(e) => {
-                    return Err(format!("Huffman symbol decode error at bit {}: {}", bit_pos, e));
+                    return Err(format!("Huffman symbol decode error at bit {bit_pos}: {e}"));
                 }
             }
         }
@@ -1511,21 +1510,21 @@ mod tests {
         // Padded to byte: 00011|111 = 0x1F
         let huffman_data = &[0x1F];
         let result = H3FrameParser::decode_huffman_string(huffman_data);
-        assert!(result.is_ok(), "Failed to decode 'a': {:?}", result);
+        assert!(result.is_ok(), "Failed to decode 'a': {result:?}");
         assert_eq!(result.unwrap(), "a");
 
         // Test single character '0' (5-bit: 00000) 
         // Padded to byte: 00000|111 = 0x07
         let huffman_data = &[0x07];  
         let result = H3FrameParser::decode_huffman_string(huffman_data);
-        assert!(result.is_ok(), "Failed to decode '0': {:?}", result);
+        assert!(result.is_ok(), "Failed to decode '0': {result:?}");
         assert_eq!(result.unwrap(), "0");
 
         // Test space character (6-bit: 010100)
         // Padded to byte: 010100|11 = 0x53
         let huffman_data = &[0x53];
         let result = H3FrameParser::decode_huffman_string(huffman_data);
-        assert!(result.is_ok(), "Failed to decode space: {:?}", result);
+        assert!(result.is_ok(), "Failed to decode space: {result:?}");
         assert_eq!(result.unwrap(), " ");
     }
 
@@ -1537,7 +1536,7 @@ mod tests {
         // 01001001|01010000|1001111 = 0x49, 0x50, 0x9F
         let huffman_data = &[0x49, 0x50, 0x9F];
         let result = H3FrameParser::decode_huffman_string(huffman_data);
-        assert!(result.is_ok(), "Failed to decode 'test': {:?}", result);
+        assert!(result.is_ok(), "Failed to decode 'test': {result:?}");
         // Note: This test might not pass with our simplified table - it's for demonstration
     }
 
@@ -1548,7 +1547,7 @@ mod tests {
         // H=1 (Huffman), length=1, string_data='a' (0x1F)
         let qpack_data = &[0x81, 0x1F]; // H=1, length=1, then Huffman 'a'
         let result = H3FrameParser::decode_qpack_string(qpack_data);
-        assert!(result.is_ok(), "Failed to decode QPACK Huffman string: {:?}", result);
+        assert!(result.is_ok(), "Failed to decode QPACK Huffman string: {result:?}");
         let (decoded, consumed) = result.unwrap();
         assert_eq!(decoded, "a");
         assert_eq!(consumed, 2);
@@ -1561,7 +1560,7 @@ mod tests {
         // H=0 (no Huffman), length=4, string_data="test"
         let qpack_data = &[0x04, b't', b'e', b's', b't']; // H=0, length=4, "test"
         let result = H3FrameParser::decode_qpack_string(qpack_data);
-        assert!(result.is_ok(), "Failed to decode QPACK plain string: {:?}", result);
+        assert!(result.is_ok(), "Failed to decode QPACK plain string: {result:?}");
         let (decoded, consumed) = result.unwrap();
         assert_eq!(decoded, "test");
         assert_eq!(consumed, 5);

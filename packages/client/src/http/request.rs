@@ -257,6 +257,7 @@ impl HttpRequestBuilder {
     }
 
     /// Set the HTTP method
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn method(mut self, method: Method) -> Self {
         self.method = match method {
             Method::POST => HttpMethod::Post,
@@ -273,12 +274,14 @@ impl HttpRequestBuilder {
     }
 
     /// Set the URI
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn uri<U: Into<String>>(mut self, uri: U) -> Self {
         self.uri = Some(uri.into());
         self
     }
 
     /// Set headers
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn headers(mut self, headers: HeaderMap) -> Self {
         self.headers = headers;
         self
@@ -497,6 +500,7 @@ impl HttpRequest {
 
     /// Set the stream ID for HTTP/2 and HTTP/3 multiplexing
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn with_stream_id(mut self, stream_id: u64) -> Self {
         self.stream_id = Some(stream_id);
         self
@@ -580,6 +584,7 @@ impl HttpRequest {
 
     /// Set body as JSON
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn json<T: serde::Serialize>(mut self, json: &T) -> Self {
         match serde_json::to_value(json) {
             Ok(value) => {
@@ -599,6 +604,7 @@ impl HttpRequest {
 
     /// Set body as form data
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn form(mut self, form: HashMap<String, String>) -> Self {
         self.body = Some(RequestBody::Form(form));
         self.headers.insert(
@@ -610,6 +616,7 @@ impl HttpRequest {
 
     /// Set body as multipart form
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn multipart(mut self, fields: Vec<MultipartField>) -> Self {
         self.body = Some(RequestBody::Multipart(fields));
         // Content-Type with boundary will be set during serialization
@@ -618,6 +625,7 @@ impl HttpRequest {
 
     /// Set streaming body
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn body_stream(mut self, stream: AsyncStream<HttpChunk, 1024>) -> Self {
         self.body = Some(RequestBody::Stream(stream));
         self
@@ -625,6 +633,7 @@ impl HttpRequest {
 
     /// Set timeout
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn with_timeout(mut self, timeout: Duration) -> Self {
         self.timeout = Some(timeout);
         self
@@ -632,6 +641,7 @@ impl HttpRequest {
 
     /// Set retry attempts
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn with_retry_attempts(mut self, attempts: u32) -> Self {
         self.retry_attempts = Some(attempts);
         self
@@ -639,6 +649,7 @@ impl HttpRequest {
 
     /// Enable/disable CORS
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn cors(mut self, enable: bool) -> Self {
         self.cors = enable;
         self
@@ -646,6 +657,7 @@ impl HttpRequest {
 
     /// Enable/disable redirect following
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn follow_redirects(mut self, follow: bool) -> Self {
         self.follow_redirects = follow;
         self
@@ -653,6 +665,7 @@ impl HttpRequest {
 
     /// Set maximum redirects
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn max_redirects(mut self, max: u32) -> Self {
         self.max_redirects = max;
         self
@@ -660,6 +673,7 @@ impl HttpRequest {
 
     /// Enable/disable compression
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn compress(mut self, enable: bool) -> Self {
         self.compress = enable;
         self
@@ -667,6 +681,7 @@ impl HttpRequest {
 
     /// Set basic authentication
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn basic_auth<U, P>(mut self, username: U, password: P) -> Self
     where
         U: Into<String>,
@@ -681,6 +696,7 @@ impl HttpRequest {
 
     /// Set bearer token authentication
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn bearer_auth<T: Into<String>>(mut self, token: T) -> Self {
         self.auth = Some(RequestAuth::Bearer(token.into()));
         self
@@ -688,6 +704,7 @@ impl HttpRequest {
 
     /// Set API key authentication
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn api_key<K, V>(mut self, key: K, value: V) -> Self
     where
         K: Into<String>,
@@ -702,6 +719,7 @@ impl HttpRequest {
 
     /// Set custom authentication headers
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn custom_auth(mut self, headers: HeaderMap) -> Self {
         self.auth = Some(RequestAuth::Custom(headers));
         self
@@ -709,6 +727,7 @@ impl HttpRequest {
 
     /// Set user agent
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn user_agent<S: Into<String>>(mut self, user_agent: S) -> Self {
         self.user_agent = Some(user_agent.into());
         self
@@ -716,6 +735,7 @@ impl HttpRequest {
 
     /// Set referer
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn referer<S: Into<String>>(mut self, referer: S) -> Self {
         self.referer = Some(referer.into());
         self
@@ -723,6 +743,7 @@ impl HttpRequest {
 
     /// Add query parameters
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn query<K, V>(mut self, params: &[(K, V)]) -> Self
     where
         K: AsRef<str>,
@@ -738,6 +759,7 @@ impl HttpRequest {
 
     /// Add query parameters with builder pattern - alias for query method
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn with_query_params<K, V>(self, params: &[(K, V)]) -> Self
     where
         K: AsRef<str>,
@@ -748,6 +770,7 @@ impl HttpRequest {
 
     /// Enable HTTP/2 prior knowledge
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn h2_prior_knowledge(mut self, enable: bool) -> Self {
         self.h2_prior_knowledge = enable;
         self
@@ -755,6 +778,7 @@ impl HttpRequest {
 
     /// Enable HTTP/3 Alt-Svc
     #[inline]
+    #[must_use = "Request builder methods return a new request and should be used"]
     pub fn h3_alt_svc(mut self, enable: bool) -> Self {
         self.h3_alt_svc = enable;
         self

@@ -38,8 +38,7 @@ impl Comparison {
 #[inline]
 pub fn is_present(result: &PropertyAccessResult) -> bool {
     match result {
-        PropertyAccessResult::NullValue => true, // null is present
-        PropertyAccessResult::Value(_) => true,  // non-null values are present
+        PropertyAccessResult::NullValue | PropertyAccessResult::Value(_) => true, // null and non-null values are present
         PropertyAccessResult::Missing => false,  // missing is not present
     }
 }
@@ -71,20 +70,20 @@ pub fn compare_with_null_semantics(
         (PropertyAccessResult::Missing, PropertyAccessResult::Missing) => Ok(true),
 
         // Null vs missing (different)
-        (PropertyAccessResult::NullValue, PropertyAccessResult::Missing) => Ok(false),
+        (PropertyAccessResult::NullValue, PropertyAccessResult::Missing) | 
         (PropertyAccessResult::Missing, PropertyAccessResult::NullValue) => Ok(false),
 
         // Value comparisons
         (PropertyAccessResult::Value(a), PropertyAccessResult::Value(b)) => Ok(a == b),
 
         // Value vs null (different unless value is explicitly null)
-        (PropertyAccessResult::Value(JsonValue::Null), PropertyAccessResult::NullValue) => Ok(true),
+        (PropertyAccessResult::Value(JsonValue::Null), PropertyAccessResult::NullValue) | 
         (PropertyAccessResult::NullValue, PropertyAccessResult::Value(JsonValue::Null)) => Ok(true),
-        (PropertyAccessResult::Value(_), PropertyAccessResult::NullValue) => Ok(false),
+        (PropertyAccessResult::Value(_), PropertyAccessResult::NullValue) | 
         (PropertyAccessResult::NullValue, PropertyAccessResult::Value(_)) => Ok(false),
 
         // Value vs missing (different)
-        (PropertyAccessResult::Value(_), PropertyAccessResult::Missing) => Ok(false),
+        (PropertyAccessResult::Value(_), PropertyAccessResult::Missing) | 
         (PropertyAccessResult::Missing, PropertyAccessResult::Value(_)) => Ok(false),
     }
 }

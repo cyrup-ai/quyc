@@ -19,6 +19,7 @@ impl Proxy {
     /// # Ok(())
     /// # }
     /// ```
+    #[must_use = "Proxy builder methods return a new proxy and should be used"]
     pub fn basic_auth(mut self, username: &str, password: &str) -> Proxy {
         self.extra.auth = Some(super::super::url_handling::encode_basic_auth(
             username, password,
@@ -37,6 +38,7 @@ impl Proxy {
     /// # Ok(())
     /// # }
     /// ```
+    #[must_use = "Proxy builder methods return a new proxy and should be used"]
     pub fn custom_http_auth(mut self, header_value: HeaderValue) -> Proxy {
         self.extra.auth = Some(header_value);
         self
@@ -56,6 +58,7 @@ impl Proxy {
     /// # Ok(())
     /// # }
     /// ```
+    #[must_use = "Proxy builder methods return a new proxy and should be used"]
     pub fn custom_headers(mut self, headers: HeaderMap) -> Proxy {
         match self.extra.misc {
             Some(ref mut existing) => existing.extend(headers),
@@ -71,6 +74,7 @@ impl Proxy {
     ///
     /// NOTE: This will only set a simple `NoProxy` rule for this proxy.
     /// To use more advanced rules you will have to use the `NoProxy` type.
+    #[must_use = "Proxy builder methods return a new proxy and should be used"]
     pub fn no_proxy<T: Into<String>>(mut self, exclusions: T) -> Proxy {
         self.no_proxy = NoProxy::from_string(&exclusions.into());
         self

@@ -13,6 +13,13 @@ pub struct ArrayOperations;
 
 impl ArrayOperations {
     /// Apply index selector for array access
+    ///
+    /// # Errors
+    /// 
+    /// Returns `JsonPathError` if:
+    /// - Index conversion fails due to overflow or underflow conditions
+    /// - Array access violates bounds checking or safety constraints
+    /// - Internal value processing encounters type conversion errors
     pub fn apply_index(arr: &[Value], index: i64, from_end: bool) -> JsonPathResult<Vec<Value>> {
         let mut results = Vec::new();
 
@@ -57,6 +64,11 @@ impl ArrayOperations {
     }
 
     /// Apply slice selector for array slicing
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError::invalid_index` if:
+    /// - `step` is zero (division by zero not allowed)
     pub fn apply_slice(
         arr: &[Value],
         start: Option<i64>,
@@ -175,6 +187,10 @@ impl ArrayOperations {
     }
 
     /// Apply multiple indices to an array
+    ///
+    /// # Errors
+    ///
+    /// This function currently never returns an error, always returns `Ok(results)`
     pub fn apply_multiple_indices(arr: &[Value], indices: &[i64]) -> JsonPathResult<Vec<Value>> {
         let mut results = Vec::new();
 
@@ -192,6 +208,11 @@ impl ArrayOperations {
     }
 
     /// Apply range operation (start:end)
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError::invalid_index` if the underlying slice operation fails
+    /// (though this is unlikely since step is fixed at 1)
     pub fn apply_range(arr: &[Value], start: i64, end: i64) -> JsonPathResult<Vec<Value>> {
         Self::apply_slice(arr, Some(start), Some(end), 1)
     }

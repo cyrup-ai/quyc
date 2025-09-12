@@ -165,7 +165,7 @@ impl H3RequestProcessor {
         
         // 3. Apply compression if configured and worthwhile
         let http_config = config.to_http_config();
-        if http_config.request_compression
+        if http_config.compression.request_compression
             && crate::http::compression::should_compress_content_type(content_type, &http_config) {
                 let algorithm = self.select_compression_algorithm(&http_config);
                 let level = self.get_compression_level(algorithm, &http_config);
@@ -687,11 +687,11 @@ impl H3RequestProcessor {
 
     /// Select compression algorithm based on configuration
     fn select_compression_algorithm(&self, config: &crate::config::HttpConfig) -> crate::http::headers::CompressionAlgorithm {
-        if config.brotli_enabled {
+        if config.compression.brotli.enabled {
             crate::http::headers::CompressionAlgorithm::Brotli
-        } else if config.gzip_enabled {
+        } else if config.compression.gzip.enabled {
             crate::http::headers::CompressionAlgorithm::Gzip
-        } else if config.deflate {
+        } else if config.compression.deflate.enabled {
             crate::http::headers::CompressionAlgorithm::Deflate
         } else {
             crate::http::headers::CompressionAlgorithm::Identity
@@ -701,9 +701,9 @@ impl H3RequestProcessor {
     /// Get compression level for the given algorithm
     fn get_compression_level(&self, algorithm: crate::http::headers::CompressionAlgorithm, config: &crate::config::HttpConfig) -> Option<u32> {
         match algorithm {
-            crate::http::headers::CompressionAlgorithm::Brotli => config.brotli_level,
-            crate::http::headers::CompressionAlgorithm::Gzip => config.gzip_level,
-            crate::http::headers::CompressionAlgorithm::Deflate => config.deflate_level,
+            crate::http::headers::CompressionAlgorithm::Brotli => config.compression.brotli.level,
+            crate::http::headers::CompressionAlgorithm::Gzip => config.compression.gzip.level,
+            crate::http::headers::CompressionAlgorithm::Deflate => config.compression.deflate.level,
             crate::http::headers::CompressionAlgorithm::Identity => None,
         }
     }

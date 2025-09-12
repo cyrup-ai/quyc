@@ -81,9 +81,8 @@ impl ValueComparator {
                         // Clear the context after use
                         PropertyResolver::clear_missing_context();
                         let result = match op {
-                            ComparisonOp::Equal => false, // missing is never equal to null
                             ComparisonOp::NotEqual => exists_in_context, /* missing != null only if property exists somewhere */
-                            _ => false,
+                            _ => false, // missing is never equal to null (and false for other comparisons)
                         };
                         tracing::debug!(
                             target: "quyc::jsonpath::filter",
@@ -109,9 +108,8 @@ impl ValueComparator {
                         // Clear the context after use
                         PropertyResolver::clear_missing_context();
                         Ok(match op {
-                            ComparisonOp::Equal => false, // null is never equal to missing
                             ComparisonOp::NotEqual => exists_in_context, /* null != missing only if property exists somewhere */
-                            _ => false,
+                            _ => false, // null is never equal to missing (and false for other comparisons)
                         })
                     } else {
                         // Fallback: missing properties don't participate in comparisons
@@ -120,23 +118,15 @@ impl ValueComparator {
                 })
             }
             // Other missing property comparisons always false
-            (FilterValue::Missing, _) => Ok(false),
-            (_, FilterValue::Missing) => Ok(false),
+            (FilterValue::Missing, _) | (_, FilterValue::Missing) => Ok(false),
             // RFC 9535: Null value comparisons
             (FilterValue::Null, FilterValue::Null) => Ok(match op {
                 ComparisonOp::Equal => true,
-                ComparisonOp::NotEqual => false,
-                _ => false,
+                _ => false, // NotEqual and other operations are false for null == null
             }),
-            (FilterValue::Null, _) => Ok(match op {
-                ComparisonOp::Equal => false,
+            (FilterValue::Null, _) | (_, FilterValue::Null) => Ok(match op {
                 ComparisonOp::NotEqual => true,
-                _ => false,
-            }),
-            (_, FilterValue::Null) => Ok(match op {
-                ComparisonOp::Equal => false,
-                ComparisonOp::NotEqual => true,
-                _ => false,
+                _ => false, // Equal and other operations are false for null comparisons
             }),
             // Type coercion for number/integer comparisons with safe precision handling
             (FilterValue::Integer(a), FilterValue::Number(b)) => {

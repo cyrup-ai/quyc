@@ -43,6 +43,7 @@ impl DeleteOperation {
 
     /// Add If-Match header for conditional deletion
     #[inline]
+    #[must_use = "Operation builder methods return a new operation and should be used"]
     pub fn if_match(mut self, etag: &str) -> Self {
         if let Ok(header_value) = HeaderValue::from_str(etag) {
             self.headers.insert(http::header::IF_MATCH, header_value);

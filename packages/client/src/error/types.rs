@@ -55,6 +55,7 @@ impl Error {
         }
     }
 
+    #[must_use = "Error builder methods return a new Error and should be used"]
     pub fn with<E: Into<Box<dyn StdError + Send + Sync>>>(mut self, source: E) -> Error {
         self.inner.source = Some(source.into());
         self

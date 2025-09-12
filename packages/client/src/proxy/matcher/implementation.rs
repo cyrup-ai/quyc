@@ -73,9 +73,9 @@ impl Matcher {
                                                 .unwrap_or_else(|parse_error| {
                                                     log::error!("All proxy matcher URL parsing failed: {parse_error}");
                                                     crate::Url::parse("data:text/plain,proxy-matcher-error").unwrap_or_else(|data_error| {
-                                                        log::error!("Proxy matcher data URL failed: {}", data_error);
+                                                        log::error!("Proxy matcher data URL failed: {data_error}");
                                                         crate::Url::parse("http://127.0.0.1/proxy-matcher-error").unwrap_or_else(|final_error| {
-                                                            log::error!("All proxy matcher URL parsing failed: {}", final_error);
+                                                            log::error!("All proxy matcher URL parsing failed: {final_error}");
                                                             // Return a working URL that will fail gracefully during connection
                                                             crate::Url::parse("http://localhost/").unwrap_or_else(|_| {
                                                                 // If even basic localhost fails, the URL system is completely broken

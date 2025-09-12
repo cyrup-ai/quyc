@@ -18,7 +18,6 @@ where
     #[inline]
     pub(super) fn process_initial_byte(&mut self, byte: u8) -> JsonProcessResult {
         match byte {
-            b' ' | b'\t' | b'\n' | b'\r' => JsonProcessResult::Continue, // Skip whitespace
             b'{' => {
                 self.deserializer.transition_to_processing_object();
                 self.deserializer.object_nesting =
@@ -40,7 +39,7 @@ where
                 }
                 JsonProcessResult::Continue
             }
-            _ => JsonProcessResult::Continue,
+            _ => JsonProcessResult::Continue, // Skip whitespace and other characters
         }
     }
 
@@ -55,7 +54,6 @@ where
         }
 
         match byte {
-            b' ' | b'\t' | b'\n' | b'\r' => Ok(JsonProcessResult::Continue), // Skip whitespace
             b'{' => {
                 self.deserializer.object_nesting =
                     self.deserializer.object_nesting.saturating_add(1);
@@ -119,8 +117,7 @@ where
                     Ok(JsonProcessResult::Continue)
                 }
             }
-            b',' => Ok(JsonProcessResult::Continue), // Array/object separator
-            _ => Ok(JsonProcessResult::Continue),
+            _ => Ok(JsonProcessResult::Continue), // Skip whitespace, separators, and other characters
         }
     }
 

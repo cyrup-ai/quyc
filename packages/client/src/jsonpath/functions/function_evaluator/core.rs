@@ -48,7 +48,6 @@ impl FunctionEvaluator {
     #[must_use] 
     pub fn json_value_to_filter_value(value: &serde_json::Value) -> FilterValue {
         match value {
-            serde_json::Value::Null => FilterValue::Null,
             serde_json::Value::Bool(b) => FilterValue::Boolean(*b),
             serde_json::Value::Number(n) => {
                 if let Some(i) = n.as_i64() {
@@ -60,7 +59,7 @@ impl FunctionEvaluator {
                 }
             }
             serde_json::Value::String(s) => FilterValue::String(s.clone()),
-            _ => FilterValue::Null, // Arrays and objects cannot be converted to FilterValue
+            _ => FilterValue::Null, // Null, arrays and objects cannot be converted to FilterValue
         }
     }
 }

@@ -105,6 +105,7 @@ impl CertificateGeneratorWithDomain {
     }
 
     /// Save generated certificate to path
+    #[must_use = "Certificate generator builder methods return a new generator and should be used"]
     pub fn save_to<P: AsRef<Path>>(self, path: P) -> Self {
         Self {
             save_path: Some(path.as_ref().to_path_buf()),
