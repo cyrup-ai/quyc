@@ -19,6 +19,7 @@ pub struct Conn {
 impl std::fmt::Debug for Conn {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Conn")
+            .field("inner", &"<ConnectionTrait>")
             .field("is_proxy", &self.is_proxy)
             .field("tls_info", &self.tls_info)
             .finish()

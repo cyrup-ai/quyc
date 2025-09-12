@@ -30,6 +30,12 @@ impl CoreJsonPathEvaluator {
     /// # Returns
     /// * `JsonPathResult<Self>` - New evaluator instance or parse error
     ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - The expression has invalid `JSONPath` syntax
+    /// - The expression contains unsupported features
+    /// - Compilation of the expression fails
+    ///
     /// # Example
     /// ```
     /// # use quyc::json_path::CoreJsonPathEvaluator;
@@ -52,6 +58,12 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Evaluate `JSONPath` expression against JSON value using AST-based evaluation
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Evaluation times out due to complex expression patterns
+    /// - The JSON structure causes evaluation failures
+    /// - Memory limits are exceeded during evaluation
     pub fn evaluate(&self, json: &Value) -> JsonPathResult<Vec<Value>> {
         // Add timeout protection for deep nesting patterns
         TimeoutProtectedEvaluator::evaluate_with_timeout(&self.expression, json)
@@ -70,6 +82,13 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Evaluate `JSONPath` expression against JSON value with custom timeout
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Evaluation times out after the specified duration
+    /// - The JSON structure causes evaluation failures
+    /// - Memory limits are exceeded during evaluation
+    /// - The timeout value is invalid (zero)
     pub fn evaluate_with_custom_timeout(
         &self,
         json: &Value,

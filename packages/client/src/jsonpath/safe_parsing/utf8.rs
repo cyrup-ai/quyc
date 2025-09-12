@@ -15,6 +15,14 @@ impl Utf8Handler {
     /// - Strict: Return error on any invalid sequences
     /// - Replace: Replace invalid sequences with replacement character
     /// - Ignore: Skip invalid sequences entirely
+    /// Validate UTF-8 input with configurable recovery strategy
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Input contains invalid UTF-8 and recovery strategy is Strict
+    /// - UTF-8 validation fails and no recovery method is available
+    /// - Memory allocation fails during string processing
     #[inline]
     pub fn validate_utf8_with_recovery(
         input: &[u8],
@@ -73,6 +81,13 @@ impl Utf8Handler {
     ///
     /// Specifically handles UTF-8 validation in the context of `JSONPath`
     /// string literals, including proper handling of escape sequences.
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - String contains invalid escape sequences when escapes are enabled
+    /// - UTF-8 validation fails during escape sequence processing
+    /// - Memory allocation fails during string manipulation
     #[inline]
     pub fn validate_jsonpath_string(input: &str, allow_escapes: bool) -> JsonPathResult<String> {
         if !allow_escapes {

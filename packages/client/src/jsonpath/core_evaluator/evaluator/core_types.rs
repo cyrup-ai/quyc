@@ -24,6 +24,12 @@ pub struct CoreJsonPathEvaluator {
 
 impl CoreJsonPathEvaluator {
     /// Create new evaluator with `JSONPath` expression
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - The expression has invalid `JSONPath` syntax
+    /// - The expression contains unsupported features
+    /// - Compilation of the expression fails
     pub fn new(expression: &str) -> JsonPathResult<Self> {
         // Compile the expression to get the parsed selectors
         let compiled = JsonPathParser::compile(expression)?;

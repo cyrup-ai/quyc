@@ -67,7 +67,8 @@ impl ErrorRecoveryState {
                 let now = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
-                    .as_micros() as u64;
+                    .as_micros();
+                let now = u64::try_from(now).unwrap_or(u64::MAX); // Clamp to u64::MAX on overflow
                 let last_failure = self.last_failure_time.load(Ordering::Relaxed);
 
                 if now.saturating_sub(last_failure) > self.circuit_timeout_micros {
@@ -91,7 +92,8 @@ impl ErrorRecoveryState {
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap_or_default()
-            .as_micros() as u64;
+            .as_micros();
+        let now = u64::try_from(now).unwrap_or(u64::MAX); // Clamp to u64::MAX on overflow
         self.last_failure_time.store(now, Ordering::Relaxed);
 
         if failures >= self.failure_threshold {

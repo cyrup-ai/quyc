@@ -274,8 +274,7 @@ impl StreamStateMachine {
                     }
                     pos += 1;
                 }
-                Ok(ProcessResult::NeedMoreData) => break,
-                Ok(ProcessResult::Complete) => break,
+                Ok(ProcessResult::NeedMoreData | ProcessResult::Complete) => break,
                 Ok(ProcessResult::Error(err)) => {
                     log::error!("JSONPath streaming error at offset {pos}: {err}");
                     pos += 1; // Continue processing
@@ -331,7 +330,7 @@ impl StreamStateMachine {
             crate::jsonpath::ast::JsonSelector::Index { index, .. } => {
                 // Check if current path contains the array index
                 jsonpath_state.path_breadcrumbs.iter().any(|frame| {
-                    matches!(&frame.segment, crate::jsonpath::deserializer::core::types::PathSegment::ArrayIndex(i) if *i == *index as usize)
+                    matches!(&frame.segment, crate::jsonpath::deserializer::core::types::PathSegment::ArrayIndex(i) if *i == usize::try_from(*index).unwrap_or(0))
                 })
             }
             crate::jsonpath::ast::JsonSelector::Slice { start, end, step } => {
@@ -370,8 +369,8 @@ impl StreamStateMachine {
     
     /// Check if array index matches slice criteria
     fn index_matches_slice(&self, index: usize, start: Option<i64>, end: Option<i64>, step: Option<i64>) -> bool {
-        let step = step.unwrap_or(1).max(1) as usize; // Ensure positive step
-        let index = index as i64;
+        let step = usize::try_from(step.unwrap_or(1).max(1)).unwrap_or(1); // Ensure positive step
+        let index = i64::try_from(index).unwrap_or(i64::MAX);
         
         // Handle start boundary
         let start_bound = start.unwrap_or(0);
@@ -387,7 +386,10 @@ impl StreamStateMachine {
         
         // Check step alignment
         if step > 1 {
-            ((index - start_bound) as usize).is_multiple_of(step)
+            // Use safe conversion to avoid truncation
+            usize::try_from(index - start_bound)
+                .map(|offset| offset.is_multiple_of(step))
+                .unwrap_or(false)
         } else {
             true
         }
@@ -403,7 +405,7 @@ impl StreamStateMachine {
             }
             crate::jsonpath::ast::JsonSelector::Index { index, .. } => {
                 jsonpath_state.path_breadcrumbs.iter().any(|frame| {
-                    matches!(&frame.segment, crate::jsonpath::deserializer::core::types::PathSegment::ArrayIndex(i) if *i == *index as usize)
+                    matches!(&frame.segment, crate::jsonpath::deserializer::core::types::PathSegment::ArrayIndex(i) if *i == usize::try_from(*index).unwrap_or(0))
                 })
             }
             crate::jsonpath::ast::JsonSelector::Wildcard => true,
@@ -477,11 +479,9 @@ impl StreamStateMachine {
                     // Root selector only matches at depth 0
                     if jsonpath_state.current_depth == 1 {
                         match jsonpath_state.advance_selector() {
-                            crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::Advanced(_) => {
-                                // Successfully advanced to next selector
-                            }
+                            crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::Advanced(_) | 
                             crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::ExpressionComplete => {
-                                // Expression is complete
+                                // Successfully advanced to next selector or expression is complete
                             }
                         }
                     }
@@ -543,11 +543,9 @@ impl StreamStateMachine {
                     
                     if any_match {
                         match jsonpath_state.advance_selector() {
-                            crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::Advanced(_) => {
-                                // Successfully advanced to next selector
-                            }
+                            crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::Advanced(_) | 
                             crate::jsonpath::deserializer::core::types::SelectorAdvanceResult::ExpressionComplete => {
-                                // Expression is complete
+                                // Successfully advanced to next selector or expression is complete
                             }
                         }
                     }

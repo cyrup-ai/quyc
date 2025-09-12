@@ -14,7 +14,7 @@ use super::core::ConnectorService;
 
 impl ConnectorService {
     /// Connect via proxy with full SOCKS and HTTP CONNECT support
-    pub fn connect_via_proxy(&self, dst: Uri, proxy_scheme: &str) -> AsyncStream<TcpConnectionChunk, 1024> {
+    pub fn connect_via_proxy(&self, dst: &Uri, proxy_scheme: &str) -> AsyncStream<TcpConnectionChunk, 1024> {
         let connector_service = self.clone();
         let destination = dst.clone();
         let scheme = proxy_scheme.to_string();

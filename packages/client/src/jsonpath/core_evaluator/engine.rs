@@ -22,6 +22,12 @@ pub struct CoreJsonPathEvaluator {
 
 impl CoreJsonPathEvaluator {
     /// Create new evaluator with `JSONPath` expression
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - The expression has invalid `JSONPath` syntax
+    /// - The expression contains unsupported features
+    /// - Compilation of the expression fails
     pub fn new(expression: &str) -> JsonPathResult<Self> {
         // Compile the expression to get the parsed selectors
         let compiled = JsonPathParser::compile(expression)?;
@@ -34,6 +40,12 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Evaluate `JSONPath` expression against JSON value using AST-based evaluation
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Evaluation times out due to complex expression patterns
+    /// - The JSON structure causes evaluation failures
+    /// - Memory limits are exceeded during evaluation
     pub fn evaluate(&self, json: &Value) -> JsonPathResult<Vec<Value>> {
         // Add timeout protection for deep nesting patterns
         self.evaluate_with_timeout(json)

@@ -10,6 +10,13 @@ use crate::jsonpath::parser::{FilterExpression, FilterValue};
 /// RFC 9535 Section 2.4.6: `match()` function
 /// Tests if string matches regular expression (anchored match)
 /// Includes `ReDoS` protection with 1-second timeout
+///
+/// # Errors
+/// Returns `JsonPathError` if:
+/// - Incorrect number of arguments provided (requires exactly 2)
+/// - Expression evaluation fails for either argument
+/// - Invalid regex pattern provided
+/// - Regex execution times out (`ReDoS` protection)
 #[inline]
 pub fn evaluate_match_function(
     context: &serde_json::Value,
@@ -52,6 +59,13 @@ pub fn evaluate_match_function(
 /// RFC 9535 Section 2.4.7: `search()` function
 /// Tests if string contains match for regular expression (unanchored search)
 /// Includes `ReDoS` protection with 1-second timeout
+///
+/// # Errors
+/// Returns `JsonPathError` if:
+/// - Incorrect number of arguments provided (requires exactly 2)
+/// - Expression evaluation fails for either argument
+/// - Invalid regex pattern provided
+/// - Regex execution times out (`ReDoS` protection)
 #[inline]
 pub fn evaluate_search_function(
     context: &serde_json::Value,

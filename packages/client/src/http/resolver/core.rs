@@ -222,7 +222,7 @@ impl Resolver {
                             let cache_key = format!("{hostname}:{port}");
                             let cache_entry =
                                 DnsCacheEntry::new(addresses.clone(), dns_cache.config.ttl_secs);
-                            dns_cache.insert(cache_key, cache_entry);
+                            dns_cache.insert(&cache_key, cache_entry);
 
                             // Emit individual address chunks
                             for addr in addresses {

@@ -85,6 +85,12 @@ impl SafeParsingContext {
     /// Enter a new nesting level (increment depth)
     ///
     /// Returns error if maximum nesting depth would be exceeded.
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Maximum nesting depth limit would be exceeded
+    /// - Stack overflow protection is triggered
     #[inline]
     pub fn enter_nesting(&mut self) -> JsonPathResult<()> {
         if self.nesting_depth >= MAX_NESTING_DEPTH {
@@ -111,6 +117,13 @@ impl SafeParsingContext {
     ///
     /// Tracks memory usage both locally and globally to prevent
     /// memory exhaustion attacks.
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Requested allocation would exceed local memory limit
+    /// - Global memory usage limit would be exceeded
+    /// - Memory tracking state is inconsistent
     #[inline]
     pub fn allocate_memory(&mut self, size: usize) -> JsonPathResult<()> {
         // Check local limits
@@ -140,6 +153,13 @@ impl SafeParsingContext {
     }
 
     /// Check if parsing time limit has been exceeded
+    /// Check if parsing has exceeded maximum allowed time
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Parsing time has exceeded the maximum allowed duration
+    /// - Timeout protection is triggered to prevent DoS attacks
     #[inline]
     pub fn check_timeout(&self) -> JsonPathResult<()> {
         if self.start_time.elapsed() > MAX_PARSE_TIME {
@@ -153,6 +173,13 @@ impl SafeParsingContext {
     }
 
     /// Validate expression complexity
+    /// Validate that expression complexity does not exceed limits
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Expression complexity score exceeds maximum allowed limit
+    /// - Complexity protection is triggered to prevent resource exhaustion
     #[inline]
     pub fn validate_complexity(&self, complexity_score: u32) -> JsonPathResult<()> {
         if complexity_score > self.max_complexity {
@@ -183,6 +210,13 @@ impl SafeParsingContext {
     }
 
     /// Validate UTF-8 chunk with basic checks
+    /// Validate UTF-8 chunk with basic checks
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Chunk contains invalid UTF-8 sequences and strict validation is enabled
+    /// - UTF-8 validation fails at the byte level
     pub fn validate_utf8_basic(&self, chunk: &[u8]) -> JsonPathResult<()> {
         if !self.strict_utf8 {
             return Ok(());
@@ -196,6 +230,13 @@ impl SafeParsingContext {
     }
     
     /// Validate UTF-8 chunk with strict security checks  
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Chunk contains invalid UTF-8 sequences
+    /// - Strict UTF-8 validation detects security-relevant encoding issues
+    /// - Character validation fails security checks
     pub fn validate_utf8_strict(&self, chunk: &[u8]) -> JsonPathResult<()> {
         if !self.strict_utf8 {
             return Ok(());
@@ -210,6 +251,13 @@ impl SafeParsingContext {
     }
     
     /// Validate UTF-8 chunk with paranoid security checks
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Strict UTF-8 validation is enabled and the chunk fails strict validation
+    /// - Text contains non-normalized Unicode sequences (not NFC form)  
+    /// - Text contains suspicious Unicode patterns or control characters
     pub fn validate_utf8_paranoid(&self, chunk: &[u8]) -> JsonPathResult<()> {
         if !self.strict_utf8 {
             return Ok(());

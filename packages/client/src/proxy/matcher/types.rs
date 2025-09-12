@@ -19,6 +19,7 @@ pub struct Matcher {
 }
 
 /// Internal matcher implementation variants
+#[derive(Debug)]
 pub(crate) enum Matcher_ {
     Util(super::implementation::Matcher),
     Custom(Custom),

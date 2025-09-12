@@ -8,6 +8,12 @@ use crate::jsonpath::error::{JsonPathResult, invalid_expression_error};
 
 impl NormalizedPath {
     /// Create a child path by appending a member access
+    /// Create child path with member access
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Member name validation fails (empty name, invalid characters)
+    /// - Path segment construction fails
     #[inline]
     pub fn child_member(&self, member_name: &str) -> JsonPathResult<Self> {
         NormalizedPathProcessor::validate_member_name(member_name)?;
@@ -24,6 +30,11 @@ impl NormalizedPath {
     }
 
     /// Create a child path by appending an array index access
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Index is negative (normalized paths require non-negative indices)
+    /// - Path segment construction fails
     #[inline]
     pub fn child_index(&self, index: i64) -> JsonPathResult<Self> {
         if index < 0 {

@@ -19,7 +19,7 @@ where
     /// Used internally when JSON parsing succeeds to avoid `AsyncStream` timeout issues.
     pub fn process_chunk_sync(&mut self, chunk: Bytes) -> Vec<T> {
         // Append chunk to internal buffer
-        self.buffer.append_chunk(chunk);
+        self.buffer.append_chunk(&chunk);
 
         // Try to parse as complete JSON first using simple evaluator
         let all_data = self.buffer.as_bytes();

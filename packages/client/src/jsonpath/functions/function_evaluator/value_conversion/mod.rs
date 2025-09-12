@@ -7,6 +7,10 @@ use serde_json::Value;
 use crate::jsonpath::error::JsonPathResult;
 
 /// Convert a JSON value to string
+///
+/// # Errors
+/// This function currently never fails but returns `JsonPathResult` for consistency
+/// with the function evaluator interface.
 pub fn to_string_value(value: &Value) -> JsonPathResult<Value> {
     match value {
         Value::String(s) => Ok(Value::String(s.clone())),
@@ -18,6 +22,10 @@ pub fn to_string_value(value: &Value) -> JsonPathResult<Value> {
 }
 
 /// Convert a JSON value to number
+///
+/// # Errors
+/// This function currently never fails but returns `JsonPathResult` for consistency
+/// with the function evaluator interface.
 pub fn to_number_value(value: &Value) -> JsonPathResult<Value> {
     match value {
         Value::Number(n) => Ok(Value::Number(n.clone())),
@@ -36,6 +44,10 @@ pub fn to_number_value(value: &Value) -> JsonPathResult<Value> {
 }
 
 /// Convert a JSON value to boolean
+///
+/// # Errors
+/// This function currently never fails but returns `JsonPathResult` for consistency
+/// with the function evaluator interface.
 pub fn to_boolean_value(value: &Value) -> JsonPathResult<Value> {
     match value {
         Value::Bool(b) => Ok(Value::Bool(*b)),
@@ -48,6 +60,11 @@ pub fn to_boolean_value(value: &Value) -> JsonPathResult<Value> {
 }
 
 /// Evaluate value conversion functions
+///
+/// # Errors
+/// Returns `JsonPathError` if:
+/// - Incorrect number of arguments provided (requires exactly 1)
+/// - Unknown function name provided
 pub fn evaluate_value_function(function_name: &str, args: &[Value]) -> JsonPathResult<Value> {
     match function_name {
         "to_string" => {

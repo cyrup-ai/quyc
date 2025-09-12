@@ -8,6 +8,12 @@ use super::engine::{CoreJsonPathEvaluator, JsonPathResult};
 
 impl CoreJsonPathEvaluator {
     /// Evaluate a property path on a JSON value (for nested property access)
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Property path contains invalid characters or syntax
+    /// - JSON structure is incompatible with property access operations
+    /// - Memory limits are exceeded while processing nested properties
     pub fn evaluate_property_path(&self, json: &Value, path: &str) -> JsonPathResult<Vec<Value>> {
         // Handle simple property access for now
         let properties: Vec<&str> = path.split('.').collect();
@@ -39,6 +45,7 @@ impl CoreJsonPathEvaluator {
         results
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn find_property_recursive_impl(&self, json: &Value, property: &str, results: &mut Vec<Value>) {
         match json {
             Value::Object(obj) => {

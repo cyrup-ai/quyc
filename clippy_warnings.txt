@@ -1,6 +1,0 @@
-warning: empty line after doc comment
-warning: empty line after doc comment
-warning: empty line after doc comment
-warning: `quyc_client` (lib) generated 3 warnings
-warning: build failed, waiting for other jobs to finish...
-warning: `quyc_client` (lib test) generated 3 warnings (3 duplicates)

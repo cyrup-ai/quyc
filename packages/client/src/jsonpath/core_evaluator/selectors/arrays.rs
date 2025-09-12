@@ -11,6 +11,13 @@ use crate::jsonpath::error::JsonPathError;
 type JsonPathResult<T> = Result<T, JsonPathError>;
 
 /// Apply slice selector to array with proper bounds checking
+///
+/// # Errors
+/// Returns `JsonPathError` if:
+/// - Value is not an array when array slice is attempted
+/// - Slice parameters are invalid (e.g., step is zero)
+/// - Index calculations overflow or produce invalid ranges
+/// - Memory limits are exceeded while collecting slice results
 #[allow(clippy::cast_possible_truncation)]
 pub fn apply_slice_to_array(
     array: &Value,
@@ -20,7 +27,7 @@ pub fn apply_slice_to_array(
 ) -> JsonPathResult<Vec<Value>> {
     match array {
         Value::Array(arr) => {
-            let len = arr.len() as i64;
+            let len = i64::try_from(arr.len()).unwrap_or(i64::MAX);
             let step = step.unwrap_or(1);
 
             if step == 0 {
@@ -50,16 +57,22 @@ pub fn apply_slice_to_array(
                 let mut i = start_norm;
                 while i < end_norm && i < len {
                     if i >= 0 {
-                        results.push(arr[i as usize].clone());
+                        // Safe conversion: i >= 0 check ensures non-negative value
+                        if let Ok(i_usize) = usize::try_from(i)
+                            && i_usize < arr.len() {
+                                results.push(arr[i_usize].clone());
+                            }
                     }
                     i += step;
                 }
             } else {
                 let mut i = start_norm;
                 while i > end_norm && i >= 0 {
-                    if i < len {
-                        results.push(arr[i as usize].clone());
-                    }
+                    if i < len
+                        && let Ok(idx) = usize::try_from(i)
+                            && idx < arr.len() {
+                                results.push(arr[idx].clone());
+                            }
                     i += step;
                 }
             }
@@ -82,7 +95,9 @@ pub fn apply_index_selector_owned(
     if let Value::Array(arr) = value {
         let actual_index = if from_end && index < 0 {
             // Negative index - count from end (e.g., -1 means last element)
-            let abs_index = (-index) as usize;
+            let Ok(abs_index) = usize::try_from(-index) else {
+                return; // Skip if conversion fails
+            };
             if abs_index <= arr.len() && abs_index > 0 {
                 arr.len() - abs_index
             } else {
@@ -90,14 +105,20 @@ pub fn apply_index_selector_owned(
             }
         } else if from_end && index > 0 {
             // Positive from_end index
-            if (index as usize) <= arr.len() {
-                arr.len() - (index as usize)
+            let Ok(index_usize) = usize::try_from(index) else {
+                return; // Skip if conversion fails
+            };
+            if index_usize <= arr.len() {
+                arr.len() - index_usize
             } else {
                 return; // Index out of bounds
             }
         } else {
             // Regular positive index
-            index as usize
+            match usize::try_from(index) {
+                Ok(idx) => idx,
+                Err(_) => return, // Skip if conversion fails
+            }
         };
 
         if actual_index < arr.len() {
@@ -108,6 +129,12 @@ pub fn apply_index_selector_owned(
 
 impl CoreJsonPathEvaluator {
     /// Apply slice to array with start, end, step parameters
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Slice parameters are invalid (e.g., step is zero)
+    /// - Index calculations overflow or produce invalid ranges
+    /// - Memory limits are exceeded while collecting slice results
     #[allow(clippy::cast_possible_truncation)]
     pub fn apply_slice_to_array(
         &self,
@@ -116,7 +143,7 @@ impl CoreJsonPathEvaluator {
         end: Option<i64>,
         step: Option<i64>,
     ) -> JsonPathResult<Vec<Value>> {
-        let len = arr.len() as i64;
+        let len = i64::try_from(arr.len()).unwrap_or(i64::MAX);
         let step = step.unwrap_or(1);
 
         if step == 0 {
@@ -143,16 +170,24 @@ impl CoreJsonPathEvaluator {
         if step > 0 {
             let mut i = start;
             while i < end {
-                if i >= 0 && (i as usize) < arr.len() {
-                    results.push(arr[i as usize].clone());
+                if i >= 0 {
+                    // Safe conversion: i >= 0 check ensures non-negative value
+                    if let Ok(i_usize) = usize::try_from(i)
+                        && i_usize < arr.len() {
+                            results.push(arr[i_usize].clone());
+                        }
                 }
                 i += step;
             }
         } else {
             let mut i = start;
             while i > end {
-                if i >= 0 && (i as usize) < arr.len() {
-                    results.push(arr[i as usize].clone());
+                if i >= 0 {
+                    // Safe conversion: i >= 0 check ensures non-negative value
+                    if let Ok(i_usize) = usize::try_from(i)
+                        && i_usize < arr.len() {
+                            results.push(arr[i_usize].clone());
+                        }
                 }
                 i += step;
             }
@@ -173,7 +208,9 @@ impl CoreJsonPathEvaluator {
         if let Value::Array(arr) = node {
             let actual_index = if from_end && index < 0 {
                 // Negative index - count from end (e.g., -1 means last element)
-                let abs_index = (-index) as usize;
+                let Ok(abs_index) = usize::try_from(-index) else {
+                    return; // Skip if conversion fails
+                };
                 if abs_index <= arr.len() && abs_index > 0 {
                     arr.len() - abs_index
                 } else {
@@ -181,14 +218,20 @@ impl CoreJsonPathEvaluator {
                 }
             } else if from_end && index > 0 {
                 // Positive from_end index
-                if (index as usize) <= arr.len() {
-                    arr.len() - (index as usize)
+                let Ok(index_usize) = usize::try_from(index) else {
+                    return; // Skip if conversion fails
+                };
+                if index_usize <= arr.len() {
+                    arr.len() - index_usize
                 } else {
                     return; // Index out of bounds
                 }
             } else {
                 // Regular positive index
-                index as usize
+                match usize::try_from(index) {
+                    Ok(idx) => idx,
+                    Err(_) => return, // Skip if conversion fails
+                }
             };
 
             if actual_index < arr.len() {
@@ -208,7 +251,7 @@ impl CoreJsonPathEvaluator {
         results: &mut Vec<&'a Value>,
     ) {
         if let Value::Array(arr) = node {
-            let len = arr.len() as i64;
+            let len = i64::try_from(arr.len()).unwrap_or(i64::MAX);
             let step = step.unwrap_or(1);
 
             if step == 0 {
@@ -233,16 +276,24 @@ impl CoreJsonPathEvaluator {
             if step > 0 {
                 let mut i = start;
                 while i < end {
-                    if i >= 0 && (i as usize) < arr.len() {
-                        results.push(&arr[i as usize]);
+                    if i >= 0 {
+                        // Safe conversion: i >= 0 check ensures non-negative value
+                        if let Ok(i_usize) = usize::try_from(i)
+                            && i_usize < arr.len() {
+                                results.push(&arr[i_usize]);
+                            }
                     }
                     i += step;
                 }
             } else {
                 let mut i = start;
                 while i > end {
-                    if i >= 0 && (i as usize) < arr.len() {
-                        results.push(&arr[i as usize]);
+                    if i >= 0 {
+                        // Safe conversion: i >= 0 check ensures non-negative value
+                        if let Ok(i_usize) = usize::try_from(i)
+                            && i_usize < arr.len() {
+                                results.push(&arr[i_usize]);
+                            }
                     }
                     i += step;
                 }

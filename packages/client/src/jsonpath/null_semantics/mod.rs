@@ -61,6 +61,12 @@ impl NullSemantics {
     }
 
     /// Comparison with null vs missing distinction
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Property access results cannot be compared due to type incompatibility
+    /// - Memory allocation fails during comparison processing
     #[inline]
     pub fn compare_with_null_semantics(
         left: &PropertyAccessResult,
@@ -98,6 +104,13 @@ impl NullSemantics {
     }
 
     /// Validate that null vs missing semantics are correctly implemented
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Null vs missing semantic validation fails
+    /// - Test scenario generation or execution fails
+    /// - Implementation does not meet RFC 9535 requirements
     #[inline]
     pub fn validate_implementation() -> crate::jsonpath::error::JsonPathResult<()> {
         comparison::validate_implementation()

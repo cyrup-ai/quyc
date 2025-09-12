@@ -458,9 +458,17 @@ impl AutoStrategy {
     }
     
     /// Create modified request for Alt-Svc endpoint
+    /// Create modified request for Alt-Svc endpoint
     /// 
     /// Constructs a new `HttpRequest` with the Alt-Svc endpoint's host and port,
     /// copying all properties from the original request.
+    ///
+    /// # Errors
+    ///
+    /// Returns `String` error if:
+    /// - Original request URL cannot be parsed
+    /// - Alt-Svc host cannot be set on the URL
+    /// - Alt-Svc port is invalid
     fn create_alt_svc_request(&self, endpoint: &AltSvcEndpoint, original_request: &HttpRequest) -> Result<HttpRequest, String> {
         use crate::http::url::parse_url;
         

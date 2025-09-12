@@ -248,7 +248,7 @@ impl StreamingJsonPathState {
             1.0
         };
         
-        (match_rate * backtrack_penalty).max(0.1).min(1.0)
+        (match_rate * backtrack_penalty).clamp(0.1, 1.0)
     }
     
     /// Advance to the next selector in the `JSONPath` expression
@@ -262,6 +262,12 @@ impl StreamingJsonPathState {
     }
     
     /// Enter recursive descent mode for ".." operator
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Maximum recursion depth is exceeded during descent
+    /// - Invalid selector index is provided for triggering selector
+    /// - Memory allocation fails while tracking recursive state
     pub fn enter_recursive_descent(
         &mut self, 
         origin_path: String, 
@@ -336,21 +342,39 @@ impl StreamingJsonPathState {
         
         for frame in &self.path_breadcrumbs {
             match &frame.segment {
-                PathSegment::Property(key) => path.push_str(&format!(".{key}")),
-                PathSegment::ArrayIndex(idx) => path.push_str(&format!("[{idx}]")),
+                PathSegment::Property(key) => {
+                    use std::fmt::Write;
+                    let _ = write!(path, ".{key}");
+                },
+                PathSegment::ArrayIndex(idx) => {
+                    use std::fmt::Write;
+                    let _ = write!(path, "[{idx}]");
+                },
                 PathSegment::Wildcard => path.push_str("[*]"),
                 PathSegment::RecursiveDescent => path.push_str(".."),
-                PathSegment::FilterMatch(filter) => path.push_str(&format!("[?{filter}]")),
+                PathSegment::FilterMatch(filter) => {
+                    use std::fmt::Write;
+                    let _ = write!(path, "[?{filter}]");
+                },
             }
         }
         
         // Add the new segment
         match new_segment {
-            PathSegment::Property(key) => path.push_str(&format!(".{key}")),
-            PathSegment::ArrayIndex(idx) => path.push_str(&format!("[{idx}]")),
+            PathSegment::Property(key) => {
+                use std::fmt::Write;
+                let _ = write!(path, ".{key}");
+            },
+            PathSegment::ArrayIndex(idx) => {
+                use std::fmt::Write;
+                let _ = write!(path, "[{idx}]");
+            },
             PathSegment::Wildcard => path.push_str("[*]"),
             PathSegment::RecursiveDescent => path.push_str(".."),
-            PathSegment::FilterMatch(filter) => path.push_str(&format!("[?{filter}]")),
+            PathSegment::FilterMatch(filter) => {
+                use std::fmt::Write;
+                let _ = write!(path, "[?{filter}]");
+            },
         }
         
         path
@@ -433,6 +457,12 @@ where
     T: DeserializeOwned,
 {
     /// Optimize buffer capacity based on streaming state
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Memory allocation fails during buffer resizing
+    /// - Buffer capacity calculations overflow or produce invalid sizes
+    /// - Internal buffer manager encounters allocation errors
     pub fn optimize_buffer_capacity(&mut self) -> Result<(), JsonPathError> {
         let required_size = self.streaming_state.required_buffer_size();
         let current_capacity = self.buffer.capacity();
@@ -942,7 +972,19 @@ where
             }
             crate::jsonpath::ast::JsonSelector::Index { index, .. } => {
                 state.path_breadcrumbs.iter().any(|frame| {
-                    matches!(&frame.segment, PathSegment::ArrayIndex(i) if *i == *index as usize)
+                    if let PathSegment::ArrayIndex(i) = &frame.segment {
+                        if *index >= 0 {
+                            if let Ok(index_usize) = usize::try_from(*index) {
+                                *i == index_usize
+                            } else {
+                                false
+                            }
+                        } else {
+                            false // Negative indices don't match directly
+                        }
+                    } else {
+                        false
+                    }
                 })
             }
             crate::jsonpath::ast::JsonSelector::Wildcard => {
@@ -1013,7 +1055,19 @@ where
             crate::jsonpath::ast::JsonSelector::Wildcard => true,
             crate::jsonpath::ast::JsonSelector::Index { index, .. } => {
                 state.path_breadcrumbs.iter().any(|frame| {
-                    matches!(&frame.segment, PathSegment::ArrayIndex(i) if *i == *index as usize)
+                    if let PathSegment::ArrayIndex(i) = &frame.segment {
+                        if *index >= 0 {
+                            if let Ok(index_usize) = usize::try_from(*index) {
+                                *i == index_usize
+                            } else {
+                                false
+                            }
+                        } else {
+                            false // Negative indices don't match directly
+                        }
+                    } else {
+                        false
+                    }
                 })
             }
             _ => false,
@@ -1100,7 +1154,7 @@ where
         let is_match = if state.current_selector_index < state.selectors.len() {
             match &state.selectors[state.current_selector_index] {
                 crate::jsonpath::ast::JsonSelector::Index { index, .. } => {
-                    array_index as i64 == *index
+                    i64::try_from(array_index).unwrap_or(i64::MAX) == *index
                 }
                 crate::jsonpath::ast::JsonSelector::Wildcard => true,
                 _ => false,
@@ -1133,7 +1187,19 @@ where
             }
             crate::jsonpath::ast::JsonSelector::Index { index, .. } => {
                 state.path_breadcrumbs.iter().any(|frame| {
-                    matches!(&frame.segment, PathSegment::ArrayIndex(i) if *i == *index as usize)
+                    if let PathSegment::ArrayIndex(i) = &frame.segment {
+                        if *index >= 0 {
+                            if let Ok(index_usize) = usize::try_from(*index) {
+                                *i == index_usize
+                            } else {
+                                false
+                            }
+                        } else {
+                            false // Negative indices don't match directly
+                        }
+                    } else {
+                        false
+                    }
                 })
             }
             crate::jsonpath::ast::JsonSelector::Wildcard => {
@@ -1167,8 +1233,8 @@ where
     /// Check if array index matches slice criteria
     #[allow(clippy::cast_possible_truncation)]
     fn index_matches_slice(&self, index: usize, start: Option<i64>, end: Option<i64>, step: Option<i64>) -> bool {
-        let step = step.unwrap_or(1).max(1) as usize; // Ensure positive step
-        let index = index as i64;
+        let step = usize::try_from(step.unwrap_or(1).max(1)).unwrap_or(1); // Ensure positive step
+        let index = i64::try_from(index).unwrap_or(i64::MAX);
         
         // Handle start boundary
         let start_bound = start.unwrap_or(0);
@@ -1184,7 +1250,7 @@ where
         
         // Check step alignment
         if step > 1 {
-            ((index - start_bound) as usize).is_multiple_of(step)
+            usize::try_from(index - start_bound).unwrap_or(0).is_multiple_of(step)
         } else {
             true
         }

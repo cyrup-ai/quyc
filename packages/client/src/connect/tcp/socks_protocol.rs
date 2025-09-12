@@ -127,14 +127,11 @@ pub fn socks5_handshake(
         }
     } else {
         request.push(0x03); // Domain name
-        let hostname_len = match u8::try_from(target_host.len()) {
-            Ok(len) => len,
-            Err(_) => {
-                return Err(format!(
-                    "SOCKS5 hostname too long: {} bytes (max 255)",
-                    target_host.len()
-                ));
-            }
+        let Ok(hostname_len) = u8::try_from(target_host.len()) else {
+            return Err(format!(
+                "SOCKS5 hostname too long: {} bytes (max 255)",
+                target_host.len()
+            ));
         };
         request.push(hostname_len);
         request.extend_from_slice(target_host.as_bytes());

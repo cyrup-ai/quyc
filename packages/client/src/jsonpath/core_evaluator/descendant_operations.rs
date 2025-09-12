@@ -16,6 +16,7 @@ impl CoreJsonPathEvaluator {
         descendants
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn collect_descendants_impl(&self, json: &Value, descendants: &mut Vec<Value>) {
         // Add the current value
         descendants.push(json.clone());
@@ -39,6 +40,12 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Apply a selector to all descendants of a value
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Selector application fails on any descendant value
+    /// - Memory limits are exceeded while collecting descendants
+    /// - Invalid selector operations are encountered
     pub fn apply_selector_to_descendants(
         &self,
         json: &Value,
@@ -56,6 +63,12 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Apply multiple selectors recursively to descendants
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Any selector application fails during recursive evaluation
+    /// - Memory limits are exceeded while processing selector chains
+    /// - Invalid selector sequences are encountered
     pub fn apply_selectors_recursively(
         &self,
         json: &Value,

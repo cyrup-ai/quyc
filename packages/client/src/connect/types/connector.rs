@@ -116,7 +116,7 @@ impl Default for ConnectorKind {
             let http = hyper_util::client::legacy::connect::HttpConnector::new();
             let proxies = arrayvec::ArrayVec::new();
             
-            match ConnectorService::new(
+            if let Ok(service) = ConnectorService::new(
                 http,
 
                 #[cfg(feature = "__rustls")] None,
@@ -129,33 +129,31 @@ impl Default for ConnectorKind {
                 Some(std::time::Duration::from_millis(300)), // happy_eyeballs_timeout
                 false, // tls_info
             ) {
-                Ok(service) => Self::BuiltDefault(service),
-                Err(_) => {
-                    // Create minimal fallback connector with default configuration
-                    let http = hyper_util::client::legacy::connect::HttpConnector::new();
-                    let proxies = arrayvec::ArrayVec::new();
-                    
-                    match ConnectorService::new(
-                        http,
-        
-                        #[cfg(feature = "__rustls")] None,
-                        proxies,
-                        None,
-                        None,
-                        None,
-                        true,
-                        Some(std::time::Duration::from_secs(10)),
-                        Some(std::time::Duration::from_millis(100)),
-                        false,
-                    ) {
-                        Ok(service) => Self::BuiltDefault(service),
-                        Err(e) => {
-                            log::error!("Critical: Fallback connector creation failed: {}", e);
-                            log::error!("System configuration prevents creation of HTTP connectors");
-                            // Create error-marked connector for graceful degradation instead of panic
-                            Self::create_error_marker_connector()
-                        }
-                    }
+                Self::BuiltDefault(service)
+            } else {
+                // Create minimal fallback connector with default configuration
+                let http = hyper_util::client::legacy::connect::HttpConnector::new();
+                let proxies = arrayvec::ArrayVec::new();
+                
+                if let Ok(service) = ConnectorService::new(
+                    http,
+    
+                    #[cfg(feature = "__rustls")] None,
+                    proxies,
+                    None,
+                    None,
+                    None,
+                    true,
+                    Some(std::time::Duration::from_secs(10)),
+                    Some(std::time::Duration::from_millis(100)),
+                    false,
+                ) {
+                    Self::BuiltDefault(service)
+                } else {
+                    log::error!("Critical: Fallback connector creation failed");
+                    log::error!("System configuration prevents creation of HTTP connectors");
+                    // Create error-marked connector for graceful degradation instead of panic
+                    Self::create_error_marker_connector()
                 }
             }
         }
@@ -165,7 +163,7 @@ impl Default for ConnectorKind {
             let http = hyper_util::client::legacy::connect::HttpConnector::new();
             let proxies = arrayvec::ArrayVec::new();
             
-            match ConnectorService::new(
+            if let Ok(service) = ConnectorService::new(
                 http,
  // tls
                 #[cfg(feature = "__rustls")] None, // rustls_config
@@ -178,33 +176,31 @@ impl Default for ConnectorKind {
                 Some(std::time::Duration::from_millis(300)), // happy_eyeballs_timeout
                 false, // tls_info
             ) {
-                Ok(service) => Self::BuiltHttp(service),
-                Err(_) => {
-                    // Create minimal fallback connector with default configuration
-                    let http = hyper_util::client::legacy::connect::HttpConnector::new();
-                    let proxies = arrayvec::ArrayVec::new();
-                    
-                    match ConnectorService::new(
-                        http,
-         // tls
-                        #[cfg(feature = "__rustls")] None, // rustls_config
-                        proxies,
-                        None,
-                        None,
-                        None,
-                        true,
-                        Some(std::time::Duration::from_secs(10)),
-                        Some(std::time::Duration::from_millis(100)),
-                        false,
-                    ) {
-                        Ok(service) => Self::BuiltHttp(service),
-                        Err(e) => {
-                            log::error!("Critical: Fallback HTTP connector creation failed: {e}");
-                            log::error!("System configuration prevents creation of basic HTTP connectors");
-                            // Create error-marked connector for graceful degradation instead of panic
-                            Self::create_error_marker_connector()
-                        }
-                    }
+                Self::BuiltHttp(service)
+            } else {
+                // Create minimal fallback connector with default configuration
+                let http = hyper_util::client::legacy::connect::HttpConnector::new();
+                let proxies = arrayvec::ArrayVec::new();
+                
+                if let Ok(service) = ConnectorService::new(
+                    http,
+     // tls
+                    #[cfg(feature = "__rustls")] None, // rustls_config
+                    proxies,
+                    None,
+                    None,
+                    None,
+                    true,
+                    Some(std::time::Duration::from_secs(10)),
+                    Some(std::time::Duration::from_millis(100)),
+                    false,
+                ) {
+                    Self::BuiltHttp(service)
+                } else {
+                    log::error!("Critical: Fallback HTTP connector creation failed");
+                    log::error!("System configuration prevents creation of basic HTTP connectors");
+                    // Create error-marked connector for graceful degradation instead of panic
+                    Self::create_error_marker_connector()
                 }
             }
         }

@@ -190,75 +190,7 @@ impl Default for HttpConfig {
     }
 }
 
-impl HttpConfig {
-    /// Backward compatibility methods for TCP settings
-    #[deprecated(since = "0.1.0", note = "Use `config.tcp.nodelay` instead")]
-    pub fn tcp_nodelay(&self) -> bool {
-        self.tcp.nodelay
-    }
-    
-    #[deprecated(since = "0.1.0", note = "Use `config.tcp.keepalive` instead")]
-    pub fn tcp_keepalive(&self) -> Option<Duration> {
-        self.tcp.keepalive
-    }
-    
-    /// Backward compatibility methods for TLS settings
-    #[deprecated(since = "0.1.0", note = "Use `config.tls.use_native_certs` instead")]
-    pub fn use_native_certs(&self) -> bool {
-        self.tls.use_native_certs
-    }
-    
-    #[deprecated(since = "0.1.0", note = "Use `config.tls.early_data` instead")]
-    pub fn tls_early_data(&self) -> bool {
-        self.tls.early_data
-    }
-    
-    #[deprecated(since = "0.1.0", note = "Use `config.tls.https_only` instead")]
-    pub fn https_only(&self) -> bool {
-        self.tls.https_only
-    }
-    
-    /// Backward compatibility methods for compression settings
-    #[deprecated(since = "0.1.0", note = "Use `config.compression.request_compression` instead")]
-    pub fn request_compression(&self) -> bool {
-        self.compression.request_compression
-    }
-    
-    #[deprecated(since = "0.1.0", note = "Use `config.compression.response_compression` instead")]
-    pub fn response_compression(&self) -> bool {
-        self.compression.response_compression
-    }
-    
-    #[deprecated(since = "0.1.0", note = "Use `config.compression.gzip.enabled` instead")]
-    pub fn gzip_enabled(&self) -> bool {
-        self.compression.gzip.enabled
-    }
-    
-    #[deprecated(since = "0.1.0", note = "Use `config.compression.brotli.enabled` instead")]
-    pub fn brotli_enabled(&self) -> bool {
-        self.compression.brotli.enabled
-    }
-    
-    #[deprecated(since = "0.1.0", note = "Use `config.compression.deflate.enabled` instead")]
-    pub fn deflate(&self) -> bool {
-        self.compression.deflate.enabled
-    }
-    
-    #[deprecated(since = "0.1.0", note = "Use `config.compression.gzip.level` instead")]
-    pub fn gzip_level(&self) -> Option<u32> {
-        self.compression.gzip.level
-    }
-    
-    #[deprecated(since = "0.1.0", note = "Use `config.compression.brotli.level` instead")]
-    pub fn brotli_level(&self) -> Option<u32> {
-        self.compression.brotli.level
-    }
-    
-    #[deprecated(since = "0.1.0", note = "Use `config.compression.deflate.level` instead")]
-    pub fn deflate_level(&self) -> Option<u32> {
-        self.compression.deflate.level
-    }
-}
+
 
 /// Master configuration provider trait for compile-time optimization
 pub trait ConfigurationProvider {

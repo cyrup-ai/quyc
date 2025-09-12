@@ -49,6 +49,14 @@ pub struct FunctionEvaluator;
 
 impl FunctionEvaluator {
     /// Evaluate function calls to get their actual values (RFC 9535 Section 2.4)
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Function name is not recognized or not supported
+    /// - Function arguments are invalid or malformed
+    /// - Function evaluation fails due to type mismatches
+    /// - Memory allocation fails during function execution
     #[inline]
     pub fn evaluate_function_value(
         context: &serde_json::Value,
@@ -74,6 +82,12 @@ impl FunctionEvaluator {
     }
 
     /// Evaluate length function
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Function arguments are invalid or missing
+    /// - Expression evaluation fails on the provided context
+    /// - Node length calculation encounters processing errors
     #[inline]
     pub fn evaluate_length_function(
         context: &serde_json::Value,
@@ -91,6 +105,12 @@ impl FunctionEvaluator {
     }
 
     /// Evaluate count function
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Function arguments are invalid or missing
+    /// - Expression evaluation fails on the provided context
+    /// - Node counting encounters processing errors or memory limits
     #[inline]
     pub fn evaluate_count_function(
         context: &serde_json::Value,
@@ -108,6 +128,13 @@ impl FunctionEvaluator {
     }
 
     /// Evaluate match function
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Incorrect number of arguments provided (requires exactly 2)
+    /// - Expression evaluation fails for either argument
+    /// - Invalid regex pattern provided
+    /// - Regex execution times out (`ReDoS` protection)
     #[inline]
     pub fn evaluate_match_function(
         context: &serde_json::Value,
@@ -125,6 +152,13 @@ impl FunctionEvaluator {
     }
 
     /// Evaluate search function
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Incorrect number of arguments provided (requires exactly 2)
+    /// - Expression evaluation fails for either argument
+    /// - Invalid regex pattern provided
+    /// - Regex execution times out (`ReDoS` protection)
     #[inline]
     pub fn evaluate_search_function(
         context: &serde_json::Value,
@@ -142,6 +176,14 @@ impl FunctionEvaluator {
     }
 
     /// Evaluate value function
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Incorrect number of arguments provided (requires exactly 1)
+    /// - `JSONPath` evaluation fails
+    /// - Nodelist is empty (requires non-empty nodelist)
+    /// - Nodelist contains more than one node (requires single-node nodelist)
+    /// - Expression evaluation fails for other expression types
     #[inline]
     pub fn evaluate_value_function(
         context: &serde_json::Value,

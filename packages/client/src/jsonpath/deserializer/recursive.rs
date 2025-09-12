@@ -100,7 +100,7 @@ where
                 self.deserializer
                     .streaming_state.path_breadcrumbs
                     .push(PathNavigationFrame {
-                        segment: PathSegment::ArrayIndex(self.deserializer.current_array_index.max(0) as usize), // PRODUCTION-GRADE: Use actual array index, not depth
+                        segment: PathSegment::ArrayIndex(usize::try_from(self.deserializer.current_array_index.max(0)).unwrap_or(0)), // PRODUCTION-GRADE: Use actual array index, not depth
                         depth: self.deserializer.current_depth,
                         accumulated_path: format!("$[{}]", self.deserializer.current_array_index.max(0)), // PRODUCTION-GRADE: Real array index
                         is_match: false,

@@ -5,6 +5,7 @@
 
 use std::time::{Duration, Instant};
 use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+use std::convert::TryFrom;
 
 use serde_json::Value;
 
@@ -33,6 +34,13 @@ pub struct TimeoutHandler;
 
 impl TimeoutHandler {
     /// Evaluate `JSONPath` expression with timeout protection using cooperative cancellation
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Evaluation times out after the specified duration
+    /// - Expression compilation or evaluation fails
+    /// - Memory limits are exceeded during processing
+    /// - Invalid timeout configuration is provided
     pub fn evaluate_with_timeout(
         evaluator: &CoreJsonPathEvaluator,
         json: &Value,
@@ -52,7 +60,9 @@ impl TimeoutHandler {
         let expression_clone = expression.clone();
 
         // Use existing tokio runtime or create one
-        let runtime_result = if let Ok(handle) = tokio::runtime::Handle::try_current() {
+        
+
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
             handle.block_on(Self::evaluate_with_timeout_async(
                 expression_clone,
                 json_clone,
@@ -66,7 +76,7 @@ impl TimeoutHandler {
             let rt = tokio::runtime::Runtime::new()
                 .map_err(|e| crate::jsonpath::error::invalid_expression_error(
                     evaluator.expression(),
-                    &format!("Failed to create async runtime for timeout handling: {e}"),
+                    format!("Failed to create async runtime for timeout handling: {e}"),
                     None,
                 ))?;
             rt.block_on(Self::evaluate_with_timeout_async(
@@ -77,9 +87,7 @@ impl TimeoutHandler {
                 cancel_flag,
                 cancel_clone,
             ))
-        };
-
-        runtime_result
+        }
     }
 
     /// Async implementation of timeout evaluation with proper cancellation
@@ -123,7 +131,7 @@ impl TimeoutHandler {
                 }
                 Err(crate::jsonpath::error::invalid_expression_error(
                     &expression,
-                    &format!("evaluation task panicked: {join_error}"),
+                    format!("evaluation task panicked: {join_error}"),
                     None,
                 ))
             }
@@ -145,6 +153,7 @@ impl TimeoutHandler {
     }
 
     /// Internal evaluation method with cooperative cancellation support
+    #[allow(clippy::needless_pass_by_value)]
     fn evaluate_internal_with_cancellation(
         expression: &str, 
         json: &Value, 
@@ -198,7 +207,6 @@ impl TimeoutHandler {
         let mut complexity: u32 = 1;
 
         // Add complexity for expensive operations with overflow protection
-        use std::convert::TryFrom;
         
         // Recursive descent - cap at reasonable maximum to prevent overflow
         let recursive_count = u32::try_from(expression.matches("..").count()).unwrap_or(1000);

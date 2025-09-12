@@ -93,7 +93,9 @@ impl FilterParser<'_> {
             Some(Token::Number(n)) => {
                 let value = *n;
                 self.consume_token();
-                if value.fract() == 0.0 {
+                if value.fract() == 0.0 && value >= i64::MIN as f64 && value <= i64::MAX as f64 {
+                    // Safe cast: value is whole number within i64 range
+                    #[allow(clippy::cast_possible_truncation)]
                     Ok(FilterExpression::Literal {
                         value: FilterValue::Integer(value as i64),
                     })

@@ -12,6 +12,13 @@ pub struct SelectorEvaluator;
 
 impl SelectorEvaluator {
     /// Evaluate complex `JSONPath` selectors relative to current context
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Selector evaluation fails on any step in the selector chain
+    /// - JSON context is incompatible with selector operations
+    /// - Array index operations exceed bounds or encounter invalid indices
+    /// - Filter value conversion encounters type mismatches
     #[inline]
     #[allow(clippy::cast_possible_truncation)]
     pub fn evaluate_jsonpath_selectors(
@@ -44,8 +51,13 @@ impl SelectorEvaluator {
                     if let Some(arr) = current.as_array() {
                         let actual_index = if *from_end {
                             arr.len().saturating_sub((*index).unsigned_abs() as usize)
+                        } else if *index >= 0 {
+                            match usize::try_from(*index) {
+                                Ok(idx) => idx,
+                                Err(_) => return Ok(FilterValue::Missing), // Index too large
+                            }
                         } else {
-                            *index as usize
+                            return Ok(FilterValue::Missing); // Negative index without from_end flag
                         };
 
                         if let Some(value) = arr.get(actual_index) {

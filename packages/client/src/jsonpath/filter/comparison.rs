@@ -16,6 +16,12 @@ pub struct ValueComparator;
 
 impl ValueComparator {
     /// Compare two filter values using the specified operator
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Comparison operation fails due to incompatible types
+    /// - Numeric conversions overflow or produce invalid results
+    /// - String comparisons encounter invalid UTF-8 sequences
     #[inline]
     #[allow(clippy::cast_precision_loss)]
     pub fn compare_values(
@@ -28,6 +34,12 @@ impl ValueComparator {
     }
 
     /// Compare two filter values with property existence context
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Comparison operation fails due to incompatible types or contexts
+    /// - Property existence checks encounter invalid property names
+    /// - Numeric or string operations produce invalid results
     #[inline]
     pub fn compare_values_with_context(
         left: &FilterValue,

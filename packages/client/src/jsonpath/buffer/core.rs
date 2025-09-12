@@ -61,7 +61,7 @@ impl StreamBuffer {
     ///
     /// Uses zero-copy techniques when possible. Automatically manages buffer
     /// capacity and growth to minimize reallocations.
-    pub fn append_chunk(&mut self, chunk: Bytes) {
+    pub fn append_chunk(&mut self, chunk: &Bytes) {
         self.total_processed += chunk.len() as u64;
 
         // Check if we need to grow the buffer
@@ -71,7 +71,7 @@ impl StreamBuffer {
         }
 
         // Zero-copy append when possible
-        self.buffer.extend_from_slice(&chunk);
+        self.buffer.extend_from_slice(chunk);
     }
 
     /// Get a reader for the current buffer contents

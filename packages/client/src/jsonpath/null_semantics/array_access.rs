@@ -29,20 +29,30 @@ pub fn access_array_index(array: &JsonValue, index: i64) -> PropertyAccessResult
         JsonValue::Array(arr) => {
             let actual_index = if index < 0 {
                 // Negative indices count from the end
-                let len = arr.len() as i64;
+                let len = i64::try_from(arr.len()).unwrap_or(i64::MAX);
                 len + index
             } else {
                 index
             };
 
-            if actual_index >= 0 && (actual_index as usize) < arr.len() {
-                let value = &arr[actual_index as usize];
-                match value {
-                    JsonValue::Null => PropertyAccessResult::NullValue,
-                    v => PropertyAccessResult::Value(v.clone()),
+            if actual_index >= 0 {
+                if let Ok(index_usize) = usize::try_from(actual_index) {
+                    if index_usize < arr.len() {
+                        let value = &arr[index_usize];
+                        match value {
+                            JsonValue::Null => PropertyAccessResult::NullValue,
+                            v => PropertyAccessResult::Value(v.clone()),
+                        }
+                    } else {
+                        // Out of bounds is missing, not null
+                        PropertyAccessResult::Missing
+                    }
+                } else {
+                    // Conversion failed - index too large
+                    PropertyAccessResult::Missing
                 }
             } else {
-                // Out of bounds is missing, not null
+                // Negative index is missing, not null
                 PropertyAccessResult::Missing
             }
         }

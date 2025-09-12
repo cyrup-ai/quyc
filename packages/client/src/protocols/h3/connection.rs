@@ -64,8 +64,9 @@ pub struct H3Connection {
 impl std::fmt::Debug for H3Connection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("H3Connection")
-            .field("config", &self.config)
             .field("inner", &"<quiche::Connection>")
+            .field("h3_conn", &"<quiche::h3::Connection>")
+            .field("config", &self.config)
             .finish()
     }
 }
@@ -853,26 +854,23 @@ impl H3Connection {
                             let mut status_code = http::StatusCode::OK;
                             let mut headers_map = http::HeaderMap::new();
                             
-                            for h in list.iter() {
+                            for h in &list {
                                 let name_bytes = h.name();
                                 let value_bytes = h.value();
                                 
                                 if name_bytes == b":status" {
-                                    if let Ok(status_str) = std::str::from_utf8(value_bytes) {
-                                        if let Ok(status_u16) = status_str.parse::<u16>() {
-                                            if let Ok(parsed_status) = http::StatusCode::from_u16(status_u16) {
+                                    if let Ok(status_str) = std::str::from_utf8(value_bytes)
+                                        && let Ok(status_u16) = status_str.parse::<u16>()
+                                            && let Ok(parsed_status) = http::StatusCode::from_u16(status_u16) {
                                                 status_code = parsed_status;
                                             }
-                                        }
-                                    }
-                                } else if !name_bytes.starts_with(b":") {
-                                    if let (Ok(name), Ok(value)) = (
+                                } else if !name_bytes.starts_with(b":")
+                                    && let (Ok(name), Ok(value)) = (
                                         http::HeaderName::from_bytes(name_bytes),
                                         http::HeaderValue::from_bytes(value_bytes)
                                     ) {
                                         headers_map.insert(name, value);
                                     }
-                                }
                             }
                             
                             // Create body stream for remaining data
@@ -880,8 +878,8 @@ impl H3Connection {
                             let h3_conn_clone = Arc::clone(&self.h3_conn);
                             let body_stream = AsyncStream::with_channel(move |sender| {
                                 // Continue polling for body data
-                                if let (Ok(mut conn), Ok(mut h3_opt)) = (conn_clone.lock(), h3_conn_clone.lock()) {
-                                    if let Some(ref mut h3) = h3_opt.as_mut() {
+                                if let (Ok(mut conn), Ok(mut h3_opt)) = (conn_clone.lock(), h3_conn_clone.lock())
+                                    && let Some(ref mut h3) = h3_opt.as_mut() {
                                         loop {
                                             match h3.poll(&mut conn) {
                                                 Ok((sid, quiche::h3::Event::Data)) if sid == created_stream_id => {
@@ -913,7 +911,6 @@ impl H3Connection {
                                             }
                                         }
                                     }
-                                }
                             });
                             
                             Ok((status_code, headers_map, body_stream))
@@ -1016,29 +1013,26 @@ impl H3Connection {
                                             let mut status_code = http::StatusCode::OK; // Default fallback
                                             let mut headers_map = http::HeaderMap::new();
                                             
-                                            for h in list.iter() {
+                                            for h in &list {
                                                 let name_bytes = h.name();
                                                 let value_bytes = h.value();
                                                 
                                                 // Check for :status pseudo-header
                                                 if name_bytes == b":status" {
-                                                    if let Ok(status_str) = std::str::from_utf8(value_bytes) {
-                                                        if let Ok(status_u16) = status_str.parse::<u16>() {
-                                                            if let Ok(parsed_status) = http::StatusCode::from_u16(status_u16) {
+                                                    if let Ok(status_str) = std::str::from_utf8(value_bytes)
+                                                        && let Ok(status_u16) = status_str.parse::<u16>()
+                                                            && let Ok(parsed_status) = http::StatusCode::from_u16(status_u16) {
                                                                 status_code = parsed_status;
                                                             }
-                                                        }
-                                                    }
                                                 } else {
                                                     // Regular headers (not pseudo-headers)
-                                                    if !name_bytes.starts_with(b":") {
-                                                        if let (Ok(name), Ok(value)) = (
+                                                    if !name_bytes.starts_with(b":")
+                                                        && let (Ok(name), Ok(value)) = (
                                                             http::HeaderName::from_bytes(name_bytes),
                                                             http::HeaderValue::from_bytes(value_bytes)
                                                         ) {
                                                             headers_map.insert(name, value);
                                                         }
-                                                    }
                                                 }
                                             }
                                             

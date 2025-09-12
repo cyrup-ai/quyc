@@ -15,6 +15,13 @@ pub struct RecursiveDescentEngine;
 
 impl RecursiveDescentEvaluator {
     /// Apply recursive descent to find all matching nodes
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Maximum recursion depth is exceeded during traversal
+    /// - Selector application fails on any descendant node
+    /// - Memory limits are exceeded while collecting results
+    /// - Invalid selector sequence is encountered during recursive processing
     pub fn apply_recursive_descent(
         value: &Value,
         remaining_selectors: &[crate::jsonpath::ast::JsonSelector],

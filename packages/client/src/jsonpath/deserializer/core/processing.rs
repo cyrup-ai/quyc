@@ -12,6 +12,14 @@ where
     T: DeserializeOwned,
 {
     /// Process single JSON byte and update parsing state
+    /// Process a single JSON byte according to current deserializer state
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Invalid JSON syntax is encountered
+    /// - State transitions fail due to malformed input
+    /// - Memory limits are exceeded during processing
+    /// - UTF-8 validation fails on string content
     #[inline]
     pub fn process_json_byte(
         &mut self,
@@ -161,6 +169,7 @@ where
     }
 
     /// Process byte when inside target array
+    #[allow(clippy::unnecessary_wraps)]
     pub(super) fn process_array_byte(
         &mut self,
         byte: u8,

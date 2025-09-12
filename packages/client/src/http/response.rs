@@ -509,7 +509,7 @@ impl HttpResponse {
     #[must_use] 
     pub fn from_http2_response(
         status: StatusCode,
-        headers: HeaderMap,
+        headers: &HeaderMap,
         body_stream: AsyncStream<HttpBodyChunk, 1024>,
         trailers_stream: AsyncStream<HttpHeader, 64>,
         stream_id: u64,
@@ -518,7 +518,7 @@ impl HttpResponse {
         let (headers_sender, headers_stream) = AsyncStream::channel();
 
         // Emit headers immediately
-        for (name, value) in &headers {
+        for (name, value) in headers {
             let http_header = HttpHeader {
                 name: name.clone(),
                 value: value.clone(),
@@ -546,7 +546,7 @@ impl HttpResponse {
     #[must_use] 
     pub fn from_http3_response(
         status: StatusCode,
-        headers: HeaderMap,
+        headers: &HeaderMap,
         body_stream: AsyncStream<HttpBodyChunk, 1024>,
         trailers_stream: AsyncStream<HttpHeader, 64>,
         stream_id: u64,
@@ -555,7 +555,7 @@ impl HttpResponse {
         let (headers_sender, headers_stream) = AsyncStream::channel();
 
         // Emit headers immediately
-        for (name, value) in &headers {
+        for (name, value) in headers {
             let http_header = HttpHeader {
                 name: name.clone(),
                 value: value.clone(),

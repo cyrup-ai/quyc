@@ -23,10 +23,34 @@ pub enum JsonProcessResult {
 
 /// Unified byte processing trait
 pub trait JsonByteProcessor {
+    /// Read the next byte from the input stream
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if the input stream encounters I/O errors or is corrupted
     fn read_next_byte(&mut self) -> JsonPathResult<Option<u8>>;
+    
+    /// Process a single JSON byte and return the processing result
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if the byte is invalid JSON or causes parsing errors
     fn process_json_byte(&mut self, byte: u8) -> JsonPathResult<JsonProcessResult>;
+    
+    /// Skip whitespace characters in the JSON stream
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if I/O errors occur while reading or invalid UTF-8 is encountered
     fn skip_whitespace(&mut self) -> JsonPathResult<()>;
+    
+    /// Read a JSON string value from the current position
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if string parsing fails, invalid escape sequences are found, or UTF-8 validation fails
     fn read_string(&mut self) -> JsonPathResult<String>;
+    
+    /// Read a JSON number value from the current position
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if number parsing fails or the numeric format is invalid
     fn read_number(&mut self) -> JsonPathResult<f64>;
 }
 

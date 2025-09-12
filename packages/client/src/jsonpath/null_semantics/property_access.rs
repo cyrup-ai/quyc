@@ -82,8 +82,7 @@ impl PropertyAccessResult {
     #[must_use] 
     pub fn is_present(&self) -> bool {
         match self {
-            PropertyAccessResult::NullValue => true, // null is present
-            PropertyAccessResult::Value(_) => true,  // non-null values are present
+            PropertyAccessResult::NullValue | PropertyAccessResult::Value(_) => true, // null and non-null values are present
             PropertyAccessResult::Missing => false,  // missing is not present
         }
     }

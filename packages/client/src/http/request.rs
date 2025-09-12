@@ -258,8 +258,8 @@ impl HttpRequestBuilder {
 
     /// Set the HTTP method
     #[must_use = "Request builder methods return a new request and should be used"]
-    pub fn method(mut self, method: Method) -> Self {
-        self.method = match method {
+    pub fn method(mut self, method: &Method) -> Self {
+        self.method = match *method {
             Method::POST => HttpMethod::Post,
             Method::PUT => HttpMethod::Put,
             Method::DELETE => HttpMethod::Delete,

@@ -93,6 +93,15 @@ fn has_weak_patterns(passphrase: &str) -> bool {
 }
 
 /// Encrypt private key data using AES-256-GCM authenticated encryption
+///
+/// # Errors
+///
+/// Returns `TlsError` if:
+/// - Environment passphrase validation fails
+/// - Random salt or nonce generation fails
+/// - PBKDF2 key derivation fails
+/// - AES-256-GCM encryption fails
+/// - Memory allocation fails during encryption
 pub async fn encrypt_private_key(key_pem: &str) -> Result<Vec<u8>, TlsError> {
     use ring::{aead, pbkdf2, rand};
 
@@ -141,6 +150,15 @@ pub async fn encrypt_private_key(key_pem: &str) -> Result<Vec<u8>, TlsError> {
 }
 
 /// Decrypt private key data using AES-256-GCM authenticated encryption
+///
+/// # Errors
+///
+/// Returns `TlsError` if:
+/// - Encrypted data is too short or corrupted
+/// - Environment passphrase validation fails
+/// - PBKDF2 key derivation fails
+/// - AES-256-GCM decryption fails or authentication tag is invalid
+/// - Decrypted data is invalid or corrupted
 pub async fn decrypt_private_key(encrypted_data: &[u8]) -> Result<SecureKeyMaterial, TlsError> {
     use ring::{aead, pbkdf2};
 

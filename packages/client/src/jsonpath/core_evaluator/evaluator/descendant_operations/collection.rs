@@ -67,6 +67,7 @@ impl DescendantOperations {
     }
 
     /// Collect descendants with path information
+    #[allow(clippy::needless_pass_by_value)]
     pub fn collect_descendants_with_paths(
         node: &Value,
         current_path: String,

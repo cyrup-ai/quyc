@@ -44,8 +44,9 @@ impl MetricsCollector {
     pub fn record_success(&self, response_time: Duration, bytes_sent: u64, bytes_received: u64) {
         self.total_requests.fetch_add(1, Ordering::Relaxed);
         self.successful_requests.fetch_add(1, Ordering::Relaxed);
+        let response_time_nanos = u64::try_from(response_time.as_nanos()).unwrap_or(u64::MAX);
         self.total_response_time_nanos
-            .fetch_add(response_time.as_nanos() as u64, Ordering::Relaxed);
+            .fetch_add(response_time_nanos, Ordering::Relaxed);
         self.total_bytes_sent
             .fetch_add(bytes_sent, Ordering::Relaxed);
         self.total_bytes_received
@@ -56,8 +57,9 @@ impl MetricsCollector {
     pub fn record_failure(&self, response_time: Duration) {
         self.total_requests.fetch_add(1, Ordering::Relaxed);
         self.failed_requests.fetch_add(1, Ordering::Relaxed);
+        let response_time_nanos = u64::try_from(response_time.as_nanos()).unwrap_or(u64::MAX);
         self.total_response_time_nanos
-            .fetch_add(response_time.as_nanos() as u64, Ordering::Relaxed);
+            .fetch_add(response_time_nanos, Ordering::Relaxed);
     }
 
     /// Get current metrics snapshot

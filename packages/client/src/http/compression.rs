@@ -33,7 +33,7 @@ use std::io::{Read, Write};
 use std::cell::RefCell;
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use flate2::{
     Compression as FlateCompression,
@@ -55,6 +55,29 @@ const MAX_BUFFER_SIZE: usize = 16 * 1024 * 1024;
 
 /// Minimum compression ratio to be considered worthwhile (1.05 = 5% improvement)
 const MIN_COMPRESSION_RATIO: f64 = 1.05;
+
+/// Maximum bytes to read during decompression to prevent memory exhaustion (64MB)
+const READ_LIMIT: usize = 64 * 1024 * 1024;
+
+/// Maximum safe integer in f64 is 2^53 - avoid precision loss
+const MAX_SAFE_F64_INT: u64 = 1u64 << 53;
+
+/// Content types that are already compressed and should not be compressed again
+static UNCOMPRESSIBLE_TYPES: &[&str] = &[
+    // Images
+    "image/jpeg", "image/png", "image/gif", "image/webp", "image/avif", "image/bmp",
+    // Video  
+    "video/mp4", "video/mpeg", "video/quicktime", "video/x-msvideo", "video/webm",
+    // Audio
+    "audio/mpeg", "audio/mp4", "audio/ogg", "audio/wav", "audio/webm",
+    // Archives
+    "application/zip", "application/gzip", "application/x-gzip", 
+    "application/x-compress", "application/x-bzip2", "application/x-xz",
+    // Binary formats
+    "application/pdf", "application/octet-stream",
+    // Already compressed
+    "application/x-br", "application/x-deflate",
+];
 
 thread_local! {
     /// Thread-local buffer pool for zero-allocation compression operations
@@ -238,7 +261,103 @@ pub fn compress_bytes(
 /// - Compression finalization fails due to data corruption or resource exhaustion
 /// - Unsupported compression level is specified for the algorithm
 /// - Telemetry recording fails due to system resource exhaustion
-#[inline]
+///
+/// Record compression attempt in statistics
+fn record_compression_attempt(data: &[u8], stats: Option<&crate::client::core::ClientStats>) {
+    if let Some(stats) = stats {
+        stats.compression_attempted.fetch_add(1, Ordering::Relaxed);
+        stats.bytes_before_compression.fetch_add(data.len() as u64, Ordering::Relaxed);
+    }
+}
+
+/// Execute compression with specified algorithm and level
+fn execute_compression(
+    data: &[u8],
+    algorithm: CompressionAlgorithm,
+    level: Option<u32>
+) -> Result<Vec<u8>, HttpError> {
+    match algorithm {
+        CompressionAlgorithm::Gzip => {
+            let compression_level = FlateCompression::new(level.unwrap_or(6));
+            compress_gzip(data, compression_level)
+        },
+        CompressionAlgorithm::Deflate => {
+            let compression_level = FlateCompression::new(level.unwrap_or(6));
+            compress_deflate(data, compression_level)
+        },
+        CompressionAlgorithm::Brotli => {
+            compress_with_brotli(data, level.unwrap_or(6))
+        },
+        CompressionAlgorithm::Identity => {
+            Ok(data.to_vec())
+        }
+    }
+}
+
+/// Calculate compression ratio with precision-safe arithmetic
+#[allow(clippy::cast_precision_loss)]
+fn calculate_compression_ratio(original_size: usize, compressed_size: usize) -> f64 {
+    if compressed_size == 0 {
+        return f64::INFINITY; // Avoid division by zero, treat as maximum compression
+    }
+    let max_safe_usize = usize::try_from(MAX_SAFE_F64_INT.min(usize::MAX as u64)).unwrap_or(usize::MAX);
+    if original_size > max_safe_usize || compressed_size > max_safe_usize {
+        // For very large sizes that might lose precision in f64, use integer comparison
+        tracing::debug!(
+            target: "quyc::compression",
+            original_size = original_size,
+            compressed_size = compressed_size,
+            "Using integer comparison for very large data sizes to avoid precision loss"
+        );
+        // If original is significantly larger than compressed, consider it worthwhile
+        if original_size >= compressed_size + (compressed_size / 20) { // At least 5% reduction
+            MIN_COMPRESSION_RATIO + 0.1 // Slightly above threshold
+        } else {
+            MIN_COMPRESSION_RATIO - 0.1 // Slightly below threshold
+        }
+    } else {
+        // Safe to convert to f64 without precision loss for smaller sizes
+        (original_size as f64) / (compressed_size as f64)
+    }
+}
+
+/// Record successful compression metrics
+fn record_compression_success(
+    compressed: &[u8],
+    compression_time: Duration,
+    stats: Option<&crate::client::core::ClientStats>
+) {
+    if let Some(stats) = stats {
+        stats.compression_applied.fetch_add(1, Ordering::Relaxed);
+        stats.bytes_after_compression.fetch_add(compressed.len() as u64, Ordering::Relaxed);
+        let compression_micros = compression_time.as_micros();
+        let compression_micros_u64 = if compression_micros > u128::from(u64::MAX) {
+            tracing::warn!(
+                target: "quyc::compression",
+                compression_micros = compression_micros,
+                max_u64 = u64::MAX,
+                "Compression time exceeds u64 limits, clamping to max"
+            );
+            u64::MAX
+        } else {
+            #[allow(clippy::cast_possible_truncation)]
+            {
+                compression_micros as u64
+            }
+        };
+        stats.compression_time_micros.fetch_add(compression_micros_u64, Ordering::Relaxed);
+    }
+}
+
+/// Compress bytes with metrics recording support
+///
+/// # Errors
+///
+/// Returns `HttpError` if:
+/// - Compression algorithm fails to process input data
+/// - Memory allocation fails during compression
+/// - Invalid compression level specified
+/// - I/O errors during compression operations
 #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
 #[must_use = "Compressed bytes should be used or errors should be handled"]
 pub fn compress_bytes_with_metrics(
@@ -258,78 +377,17 @@ pub fn compress_bytes_with_metrics(
     }
 
     let start_time = Instant::now();
+    record_compression_attempt(data, stats);
     
-    // Record compression attempt
-    if let Some(stats) = stats {
-        stats.compression_attempted.fetch_add(1, Ordering::Relaxed);
-        stats.bytes_before_compression.fetch_add(data.len() as u64, Ordering::Relaxed);
-    }
-    
-    let result = match algorithm {
-        CompressionAlgorithm::Gzip => {
-            let compression_level = FlateCompression::new(level.unwrap_or(6));
-            compress_gzip(data, compression_level)
-        },
-        CompressionAlgorithm::Deflate => {
-            let compression_level = FlateCompression::new(level.unwrap_or(6));
-            compress_deflate(data, compression_level)
-        },
-        CompressionAlgorithm::Brotli => {
-            compress_with_brotli(data, level.unwrap_or(6))
-        },
-        CompressionAlgorithm::Identity => {
-            Ok(data.to_vec())
-        }
-    };
+    let result = execute_compression(data, algorithm, level);
 
     match result {
         Ok(compressed) => {
             let compression_time = start_time.elapsed();
+            let ratio = calculate_compression_ratio(data.len(), compressed.len());
             
-            // Check if compression is worthwhile  
-            // Use safe precision-aware ratio calculation for large data sizes
-            let ratio = if compressed.is_empty() {
-                f64::INFINITY // Avoid division by zero, treat as maximum compression
-            } else if data.len() > (1u64 << 53) as usize || compressed.len() > (1u64 << 53) as usize {
-                // For very large sizes that might lose precision in f64, use integer comparison
-                tracing::debug!(
-                    target: "quyc::compression",
-                    original_size = data.len(),
-                    compressed_size = compressed.len(),
-                    "Using integer comparison for very large data sizes to avoid precision loss"
-                );
-                // If original is significantly larger than compressed, consider it worthwhile
-                if data.len() >= compressed.len() + (compressed.len() / 20) { // At least 5% reduction
-                    MIN_COMPRESSION_RATIO + 0.1 // Slightly above threshold
-                } else {
-                    MIN_COMPRESSION_RATIO - 0.1 // Slightly below threshold
-                }
-            } else {
-                // Safe to convert to f64 without precision loss for smaller sizes
-                (data.len() as f64) / (compressed.len() as f64)
-            };
             if ratio >= MIN_COMPRESSION_RATIO {
-                // Record successful compression metrics
-                if let Some(stats) = stats {
-                    stats.compression_applied.fetch_add(1, Ordering::Relaxed);
-                    stats.bytes_after_compression.fetch_add(compressed.len() as u64, Ordering::Relaxed);
-                    let compression_micros = compression_time.as_micros();
-                    let compression_micros_u64 = if compression_micros > u128::from(u64::MAX) {
-                        tracing::warn!(
-                            target: "quyc::compression",
-                            compression_micros = compression_micros,
-                            max_u64 = u64::MAX,
-                            "Compression time exceeds u64 limits, clamping to max"
-                        );
-                        u64::MAX
-                    } else {
-                        #[allow(clippy::cast_possible_truncation)]
-                        {
-                            compression_micros as u64
-                        }
-                    };
-                    stats.compression_time_micros.fetch_add(compression_micros_u64, Ordering::Relaxed);
-                }
+                record_compression_success(&compressed, compression_time, stats);
                 
                 tracing::debug!(
                     target: "quyc::compression",
@@ -551,7 +609,6 @@ fn decompress_gzip(data: &[u8]) -> Result<Vec<u8>, HttpError> {
     
     let mut decoder = GzDecoder::new(std::io::Cursor::new(data));
     let mut total_read = 0;
-    const READ_LIMIT: usize = 64 * 1024 * 1024; // 64MB limit
     
     loop {
         // Ensure we have space to read
@@ -592,7 +649,6 @@ fn decompress_deflate(data: &[u8]) -> Result<Vec<u8>, HttpError> {
     
     let mut decoder = DeflateDecoder::new(std::io::Cursor::new(data));
     let mut total_read = 0;
-    const READ_LIMIT: usize = 64 * 1024 * 1024; // 64MB limit
     
     loop {
         // Ensure we have space to read
@@ -633,7 +689,7 @@ fn compress_with_brotli(data: &[u8], level: u32) -> Result<Vec<u8>, HttpError> {
     
     let cursor = std::io::Cursor::new(data);
     let params = brotli::enc::BrotliEncoderParams {
-        quality: level.min(11) as i32,
+        quality: i32::try_from(level.min(11)).unwrap_or(6),
         lgwin: 22, // 4MB window
         mode: BrotliEncoderMode::BROTLI_MODE_GENERIC,
         size_hint: data.len(),
@@ -667,7 +723,6 @@ fn decompress_with_brotli(data: &[u8]) -> Result<Vec<u8>, HttpError> {
     let mut decoder = BrotliDecoder::new(cursor, DEFAULT_BUFFER_SIZE);
     
     let mut total_read = 0;
-    const READ_LIMIT: usize = 64 * 1024 * 1024; // 64MB limit
     
     loop {
         if output_buffer.len() == output_buffer.capacity() {
@@ -895,21 +950,6 @@ pub fn should_compress_content_type(content_type: Option<&str>, config: &HttpCon
     }
 
     // Skip compression for already-compressed formats
-    static UNCOMPRESSIBLE_TYPES: &[&str] = &[
-        // Images
-        "image/jpeg", "image/png", "image/gif", "image/webp", "image/avif", "image/bmp",
-        // Video  
-        "video/mp4", "video/mpeg", "video/quicktime", "video/x-msvideo", "video/webm",
-        // Audio
-        "audio/mpeg", "audio/mp4", "audio/ogg", "audio/wav", "audio/webm",
-        // Archives
-        "application/zip", "application/gzip", "application/x-gzip", 
-        "application/x-compress", "application/x-bzip2", "application/x-xz",
-        // Binary formats
-        "application/pdf", "application/octet-stream",
-        // Already compressed
-        "application/x-br", "application/x-deflate",
-    ];
 
     // Use binary search for efficient lookup (types are sorted)
     UNCOMPRESSIBLE_TYPES.binary_search(&content_type).is_err()

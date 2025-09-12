@@ -121,7 +121,7 @@ impl RetryPolicy {
             delay_calc.min(self.max_delay_ms as f64)
         } else {
             // Safe to use f64 for smaller delay values
-            let base_calc = (self.initial_delay_ms as f64) * self.backoff_multiplier.powi((attempt - 1) as i32);
+            let base_calc = (self.initial_delay_ms as f64) * self.backoff_multiplier.powi(i32::try_from(attempt - 1).unwrap_or(i32::MAX));
             base_calc.min(self.max_delay_ms as f64)
         };
         
@@ -145,14 +145,14 @@ impl RetryPolicy {
     #[must_use] 
     pub fn is_retryable_error(&self, error: &HttpError) -> bool {
         match &error.inner.kind {
-            crate::error::types::Kind::Request => true,      // Request errors may be transient
+            crate::error::types::Kind::Request |      // Request errors may be transient
+            crate::error::types::Kind::Connect |      // Connection failures are retryable
+            crate::error::types::Kind::Timeout |      // Timeout errors are retryable
+            crate::error::types::Kind::Stream => true, // Stream errors may be retryable
             crate::error::types::Kind::Status(status, _) => {
                 // Retry on server errors (5xx) and some client errors (429)
                 status.as_u16() >= 500 || status.as_u16() == 429
             }
-            crate::error::types::Kind::Connect => true, // Connection failures are retryable
-            crate::error::types::Kind::Timeout => true, // Timeout errors are retryable
-            crate::error::types::Kind::Stream => true, // Stream errors may be retryable
             // All other error types are not retryable
             crate::error::types::Kind::Builder 
             | crate::error::types::Kind::Redirect 

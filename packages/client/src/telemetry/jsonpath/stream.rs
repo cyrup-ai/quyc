@@ -9,7 +9,7 @@ impl ProcessorStats {
     pub fn new() -> Self {
         let now_micros = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_micros() as u64)
+            .map(|d| u64::try_from(d.as_micros()).unwrap_or(u64::MAX))
             .unwrap_or(0);
 
         Self {
@@ -28,7 +28,7 @@ impl ProcessorStats {
     pub fn snapshot(&self) -> ProcessorStatsSnapshot {
         let now_micros = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_micros() as u64)
+            .map(|d| u64::try_from(d.as_micros()).unwrap_or(u64::MAX))
             .unwrap_or(0);
 
         let start_time = self.start_time.load(Ordering::Relaxed);
@@ -100,7 +100,7 @@ impl ProcessorStats {
     pub fn update_last_process_time(&self) {
         let now_micros = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_micros() as u64)
+            .map(|d| u64::try_from(d.as_micros()).unwrap_or(u64::MAX))
             .unwrap_or(0);
         self.last_process_time.store(now_micros, Ordering::Relaxed);
     }

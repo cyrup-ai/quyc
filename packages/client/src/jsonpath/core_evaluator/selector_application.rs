@@ -9,6 +9,13 @@ use crate::jsonpath::parser::JsonSelector;
 
 impl CoreJsonPathEvaluator {
     /// Apply a single selector to a JSON value
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Selector type is not supported or invalid
+    /// - Array index operations fail due to invalid indices
+    /// - Property access fails on non-object values
+    /// - Filter evaluation encounters errors during processing
     #[allow(clippy::cast_possible_truncation)]
     pub fn apply_selector_to_value(
         &self,
@@ -37,7 +44,8 @@ impl CoreJsonPathEvaluator {
                 // Array index access
                 match value {
                     Value::Array(arr) => {
-                        let len = arr.len() as i64;
+                        // Safe conversion: array lengths are always non-negative
+                        let len = i64::try_from(arr.len()).unwrap_or(i64::MAX);
                         let actual_index = if index < &0 {
                             // Negative indexing from end
                             len + index
@@ -45,9 +53,16 @@ impl CoreJsonPathEvaluator {
                             *index
                         };
 
-                        if actual_index >= 0 && (actual_index as usize) < arr.len() {
-                            // Safe cast: actual_index >= 0 check ensures non-negative value
-                            Ok(vec![arr[actual_index as usize].clone()])
+                        if actual_index >= 0 {
+                            if let Ok(idx) = usize::try_from(actual_index) {
+                                if idx < arr.len() {
+                                    Ok(vec![arr[idx].clone()])
+                                } else {
+                                    Ok(vec![])
+                                }
+                            } else {
+                                Ok(vec![])
+                            }
                         } else {
                             Ok(vec![])
                         }
@@ -59,7 +74,7 @@ impl CoreJsonPathEvaluator {
                 // Array slice access
                 match value {
                     Value::Array(arr) => {
-                        let len = arr.len() as i64;
+                        let len = i64::try_from(arr.len()).unwrap_or(i64::MAX);
                         let mut results = Vec::new();
 
                         // Normalize slice parameters
@@ -79,8 +94,12 @@ impl CoreJsonPathEvaluator {
                         while (step_size > 0 && current < end_idx && current < len)
                             || (step_size < 0 && current > end_idx && current >= 0)
                         {
-                            if current >= 0 && (current as usize) < arr.len() {
-                                results.push(arr[current as usize].clone());
+                            if current >= 0 {
+                                // Safe conversion: current >= 0 check ensures non-negative value
+                                if let Ok(current_usize) = usize::try_from(current)
+                                    && current_usize < arr.len() {
+                                        results.push(arr[current_usize].clone());
+                                    }
                             }
                             current += step_size;
                         }

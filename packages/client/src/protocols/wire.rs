@@ -312,10 +312,10 @@ impl H2FrameParser {
                 };
                 offset += bytes_read;
                 
-                #[allow(clippy::cast_possible_truncation)]
-                if let Some((name, value)) = static_table.get(&(index as usize)) {
-                    headers.insert(name.clone(), value.clone());
-                }
+                if let Ok(index_usize) = usize::try_from(index)
+                    && let Some((name, value)) = static_table.get(&index_usize) {
+                        headers.insert(name.clone(), value.clone());
+                    }
             } else if first_byte & 0x40 == 0x40 {
                 // Literal Header Field with Incremental Indexing (01xxxxxx)
                 let (name_index, bytes_read) = match Self::decode_hpack_integer(payload, offset, 6) {
@@ -335,9 +335,9 @@ impl H2FrameParser {
                     }
                 } else {
                     // Name from static table
-                    static_table.get(&(name_index as usize))
-                        .map(|(n, _)| n.clone())
-                        .unwrap_or_else(|| "unknown".to_string())
+                    usize::try_from(name_index).ok()
+                        .and_then(|idx| static_table.get(&idx))
+                        .map_or_else(|| "unknown".to_string(), |(n, _)| n.clone())
                 };
                 
                 // Decode value
@@ -376,9 +376,9 @@ impl H2FrameParser {
                     }
                 } else {
                     // Name from static table
-                    static_table.get(&(name_index as usize))
-                        .map(|(n, _)| n.clone())
-                        .unwrap_or_else(|| "unknown".to_string())
+                    usize::try_from(name_index).ok()
+                        .and_then(|idx| static_table.get(&idx))
+                        .map_or_else(|| "unknown".to_string(), |(n, _)| n.clone())
                 };
                 
                 // Decode value
@@ -402,7 +402,8 @@ impl H2FrameParser {
         }
         
         let mask = (1u64 << prefix_bits) - 1;
-        let mut value = u64::from(data[offset] & mask as u8);
+        let mask_u8 = u8::try_from(mask).unwrap_or(0xFF); // mask is always ≤ 255 for valid prefix_bits
+        let mut value = u64::from(data[offset] & mask_u8);
         let mut bytes_read = 1;
         
         if value < mask {
@@ -443,13 +444,12 @@ impl H2FrameParser {
         let huffman = data[0] & 0x80 == 0x80;
         let (length, length_bytes) = Self::decode_hpack_integer(data, 0, 7)?;
         
-        #[allow(clippy::cast_possible_truncation)]
-        if length_bytes + length as usize > data.len() {
+        let length_usize = usize::try_from(length).map_err(|_| "String length too large".to_string())?;
+        if length_bytes + length_usize > data.len() {
             return Err("String length exceeds data".to_string());
         }
         
-        #[allow(clippy::cast_possible_truncation)]
-        let string_data = &data[length_bytes..length_bytes + length as usize];
+        let string_data = &data[length_bytes..length_bytes + length_usize];
         
         let decoded = if huffman {
             // Simplified Huffman decoding - just return as-is for now
@@ -574,19 +574,23 @@ impl H2FrameParser {
         let mask = (1u64 << prefix_bits) - 1;
         
         if value < mask {
-            buffer.push(first_byte | value as u8);
+            let value_u8 = u8::try_from(value).unwrap_or(0); // value < mask ≤ 255
+            buffer.push(first_byte | value_u8);
             return;
         }
         
-        buffer.push(first_byte | mask as u8);
+        let mask_u8 = u8::try_from(mask).unwrap_or(0xFF); // mask is always ≤ 255 for valid prefix_bits
+        buffer.push(first_byte | mask_u8);
         value -= mask;
         
         while value >= 128 {
-            buffer.push(0x80 | (value as u8));
+            let value_low_u8 = u8::try_from(value & 0x7F).unwrap_or(0); // Only low 7 bits
+            buffer.push(0x80 | value_low_u8);
             value >>= 7;
         }
         
-        buffer.push(value as u8);
+        let final_value_u8 = u8::try_from(value).unwrap_or(0); // value < 128
+        buffer.push(final_value_u8);
     }
     
     /// Encode HPACK string (without Huffman for simplicity)
@@ -854,10 +858,12 @@ impl H3FrameParser {
     /// Write varint to buffer
     fn write_varint(buffer: &mut Vec<u8>, mut value: u64) {
         while value >= 0x80 {
-            buffer.push((value as u8) | 0x80);
+            let value_low_u8 = u8::try_from(value & 0x7F).unwrap_or(0); // Only low 7 bits
+            buffer.push(value_low_u8 | 0x80);
             value >>= 7;
         }
-        buffer.push(value as u8);
+        let final_value_u8 = u8::try_from(value).unwrap_or(0); // value < 0x80
+        buffer.push(final_value_u8);
     }
 
     /// Parse H3 settings
@@ -909,10 +915,10 @@ impl H3FrameParser {
         let mut name_index_map = HashMap::new();
         
         for (index, (name, value)) in &static_table {
-            if !value.is_empty() {
-                exact_match_map.insert((name.clone(), value.clone()), *index);
-            } else {
+            if value.is_empty() {
                 name_index_map.insert(name.clone(), *index);
+            } else {
+                exact_match_map.insert((name.clone(), value.clone()), *index);
             }
         }
         
@@ -941,19 +947,23 @@ impl H3FrameParser {
         let mask = (1u64 << prefix_bits) - 1;
         
         if value < mask {
-            buffer.push(first_byte | value as u8);
+            let value_u8 = u8::try_from(value).unwrap_or(0); // value < mask ≤ 255
+            buffer.push(first_byte | value_u8);
             return;
         }
         
-        buffer.push(first_byte | mask as u8);
+        let mask_u8 = u8::try_from(mask).unwrap_or(0xFF); // mask is always ≤ 255 for valid prefix_bits
+        buffer.push(first_byte | mask_u8);
         value -= mask;
         
         while value >= 128 {
-            buffer.push(0x80 | (value as u8));
+            let value_low_u8 = u8::try_from(value & 0x7F).unwrap_or(0); // Only low 7 bits
+            buffer.push(0x80 | value_low_u8);
             value >>= 7;
         }
         
-        buffer.push(value as u8);
+        let final_value_u8 = u8::try_from(value).unwrap_or(0); // value < 128
+        buffer.push(final_value_u8);
     }
     
     /// Encode QPACK string (without Huffman for simplicity)
@@ -1006,9 +1016,10 @@ impl H3FrameParser {
                 
                 if static_bit {
                     // Static table
-                    if let Some((name, value)) = static_table.get(&(index as usize)) {
-                        headers.push((name.clone(), value.clone()));
-                    }
+                    if let Ok(index_usize) = usize::try_from(index)
+                        && let Some((name, value)) = static_table.get(&index_usize) {
+                            headers.push((name.clone(), value.clone()));
+                        }
                 } else {
                     // Dynamic table - simplified handling
                     headers.push(("x-dynamic".to_string(), format!("index-{index}")));
@@ -1024,9 +1035,9 @@ impl H3FrameParser {
                 
                 let name = if static_bit && name_index > 0 {
                     // Name from static table
-                    static_table.get(&(name_index as usize))
-                        .map(|(n, _)| n.clone())
-                        .unwrap_or_else(|| "unknown".to_string())
+                    usize::try_from(name_index).ok()
+                        .and_then(|idx| static_table.get(&idx))
+                        .map_or_else(|| "unknown".to_string(), |(n, _)| n.clone())
                 } else {
                     format!("dynamic-name-{name_index}")
                 };
@@ -1082,7 +1093,8 @@ impl H3FrameParser {
         }
         
         let mask = (1u64 << prefix_bits) - 1;
-        let mut value = u64::from(data[offset] & mask as u8);
+        let mask_u8 = u8::try_from(mask).unwrap_or(0xFF); // mask is always ≤ 255 for valid prefix_bits
+        let mut value = u64::from(data[offset] & mask_u8);
         let mut bytes_read = 1;
         
         if value < mask {
@@ -1123,11 +1135,12 @@ impl H3FrameParser {
         let huffman = data[0] & 0x80 == 0x80;
         let (length, length_bytes) = Self::decode_qpack_integer(data, 0, 7)?;
         
-        if length_bytes + length as usize > data.len() {
+        let length_usize = usize::try_from(length).map_err(|_| "String length too large".to_string())?;
+        if length_bytes + length_usize > data.len() {
             return Err("String length exceeds data".to_string());
         }
         
-        let string_data = &data[length_bytes..length_bytes + length as usize];
+        let string_data = &data[length_bytes..length_bytes + length_usize];
         
         let decoded = if huffman {
             // RFC 9204 QPACK Huffman decoding - uses HPACK Huffman tables from RFC 7541
@@ -1137,7 +1150,7 @@ impl H3FrameParser {
             String::from_utf8_lossy(string_data).to_string()
         };
         
-        Ok((decoded, length_bytes + length as usize))
+        Ok((decoded, length_bytes + length_usize))
     }
     
     /// Decode QPACK/HPACK Huffman-encoded string per RFC 7541 Appendix B
@@ -1208,7 +1221,7 @@ impl H3FrameParser {
         Err(format!("Invalid Huffman code at bit position {}", *bit_pos))
     }
     
-    /// Read specified number of bits from data starting at bit_pos
+    /// Read specified number of bits from data starting at `bit_pos`
     fn read_bits(data: &[u8], bit_pos: usize, num_bits: usize) -> Result<u32, String> {
         if num_bits == 0 || num_bits > 32 {
             return Err("Invalid bit count for read_bits".to_string());
@@ -1225,7 +1238,7 @@ impl H3FrameParser {
             }
             
             let bit = (data[byte_idx] >> (7 - bit_idx)) & 1;
-            result = (result << 1) | (bit as u32);
+            result = (result << 1) | u32::from(bit);
         }
         
         Ok(result)
@@ -1458,17 +1471,20 @@ pub struct WireProtocol;
 
 impl WireProtocol {
     /// Parse HPACK headers from byte payload
+    #[must_use] 
     pub fn parse_hpack_headers(payload: &[u8]) -> HashMap<String, String> {
         H2FrameParser::parse_hpack_headers(payload)
     }
     
     /// Parse QPACK headers from byte payload  
+    #[must_use] 
     pub fn parse_qpack_headers(payload: &[u8]) -> HashMap<String, String> {
         let headers_vec = H3FrameParser::parse_qpack_headers(payload);
         headers_vec.into_iter().collect()
     }
     
     /// Serialize HPACK headers to byte payload
+    #[must_use] 
     pub fn serialize_hpack_headers(headers: &HashMap<String, String>) -> Vec<u8> {
         let headers_vec: Vec<(String, String)> = headers.iter()
             .map(|(k, v)| (k.clone(), v.clone())).collect();
@@ -1476,24 +1492,45 @@ impl WireProtocol {
     }
     
     /// Serialize QPACK headers to byte payload
+    #[must_use] 
     pub fn serialize_qpack_headers(headers: &HashMap<String, String>) -> Vec<u8> {
         H3FrameParser::serialize_qpack_headers(headers)  
     }
     
     /// Decode HPACK integer with specified prefix bits
+    ///
+    /// # Errors
+    ///
+    /// Returns `String` error if:
+    /// - HPACK integer decoding fails due to invalid encoding
+    /// - Payload buffer is too short for the integer representation
+    /// - Prefix bits value is invalid or unsupported
     pub fn decode_integer(payload: &[u8], offset: usize, prefix_bits: u8) -> Result<(u64, usize), String> {
         H2FrameParser::decode_hpack_integer(payload, offset, prefix_bits.into())
     }
     
     /// Decode QPACK integer with specified prefix bits
+    ///
+    /// # Errors
+    ///
+    /// Returns `String` error if:
+    /// - QPACK integer decoding fails due to invalid encoding
+    /// - Payload buffer is too short for the integer representation  
+    /// - Prefix bits value is invalid or unsupported
     pub fn decode_qpack_integer(payload: &[u8], offset: usize, prefix_bits: u8) -> Result<(u64, usize), String> {
         H3FrameParser::decode_qpack_integer(payload, offset, prefix_bits.into())
     }
     
     /// Decode HPACK string (with or without Huffman encoding)
+    ///
+    /// # Errors
+    ///
+    /// Returns `String` error if:
+    /// - HPACK string decoding fails due to invalid encoding
+    /// - Huffman decoding fails for compressed strings
+    /// - Payload buffer is too short or corrupted
     pub fn decode_string(payload: &[u8], offset: usize) -> Result<(String, usize), String> {
         H2FrameParser::decode_hpack_string(&payload[offset..])
-            .map(|(s, len)| (s, len))
     }
 }
 

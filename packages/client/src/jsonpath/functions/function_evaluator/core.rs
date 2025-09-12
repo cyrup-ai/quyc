@@ -11,6 +11,13 @@ pub struct FunctionEvaluator;
 
 impl FunctionEvaluator {
     /// Evaluate function calls to get their actual values (RFC 9535 Section 2.4)
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Function name is not recognized or supported
+    /// - Function arguments fail evaluation or validation
+    /// - Function execution encounters runtime errors
+    /// - Argument types are incompatible with function requirements
     #[inline]
     pub fn evaluate_function_value(
         context: &serde_json::Value,

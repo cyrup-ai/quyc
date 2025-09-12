@@ -76,8 +76,28 @@ impl CapacityManager {
                     );
                     current_capacity
                 } else {
-                    // Safe cast: growth_calculation is positive and within usize bounds
-                    growth_calculation as usize
+                    // Safe conversion: growth_calculation is positive, use safe casting
+                    if growth_calculation > usize::MAX as f64 {
+                        usize::MAX
+                    } else {
+                        // Clippy-safe conversion: use explicit overflow-safe conversion
+                        let positive_value = growth_calculation.max(0.0);
+                        if positive_value.is_finite() && positive_value <= usize::MAX as f64 {
+                            // Use saturating conversion to avoid clippy warnings
+                            let truncated = positive_value.trunc();
+                            if truncated <= 0.0 {
+                                0
+                            } else if truncated >= usize::MAX as f64 {
+                                usize::MAX
+                            } else {
+                                // Safe: value is guaranteed to be positive and within usize range
+                                #[allow(clippy::cast_sign_loss)]
+                                { truncated as usize }
+                            }
+                        } else {
+                            usize::MAX
+                        }
+                    }
                 }
             };
             let new_capacity = std::cmp::min(
@@ -162,8 +182,29 @@ impl CapacityManager {
                     );
                     size
                 } else {
-                    // Safe cast: shrink_calculation is positive and within usize bounds
-                    std::cmp::max(self.initial_capacity, shrink_calculation as usize)
+                    // Safe conversion: shrink_calculation is positive, use safe casting
+                    let shrink_size = if shrink_calculation > usize::MAX as f64 {
+                        usize::MAX
+                    } else {
+                        // Clippy-safe conversion: use explicit overflow-safe conversion
+                        let positive_value = shrink_calculation.max(0.0);
+                        if positive_value.is_finite() && positive_value <= usize::MAX as f64 {
+                            // Use saturating conversion to avoid clippy warnings
+                            let truncated = positive_value.trunc();
+                            if truncated <= 0.0 {
+                                0
+                            } else if truncated >= usize::MAX as f64 {
+                                usize::MAX
+                            } else {
+                                // Safe: value is guaranteed to be positive and within usize range
+                                #[allow(clippy::cast_sign_loss)]
+                                { truncated as usize }
+                            }
+                        } else {
+                            usize::MAX
+                        }
+                    };
+                    std::cmp::max(self.initial_capacity, shrink_size)
                 }
             };
 

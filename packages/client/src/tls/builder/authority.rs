@@ -7,6 +7,8 @@ use std::time::{Duration, SystemTime};
 use serde::{Deserialize, Serialize};
 
 use crate::tls::errors::TlsError;
+use crate::tls::types::ParsedCertificate;
+use crate::tls::certificate::parse_certificate_from_pem;
 use super::responses::{CertificateAuthorityResponse, CaOperation};
 
 /// Format a distinguished name `HashMap` into a string representation
@@ -440,160 +442,109 @@ pub struct AuthorityKeychainBuilder {
 impl AuthorityKeychainBuilder {
     /// Load certificate authority from system keychain
     pub async fn load(self) -> super::responses::CertificateAuthorityResponse {
-        use std::time::SystemTime;
-        use crate::tls::certificate::parse_certificate_from_pem;
         
         tracing::debug!("Loading CA '{}' from system keychain", self.name);
         
-        // Use fluent-ai service pattern for keychain access
         let service_name = "fluent-ai-http3";
         let cert_key_id = format!("ca-cert-{}", self.name);
         let private_key_id = format!("ca-key-{}", self.name);
         
-        // Create keychain entry for certificate
-        let cert_entry = match keyring::Entry::new(service_name, &cert_key_id) {
+        // Create keychain entries
+        let cert_entry = match Self::create_keychain_entry(service_name, &cert_key_id) {
             Ok(entry) => entry,
-            Err(e) => {
-                return super::responses::CertificateAuthorityResponse {
-                    success: false,
-                    authority: None,
-                    operation: super::responses::CaOperation::LoadFailed,
-                    issues: vec![format!("Failed to create keychain entry for certificate: {}", e)],
-                    files_created: vec![],
-                };
-            }
+            Err(msg) => return Self::load_failed_response(msg),
         };
         
-        // Create keychain entry for private key
-        let key_entry = match keyring::Entry::new(service_name, &private_key_id) {
+        let key_entry = match Self::create_keychain_entry(service_name, &private_key_id) {
             Ok(entry) => entry,
-            Err(e) => {
-                return super::responses::CertificateAuthorityResponse {
-                    success: false,
-                    authority: None,
-                    operation: super::responses::CaOperation::LoadFailed,
-                    issues: vec![format!("Failed to create keychain entry for private key: {}", e)],
-                    files_created: vec![],
-                };
-            }
+            Err(msg) => return Self::load_failed_response(msg),
         };
         
-        // Retrieve certificate from keychain
-        let (tx, rx) = std::sync::mpsc::channel();
-        std::thread::spawn(move || {
-            let result = cert_entry.get_password();
-            let _ = tx.send(result);
-        });
-        
-        let cert_pem = match rx.recv() {
-            Ok(Ok(pem)) => pem,
-            Ok(Err(keyring::Error::NoEntry)) => {
-                return super::responses::CertificateAuthorityResponse {
-                    success: false,
-                    authority: None,
-                    operation: super::responses::CaOperation::LoadFailed,
-                    issues: vec![format!("Certificate for CA '{}' not found in keychain", self.name)],
-                    files_created: vec![],
-                };
-            }
-            Ok(Err(e)) => {
-                return super::responses::CertificateAuthorityResponse {
-                    success: false,
-                    authority: None,
-                    operation: super::responses::CaOperation::LoadFailed,
-                    issues: vec![format!("Failed to retrieve certificate from keychain: {}", e)],
-                    files_created: vec![],
-                };
-            }
-            Err(e) => {
-                return super::responses::CertificateAuthorityResponse {
-                    success: false,
-                    authority: None,
-                    operation: super::responses::CaOperation::LoadFailed,
-                    issues: vec![format!("Keychain operation failed: {}", e)],
-                    files_created: vec![],
-                };
-            }
+        // Retrieve certificate and private key from keychain
+        let cert_pem = match Self::retrieve_from_keychain(cert_entry, &format!("Certificate for CA '{}'", self.name)) {
+            Ok(pem) => pem,
+            Err(msg) => return Self::load_failed_response(msg),
         };
         
-        // Retrieve private key from keychain
-        let (tx, rx) = std::sync::mpsc::channel();
-        std::thread::spawn(move || {
-            let result = key_entry.get_password();
-            let _ = tx.send(result);
-        });
-        
-        let key_pem = match rx.recv() {
-            Ok(Ok(pem)) => pem,
-            Ok(Err(keyring::Error::NoEntry)) => {
-                return super::responses::CertificateAuthorityResponse {
-                    success: false,
-                    authority: None,
-                    operation: super::responses::CaOperation::LoadFailed,
-                    issues: vec![format!("Private key for CA '{}' not found in keychain", self.name)],
-                    files_created: vec![],
-                };
-            }
-            Ok(Err(e)) => {
-                return super::responses::CertificateAuthorityResponse {
-                    success: false,
-                    authority: None,
-                    operation: super::responses::CaOperation::LoadFailed,
-                    issues: vec![format!("Failed to retrieve private key from keychain: {}", e)],
-                    files_created: vec![],
-                };
-            }
-            Err(e) => {
-                return super::responses::CertificateAuthorityResponse {
-                    success: false,
-                    authority: None,
-                    operation: super::responses::CaOperation::LoadFailed,
-                    issues: vec![format!("Keychain operation failed: {}", e)],
-                    files_created: vec![],
-                };
-            }
+        let key_pem = match Self::retrieve_from_keychain(key_entry, &format!("Private key for CA '{}'", self.name)) {
+            Ok(pem) => pem,
+            Err(msg) => return Self::load_failed_response(msg),
         };
         
-        // Parse certificate to extract metadata
+        // Parse and validate certificate
         let parsed_cert = match parse_certificate_from_pem(&cert_pem) {
             Ok(cert) => cert,
-            Err(e) => {
-                return super::responses::CertificateAuthorityResponse {
-                    success: false,
-                    authority: None,
-                    operation: super::responses::CaOperation::LoadFailed,
-                    issues: vec![format!("Failed to parse certificate from keychain: {}", e)],
-                    files_created: vec![],
-                };
-            }
+            Err(e) => return Self::load_failed_response(format!("Failed to parse certificate from keychain: {e}")),
         };
         
-        // Validate that this is actually a CA certificate
-        if !parsed_cert.is_ca {
-            return super::responses::CertificateAuthorityResponse {
-                success: false,
-                authority: None,
-                operation: super::responses::CaOperation::LoadFailed,
-                issues: vec![format!("Certificate for '{}' is not a Certificate Authority", self.name)],
-                files_created: vec![],
-            };
+        if let Err(msg) = Self::validate_ca_certificate(&parsed_cert, &self.name) {
+            return Self::load_failed_response(msg);
         }
         
-        // Check certificate validity
+        // Create the CA object with metadata
+        let authority = Self::build_certificate_authority(self.name.clone(), cert_pem, key_pem, &parsed_cert);
+        
+        tracing::info!("Successfully loaded CA '{}' from keychain (valid until: {:?})", 
+                      self.name, parsed_cert.not_after);
+        
+        super::responses::CertificateAuthorityResponse {
+            success: true,
+            authority: Some(authority),
+            operation: super::responses::CaOperation::Loaded,
+            issues: vec![],
+            files_created: vec![],
+        }
+    }
+    
+    /// Create keychain entry with error handling
+    fn create_keychain_entry(service_name: &str, key_id: &str) -> Result<keyring::Entry, String> {
+        keyring::Entry::new(service_name, key_id)
+            .map_err(|e| format!("Failed to create keychain entry for '{key_id}': {e}"))
+    }
+    
+    /// Retrieve data from keychain with threaded access
+    fn retrieve_from_keychain(entry: keyring::Entry, description: &str) -> Result<String, String> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let result = entry.get_password();
+            let _ = tx.send(result);
+        });
+        
+        match rx.recv() {
+            Ok(Ok(pem)) => Ok(pem),
+            Ok(Err(keyring::Error::NoEntry)) => Err(format!("{description} not found in keychain")),
+            Ok(Err(e)) => Err(format!("Failed to retrieve {description}: {e}")),
+            Err(e) => Err(format!("Keychain operation failed: {e}")),
+        }
+    }
+    
+    /// Validate that certificate is a valid CA
+    fn validate_ca_certificate(parsed_cert: &ParsedCertificate, name: &str) -> Result<(), String> {
+        use std::time::SystemTime;
+        
+        if !parsed_cert.is_ca {
+            return Err(format!("Certificate for '{name}' is not a Certificate Authority"));
+        }
+        
         let now = SystemTime::now();
         if now < parsed_cert.not_before || now > parsed_cert.not_after {
-            return super::responses::CertificateAuthorityResponse {
-                success: false,
-                authority: None,
-                operation: super::responses::CaOperation::LoadFailed,
-                issues: vec![format!("Certificate Authority '{}' has expired or is not yet valid", self.name)],
-                files_created: vec![],
-            };
+            return Err(format!("Certificate Authority '{name}' has expired or is not yet valid"));
         }
         
-        // Create the CA object
-        let authority = CertificateAuthority {
-            name: self.name.clone(),
+        Ok(())
+    }
+    
+    /// Build `CertificateAuthority` object from parsed certificate
+    fn build_certificate_authority(
+        name: String, 
+        cert_pem: String, 
+        key_pem: String, 
+        parsed_cert: &ParsedCertificate
+    ) -> CertificateAuthority {
+        use std::time::SystemTime;
+        
+        CertificateAuthority {
+            name,
             certificate_pem: cert_pem,
             private_key_pem: key_pem,
             metadata: CaMetadata {
@@ -607,16 +558,16 @@ impl AuthorityKeychainBuilder {
                 created_at: SystemTime::now(),
                 source: CaSource::Keychain,
             },
-        };
-        
-        tracing::info!("Successfully loaded CA '{}' from keychain (valid until: {:?})", 
-                      self.name, parsed_cert.not_after);
-        
+        }
+    }
+    
+    /// Create a load failed response with consistent formatting
+    fn load_failed_response(issue: String) -> super::responses::CertificateAuthorityResponse {
         super::responses::CertificateAuthorityResponse {
-            success: true,
-            authority: Some(authority),
-            operation: super::responses::CaOperation::Loaded,
-            issues: vec![],
+            success: false,
+            authority: None,
+            operation: super::responses::CaOperation::LoadFailed,
+            issues: vec![issue],
             files_created: vec![],
         }
     }

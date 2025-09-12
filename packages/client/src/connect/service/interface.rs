@@ -18,7 +18,7 @@ impl ConnectorService {
             spawn_task(move || {
                 let connection_stream =
                     if let Some(_proxy) = connector_service.intercepted.matching(&dst) {
-                        connector_service.connect_via_proxy(dst, "proxy")
+                        connector_service.connect_via_proxy(&dst, "proxy")
                     } else {
                         connector_service.connect_with_maybe_proxy(&dst, false)
                     };

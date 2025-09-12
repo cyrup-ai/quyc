@@ -38,7 +38,7 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Evaluate filter expression on array item
-    #[allow(clippy::unused_self)]
+    #[allow(clippy::unused_self, clippy::unnecessary_wraps)]
     fn evaluate_filter_on_item(
         &self,
         item: &Value,

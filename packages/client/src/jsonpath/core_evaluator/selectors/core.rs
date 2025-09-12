@@ -13,6 +13,13 @@ type JsonPathResult<T> = Result<T, JsonPathError>;
 
 impl CoreJsonPathEvaluator {
     /// Apply a single selector to a JSON value, returning owned values
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Selector type is not supported or implementation is missing
+    /// - Array operations fail due to invalid indices or bounds
+    /// - Property access fails on non-object values
+    /// - Filter operations encounter evaluation errors
     pub fn apply_selector_to_value(
         &self,
         value: &Value,
@@ -67,6 +74,7 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Collect all descendants using recursive descent (..) - owned version
+    #[allow(clippy::only_used_in_recursion)]
     pub fn collect_all_descendants_owned(&self, node: &Value, results: &mut Vec<Value>) {
         match node {
             Value::Object(obj) => {
@@ -99,6 +107,7 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Collect all descendants using recursive descent (..)
+    #[allow(clippy::only_used_in_recursion)]
     pub fn collect_all_descendants<'a>(&self, node: &'a Value, results: &mut Vec<&'a Value>) {
         match node {
             Value::Object(obj) => {

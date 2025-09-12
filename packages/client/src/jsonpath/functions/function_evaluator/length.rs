@@ -7,6 +7,12 @@ use crate::jsonpath::parser::{FilterExpression, FilterValue};
 
 /// RFC 9535 Section 2.4.4: `length()` function
 /// Returns number of characters in string, elements in array, or members in object
+///
+/// # Errors
+/// Returns `JsonPathError` if:
+/// - Function arguments are invalid, missing, or of wrong type
+/// - Expression evaluation fails on the provided context
+/// - Length calculation encounters overflow or invalid data structures
 #[inline]
 pub fn evaluate_length_function(
     context: &serde_json::Value,
@@ -36,16 +42,16 @@ pub fn evaluate_length_function(
         }
 
         let len = match current {
-            serde_json::Value::Array(arr) => arr.len() as i64,
-            serde_json::Value::Object(obj) => obj.len() as i64,
-            serde_json::Value::String(s) => s.chars().count() as i64, // Unicode-aware
+            serde_json::Value::Array(arr) => i64::try_from(arr.len()).unwrap_or(i64::MAX),
+            serde_json::Value::Object(obj) => i64::try_from(obj.len()).unwrap_or(i64::MAX),
+            serde_json::Value::String(s) => i64::try_from(s.chars().count()).unwrap_or(i64::MAX), // Unicode-aware
             _ => return Ok(FilterValue::Null), // Null and primitives return null per RFC
         };
         Ok(FilterValue::Integer(len))
     } else {
         let value = expression_evaluator(context, &args[0])?;
         match value {
-            FilterValue::String(s) => Ok(FilterValue::Integer(s.chars().count() as i64)),
+            FilterValue::String(s) => Ok(FilterValue::Integer(i64::try_from(s.chars().count()).unwrap_or(i64::MAX))),
             FilterValue::Integer(_) | FilterValue::Number(_) | FilterValue::Boolean(_) => {
                 Ok(FilterValue::Null) // Primitives return null per RFC
             }

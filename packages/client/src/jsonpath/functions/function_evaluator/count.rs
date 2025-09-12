@@ -7,6 +7,12 @@ use crate::jsonpath::parser::{FilterExpression, FilterValue};
 
 /// RFC 9535 Section 2.4.5: `count()` function\
 /// Returns number of nodes in nodelist produced by argument expression
+///
+/// # Errors
+/// Returns `JsonPathError` if:
+/// - Function arguments are invalid or missing
+/// - Expression evaluation fails on the provided context
+/// - Node counting encounters processing errors or memory limits
 #[inline]
 pub fn evaluate_count_function(
     context: &serde_json::Value,
@@ -37,8 +43,8 @@ pub fn evaluate_count_function(
             }
 
             match current {
-                serde_json::Value::Array(arr) => arr.len() as i64,
-                serde_json::Value::Object(obj) => obj.len() as i64,
+                serde_json::Value::Array(arr) => i64::try_from(arr.len()).unwrap_or(i64::MAX),
+                serde_json::Value::Object(obj) => i64::try_from(obj.len()).unwrap_or(i64::MAX),
                 serde_json::Value::Null => 0,
                 _ => 1, // Single value counts as 1
             }

@@ -31,7 +31,7 @@ impl JsonPathExpression {
                 }
                 JsonSelector::Slice { start, end, .. } => {
                     if let (Some(s), Some(e)) = (start, end) {
-                        let range = e.saturating_sub(*s).unsigned_abs() as u32;
+                        let range = u32::try_from(e.saturating_sub(*s).unsigned_abs()).unwrap_or(u32::MAX);
                         metrics.max_slice_range = metrics.max_slice_range.max(range);
                     } else if start.is_some() || end.is_some() {
                         // Open-ended slices are considered moderate complexity
@@ -41,7 +41,7 @@ impl JsonPathExpression {
                 JsonSelector::Union { selectors } => {
                     metrics.union_selector_count = metrics
                         .union_selector_count
-                        .saturating_add(selectors.len() as u32);
+                        .saturating_add(u32::try_from(selectors.len()).unwrap_or(u32::MAX));
                 }
                 _ => {
                     // Other selectors don't affect specific metrics

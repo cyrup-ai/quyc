@@ -21,6 +21,12 @@ pub struct PropertyResolver;
 impl PropertyResolver {
     /// Check if property path exists and is truthy in filter context
     /// This is the correct semantics for [?@.property] filters  
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Property path traversal fails on non-object intermediate values
+    /// - Invalid property names are encountered during path resolution
+    /// - JSON structure is malformed or incompatible with property access
     #[inline]
     pub fn property_exists_and_truthy(
         context: &serde_json::Value,
@@ -80,6 +86,13 @@ impl PropertyResolver {
     }
 
     /// Resolve property path with context about which properties exist
+    /// Resolve property path with context awareness for filter evaluation
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Property path resolution fails due to invalid intermediate values
+    /// - Property names are not found or are incompatible with context
+    /// - Filter value conversion encounters type or validation errors
     #[inline]
     pub fn resolve_property_path_with_context(
         context: &serde_json::Value,

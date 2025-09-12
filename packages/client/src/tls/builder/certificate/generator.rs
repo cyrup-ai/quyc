@@ -115,204 +115,28 @@ impl CertificateGeneratorWithDomain {
 
     /// Execute certificate generation
     pub async fn generate(self) -> CertificateGenerationResponse {
-        use rcgen::{CertificateParams, DistinguishedName, DnType, KeyPair, SanType};
-
-        let mut params = match CertificateParams::new(self.domains.clone()) {
+        // Setup certificate parameters
+        let params = match self.setup_certificate_params() {
             Ok(params) => params,
-            Err(e) => {
-                return CertificateGenerationResponse {
-                    success: false,
-                    certificate_info: None,
-                    files_created: vec![],
-                    certificate_pem: None,
-                    private_key_pem: None,
-                    issues: vec![GenerationIssue {
-                        severity: IssueSeverity::Error,
-                        message: format!("Failed to create certificate parameters: {e}"),
-                        suggestion: Some("Check certificate parameters and domain names".to_string()),
-                    }],
-                };
-            }
+            Err(msg) => return Self::error_response(msg, Some("Check certificate parameters and domain names".to_string())),
         };
-
-        // Set up distinguished name
-        let mut distinguished_name = DistinguishedName::new();
-        if let Some(first_domain) = self.domains.first() {
-            distinguished_name.push(DnType::CommonName, first_domain);
-        }
-        params.distinguished_name = distinguished_name;
-
-        // Set validity period
-        let now = SystemTime::now();
-        params.not_before = now.into();
-        params.not_after =
-            (now + std::time::Duration::from_secs(u64::from(self.valid_for_days) * 24 * 3600)).into();
-
-        // Add SAN entries with proper error handling
-        let mut san_entries = Vec::new();
-        for domain in &self.domains {
-            let san_entry = if domain.starts_with("*.") {
-                match domain.clone().try_into() {
-                    Ok(name) => SanType::DnsName(name),
-                    Err(e) => {
-                        return CertificateGenerationResponse {
-                            success: false,
-                            certificate_info: None,
-                            files_created: vec![],
-                            certificate_pem: None,
-                            private_key_pem: None,
-                            issues: vec![GenerationIssue {
-                                severity: IssueSeverity::Error,
-                                message: format!("Invalid wildcard domain '{domain}': {e}"),
-                                suggestion: Some("Check domain format".to_string()),
-                            }],
-                        };
-                    }
-                }
-            } else {
-                match domain.clone().try_into() {
-                    Ok(name) => SanType::DnsName(name),
-                    Err(e) => {
-                        return CertificateGenerationResponse {
-                            success: false,
-                            certificate_info: None,
-                            files_created: vec![],
-                            certificate_pem: None,
-                            private_key_pem: None,
-                            issues: vec![GenerationIssue {
-                                severity: IssueSeverity::Error,
-                                message: format!("Invalid domain '{domain}': {e}"),
-                                suggestion: Some("Check domain format".to_string()),
-                            }],
-                        };
-                    }
-                }
-            };
-            san_entries.push(san_entry);
-        }
-        params.subject_alt_names = san_entries;
 
         // Generate key pair
-        let key_pair = match KeyPair::generate() {
+        let key_pair = match self.generate_key_pair() {
             Ok(kp) => kp,
-            Err(e) => {
-                return CertificateGenerationResponse {
-                    success: false,
-                    certificate_info: None,
-                    files_created: vec![],
-                    certificate_pem: None,
-                    private_key_pem: None,
-                    issues: vec![GenerationIssue {
-                        severity: IssueSeverity::Error,
-                        message: format!("Failed to generate key pair: {e}"),
-                        suggestion: Some("Check system entropy and crypto libraries".to_string()),
-                    }],
-                };
-            }
+            Err(msg) => return Self::error_response(msg, Some("Check system entropy and crypto libraries".to_string())),
         };
 
-        // Create certificate
-        let cert = if self.self_signed {
-            // Self-signed certificate
-            match params.self_signed(&key_pair) {
-                Ok(c) => c,
-                Err(e) => {
-                    return CertificateGenerationResponse {
-                        success: false,
-                        certificate_info: None,
-                        files_created: vec![],
-                        certificate_pem: None,
-                        private_key_pem: None,
-                        issues: vec![GenerationIssue {
-                            severity: IssueSeverity::Error,
-                            message: format!("Failed to generate self-signed certificate: {e}"),
-                            suggestion: Some("Check certificate parameters".to_string()),
-                        }],
-                    };
-                }
-            }
-        } else if let Some(ca) = &self.authority {
-            // CA-signed certificate generation using rcgen Issuer pattern
-            tracing::debug!("Creating CA-signed certificate with domains: {:?}", self.domains);
-            
-            // Parse CA private key to create KeyPair
-            let ca_key_pair = match rcgen::KeyPair::from_pem(&ca.private_key_pem) {
-                Ok(kp) => kp,
-                Err(e) => {
-                    return CertificateGenerationResponse {
-                        success: false,
-                        certificate_info: None,
-                        files_created: vec![],
-                        certificate_pem: None,
-                        private_key_pem: None,
-                        issues: vec![GenerationIssue {
-                            severity: IssueSeverity::Error,
-                            message: format!("Failed to parse CA private key: {e}"),
-                            suggestion: Some("Check CA private key format and validity".to_string()),
-                        }],
-                    };
-                }
-            };
-            
-            // Create CA issuer from certificate PEM and key pair
-            let ca_issuer = match rcgen::Issuer::from_ca_cert_pem(&ca.certificate_pem, ca_key_pair) {
-                Ok(issuer) => issuer,
-                Err(e) => {
-                    return CertificateGenerationResponse {
-                        success: false,
-                        certificate_info: None,
-                        files_created: vec![],
-                        certificate_pem: None,
-                        private_key_pem: None,
-                        issues: vec![GenerationIssue {
-                            severity: IssueSeverity::Error,
-                            message: format!("Failed to create CA issuer: {e}"),
-                            suggestion: Some("Check CA certificate format and key compatibility".to_string()),
-                        }],
-                    };
-                }
-            };
-            
-            // Generate certificate signed by CA
-            match params.signed_by(&key_pair, &ca_issuer) {
-                Ok(signed_cert) => {
-                    tracing::info!("Successfully generated CA-signed certificate for domains: {:?}", self.domains);
-                    signed_cert
-                },
-                Err(e) => {
-                    return CertificateGenerationResponse {
-                        success: false,
-                        certificate_info: None,
-                        files_created: vec![],
-                        certificate_pem: None,
-                        private_key_pem: None,
-                        issues: vec![GenerationIssue {
-                            severity: IssueSeverity::Error,
-                            message: format!("Failed to sign certificate with CA: {e}"),
-                            suggestion: Some("Check CA certificate authority constraints and validity".to_string()),
-                        }],
-                    };
-                }
-            }
-        } else {
-            return CertificateGenerationResponse {
-                success: false,
-                certificate_info: None,
-                files_created: vec![],
-                certificate_pem: None,
-                private_key_pem: None,
-                issues: vec![GenerationIssue {
-                    severity: IssueSeverity::Error,
-                    message: "No signing method specified".to_string(),
-                    suggestion: Some("Use .self_signed() or .authority(ca)".to_string()),
-                }],
-            };
+        // Generate certificate (self-signed or CA-signed)
+        let cert = match self.generate_certificate(&params, &key_pair) {
+            Ok(cert) => cert,
+            Err(msg) => return Self::error_response(msg, Some("Check certificate parameters and CA authority".to_string())),
         };
 
         // Serialize certificate and key (rcgen 0.14.3 returns String directly)
         let cert_pem = cert.pem();
         let key_pem = key_pair.serialize_pem();
-
+        
         let mut files_created = vec![];
 
         // Save files if path specified
@@ -379,6 +203,8 @@ impl CertificateGeneratorWithDomain {
             });
         }
 
+        let now = std::time::SystemTime::now();
+        
         CertificateGenerationResponse {
             success: true,
             certificate_info: Some(CertificateInfo {
@@ -410,6 +236,99 @@ impl CertificateGeneratorWithDomain {
             certificate_pem: Some(cert_pem),
             private_key_pem: Some(key_pem),
             issues: vec![],
+        }
+    }
+    
+    /// Setup certificate parameters with validity period and distinguished name
+    fn setup_certificate_params(&self) -> Result<rcgen::CertificateParams, String> {
+        use rcgen::{CertificateParams, DistinguishedName, DnType};
+        
+        let mut params = CertificateParams::new(self.domains.clone())
+            .map_err(|e| format!("Failed to create certificate parameters: {e}"))?;
+
+        // Set up distinguished name
+        let mut distinguished_name = DistinguishedName::new();
+        if let Some(first_domain) = self.domains.first() {
+            distinguished_name.push(DnType::CommonName, first_domain);
+        }
+        params.distinguished_name = distinguished_name;
+
+        // Set validity period
+        let now = SystemTime::now();
+        params.not_before = now.into();
+        params.not_after =
+            (now + std::time::Duration::from_secs(u64::from(self.valid_for_days) * 24 * 3600)).into();
+
+        // Add SAN entries
+        params.subject_alt_names = Self::setup_san_entries(&self.domains)
+            .map_err(|e| format!("SAN setup failed: {e}"))?;
+
+        Ok(params)
+    }
+    
+    /// Generate cryptographic key pair
+    fn generate_key_pair(&self) -> Result<rcgen::KeyPair, String> {
+        rcgen::KeyPair::generate()
+            .map_err(|e| format!("Failed to generate key pair: {e}"))
+    }
+    
+    /// Generate certificate (self-signed or CA-signed)
+    fn generate_certificate(&self, params: &rcgen::CertificateParams, key_pair: &rcgen::KeyPair) -> Result<rcgen::Certificate, String> {
+        if self.self_signed {
+            params.self_signed(key_pair)
+                .map_err(|e| format!("Failed to generate self-signed certificate: {e}"))
+        } else if let Some(ca) = &self.authority {
+            // CA-signed certificate generation
+            tracing::debug!("Creating CA-signed certificate with domains: {:?}", self.domains);
+            
+            let ca_key_pair = rcgen::KeyPair::from_pem(&ca.private_key_pem)
+                .map_err(|e| format!("Failed to parse CA private key: {e}"))?;
+            
+            let ca_issuer = rcgen::Issuer::from_ca_cert_pem(&ca.certificate_pem, ca_key_pair)
+                .map_err(|e| format!("Failed to create CA issuer: {e}"))?;
+            
+            params.signed_by(key_pair, &ca_issuer)
+                .map_err(|e| format!("Failed to generate CA-signed certificate: {e}"))
+        } else {
+            Err("Neither self-signed nor CA authority provided".to_string())
+        }
+    }
+    
+    /// Setup SAN (Subject Alternative Name) entries for domains
+    fn setup_san_entries(domains: &[String]) -> Result<Vec<rcgen::SanType>, String> {
+        use rcgen::SanType;
+        
+        let mut san_entries = Vec::new();
+        for domain in domains {
+            let san_entry = if domain.starts_with("*.") {
+                match domain.clone().try_into() {
+                    Ok(name) => SanType::DnsName(name),
+                    Err(e) => return Err(format!("Invalid wildcard domain '{domain}': {e}")),
+                }
+            } else {
+                match domain.clone().try_into() {
+                    Ok(name) => SanType::DnsName(name),
+                    Err(e) => return Err(format!("Invalid domain '{domain}': {e}")),
+                }
+            };
+            san_entries.push(san_entry);
+        }
+        Ok(san_entries)
+    }
+    
+    /// Create error response with consistent structure
+    fn error_response(message: String, suggestion: Option<String>) -> CertificateGenerationResponse {
+        CertificateGenerationResponse {
+            success: false,
+            certificate_info: None,
+            files_created: vec![],
+            certificate_pem: None,
+            private_key_pem: None,
+            issues: vec![GenerationIssue {
+                severity: IssueSeverity::Error,
+                message,
+                suggestion,
+            }],
         }
     }
 }

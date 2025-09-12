@@ -134,33 +134,17 @@ impl std::error::Error for H3AdapterError {}
 impl From<H3AdapterError> for HttpError {
     fn from(err: H3AdapterError) -> Self {
         match err {
-            H3AdapterError::ConnectionFailed { .. } => {
-                HttpError::new(crate::error::types::Kind::Request).with(err)
-            }
-            H3AdapterError::SerializationFailed { .. } => {
-                HttpError::new(crate::error::types::Kind::Request).with(err)
-            }
-            H3AdapterError::InvalidRequest { .. } => {
-                HttpError::new(crate::error::types::Kind::Request).with(err)
-            }
-            H3AdapterError::ProtocolError { .. } => {
-                HttpError::new(crate::error::types::Kind::Request).with(err)
-            }
             H3AdapterError::Timeout { .. } => {
                 HttpError::new(crate::error::types::Kind::Timeout).with(err)
             }
-            H3AdapterError::ResourceLimitExceeded { .. } => {
-                HttpError::new(crate::error::types::Kind::Request).with(err)
-            }
-            H3AdapterError::StreamError { .. } => {
-                HttpError::new(crate::error::types::Kind::Request).with(err)
-            }
-            H3AdapterError::SecurityError { .. } => {
-                HttpError::new(crate::error::types::Kind::Request).with(err)
-            }
-            H3AdapterError::DnsError { .. } => {
-                HttpError::new(crate::error::types::Kind::Request).with(err)
-            }
+            H3AdapterError::ConnectionFailed { .. } |
+            H3AdapterError::SerializationFailed { .. } |
+            H3AdapterError::InvalidRequest { .. } |
+            H3AdapterError::ProtocolError { .. } |
+            H3AdapterError::ResourceLimitExceeded { .. } |
+            H3AdapterError::StreamError { .. } |
+            H3AdapterError::SecurityError { .. } |
+            H3AdapterError::DnsError { .. } |
             H3AdapterError::IoError { .. } => {
                 HttpError::new(crate::error::types::Kind::Request).with(err)
             }
@@ -500,10 +484,11 @@ fn extract_peer_addr_from_request(request: &HttpRequest) -> Result<std::net::Soc
 /// Generate proper connection ID using timestamp (not hardcoded zeros)
 fn generate_connection_id() -> quiche::ConnectionId<'static> {
     use std::time::SystemTime;
-    let timestamp = SystemTime::now()
+    let timestamp_nanos = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap_or_default()
-        .as_nanos() as u64;
+        .as_nanos();
+    let timestamp = u64::try_from(timestamp_nanos).unwrap_or(u64::MAX); // Clamp to u64::MAX on overflow
     let id_bytes = timestamp.to_be_bytes();
     quiche::ConnectionId::from_vec(id_bytes.to_vec())
 }

@@ -11,6 +11,12 @@ pub struct PropertyOperations;
 
 impl PropertyOperations {
     /// Evaluate a property path on a JSON value (for nested property access)
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Property access fails on any intermediate value
+    /// - Invalid property path format is encountered
+    /// - JSON structure is incompatible with property access
     pub fn evaluate_property_path(json: &Value, path: &str) -> JsonPathResult<Vec<Value>> {
         // Handle simple property access for now
         let properties: Vec<&str> = path.split('.').collect();

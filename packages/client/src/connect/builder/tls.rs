@@ -38,7 +38,7 @@ pub struct TlsConnectorConfig {
         target_os = "watchos",
     ))]
     pub interface: Option<String>,
-    /// Whether to disable Nagle's algorithm (TCP_NODELAY)
+    /// Whether to disable Nagle's algorithm (`TCP_NODELAY`)
     pub nodelay: bool,
     /// Whether to collect TLS connection information
     pub tls_info: bool,
@@ -80,6 +80,7 @@ impl ConnectorBuilder {
     /// future versions if TLS configuration validation is added.
     #[cfg(feature = "__rustls")]
     #[must_use = "Connector builders return a new connector and should be used"]
+    #[allow(clippy::too_many_arguments)]
     pub fn new_rustls_tls(
         http: HttpConnector,
         config: rustls::ClientConfig,
@@ -129,6 +130,7 @@ impl ConnectorBuilder {
     /// future versions if TLS configuration validation is added.
     #[cfg(feature = "__rustls")]
     #[must_use = "Connector builders return a new connector and should be used"]
+    #[allow(clippy::too_many_arguments)]
     pub fn from_built_rustls_tls(
         http: HttpConnector,
         config: rustls::ClientConfig,

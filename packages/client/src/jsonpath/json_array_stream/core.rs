@@ -91,7 +91,7 @@ where
 
     /// Append a chunk to the internal buffer
     pub fn append_chunk(&mut self, chunk: bytes::Bytes) {
-        self.buffer.append_chunk(chunk);
+        self.buffer.append_chunk(&chunk);
     }
 
     /// Get the current buffer contents as bytes

@@ -54,6 +54,8 @@ impl Matcher {
 impl fmt::Debug for Matcher {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Matcher")
+            .field("inner", &self.inner)
+            .field("extra", &self.extra)
             .field("maybe_has_http_auth", &self.maybe_has_http_auth)
             .field(
                 "maybe_has_http_custom_headers",

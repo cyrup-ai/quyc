@@ -7,6 +7,12 @@ where
     T: DeserializeOwned,
 {
     /// Deserialize current object from buffer
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Buffer contains invalid UTF-8 data
+    /// - JSON deserialization fails for the buffered object
+    /// - Memory allocation fails during deserialization
     #[inline]
     pub fn deserialize_current_object(
         &mut self,

@@ -7,6 +7,9 @@ where
     T: DeserializeOwned,
 {
     /// Read next byte from buffer with position tracking
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if buffer access fails or position tracking encounters errors
     #[inline]
     pub fn read_next_byte(&mut self) -> crate::jsonpath::error::JsonPathResult<Option<u8>> {
         // Check if we've reached the end of available data

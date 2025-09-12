@@ -8,6 +8,14 @@ pub struct JsonPathNodelistEvaluator;
 
 impl JsonPathNodelistEvaluator {
     /// Evaluate `JSONPath` selectors to produce a nodelist
+    /// Evaluate `JSONPath` selectors against JSON context to produce nodelist
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Invalid selector evaluation (index out of bounds, invalid property access)
+    /// - Union selector evaluation fails
+    /// - Slice selector evaluation fails with invalid range
+    /// - Recursive descent evaluation fails
     #[inline]
     #[allow(clippy::cast_possible_truncation)]
     pub fn evaluate_jsonpath_nodelist(
@@ -37,8 +45,13 @@ impl JsonPathNodelistEvaluator {
                         if let Some(arr) = node.as_array() {
                             let actual_index = if *from_end {
                                 arr.len().saturating_sub((*index).unsigned_abs() as usize)
+                            } else if *index >= 0 {
+                                match usize::try_from(*index) {
+                                    Ok(idx) => idx,
+                                    Err(_) => continue, // Skip if index too large
+                                }
                             } else {
-                                *index as usize
+                                continue; // Skip negative index without from_end flag
                             };
 
                             if let Some(value) = arr.get(actual_index) {
@@ -59,25 +72,30 @@ impl JsonPathNodelistEvaluator {
                     }
                     JsonSelector::Slice { start, end, step } => {
                         if let Some(arr) = node.as_array() {
-                            let len = arr.len() as i64;
+                            let len = i64::try_from(arr.len()).unwrap_or(i64::MAX);
                             let step_val = step.unwrap_or(1);
 
                             if step_val == 0 {
                                 continue; // Invalid step, skip
                             }
 
-                            let start_idx = start
-                                .map_or(0, |s| if s < 0 { len + s } else { s })
-                                .max(0) as usize;
-                            let end_idx = end
-                                .map_or(len, |e| if e < 0 { len + e } else { e })
-                                .min(len) as usize;
+                            let start_idx = usize::try_from(
+                                start
+                                    .map_or(0, |s| if s < 0 { len + s } else { s })
+                                    .max(0)
+                            ).unwrap_or(0);
+                            let end_idx = usize::try_from(
+                                end
+                                    .map_or(len, |e| if e < 0 { len + e } else { e })
+                                    .min(len)
+                            ).unwrap_or(arr.len());
 
                             if step_val > 0 {
                                 let mut i = start_idx;
+                                let step_usize = usize::try_from(step_val).unwrap_or(1);
                                 while i < end_idx && i < arr.len() {
                                     next_nodes.push(arr[i].clone());
-                                    i += step_val as usize;
+                                    i += step_usize;
                                 }
                             }
                         }

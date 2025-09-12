@@ -236,7 +236,10 @@ impl FilterExpression {
     pub fn complexity_score(&self) -> u32 {
         match self {
             FilterExpression::Current => 1,
-            FilterExpression::Property { path } => path.len() as u32,
+            FilterExpression::Property { path } => {
+                // Cap at u32::MAX for complexity scoring
+                u32::try_from(path.len()).unwrap_or(u32::MAX)
+            },
             FilterExpression::Literal { .. } => 1,
             FilterExpression::Comparison { left, right, .. } => {
                 2 + left.complexity_score() + right.complexity_score()
@@ -251,7 +254,8 @@ impl FilterExpression {
                 5 + args.iter().map(FilterExpression::complexity_score).sum::<u32>()
             }
             FilterExpression::JsonPath { selectors } => {
-                selectors.len() as u32 * 2 // Complex JSONPath expressions are more expensive
+                // Complex JSONPath expressions are more expensive, cap at u32::MAX
+                u32::try_from(selectors.len()).unwrap_or(u32::MAX).saturating_mul(2)
             }
         }
     }

@@ -335,6 +335,13 @@ pub mod utils {
     }
 
     /// Create default Quiche config for H3 connections with graceful error handling
+    ///
+    /// # Errors
+    ///
+    /// Returns `String` error if:
+    /// - QUICHE library initialization fails
+    /// - Protocol version is not supported
+    /// - System resources are insufficient for QUIC configuration
     pub fn default_quiche_config() -> Result<Config, String> {
         // SECURITY: Handle quiche configuration errors gracefully instead of panicking
         let mut config = match Config::new(quiche::PROTOCOL_VERSION) {

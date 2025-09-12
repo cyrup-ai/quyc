@@ -30,7 +30,7 @@ pub struct ConnectorServiceConfig {
     pub local_address: Option<std::net::IpAddr>,
     /// Network interface to bind to
     pub interface: Option<String>,
-    /// Whether to disable Nagle's algorithm (TCP_NODELAY)
+    /// Whether to disable Nagle's algorithm (`TCP_NODELAY`)
     pub nodelay: bool,
     /// Connection timeout duration
     pub connect_timeout: Option<Duration>,
@@ -80,6 +80,7 @@ impl ConnectorService {
     /// Returns an error if:
     /// - Proxy configuration is invalid or malformed
     /// - Required proxy authentication information is missing or invalid
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         http: HttpConnector,
         #[cfg(feature = "__rustls")] rustls_config: Option<rustls::ClientConfig>,

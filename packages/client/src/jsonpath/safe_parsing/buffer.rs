@@ -24,6 +24,12 @@ impl SafeStringBuffer {
     }
 
     /// Append bytes to buffer with size checking
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Appending data would exceed maximum buffer size limit
+    /// - Memory allocation fails during buffer expansion
     #[inline]
     pub fn append(&mut self, data: &[u8]) -> JsonPathResult<()> {
         if self.buffer.len() + data.len() > self.max_size {
@@ -39,6 +45,13 @@ impl SafeStringBuffer {
     }
 
     /// Convert buffer to UTF-8 string with recovery
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - UTF-8 validation fails and recovery strategy cannot handle invalid bytes
+    /// - Memory allocation fails during string conversion
+    /// - Buffer contains unrecoverable invalid UTF-8 sequences
     #[inline]
     pub fn to_string(&self, strategy: Utf8RecoveryStrategy) -> JsonPathResult<String> {
         Utf8Handler::validate_utf8_with_recovery(&self.buffer, strategy)

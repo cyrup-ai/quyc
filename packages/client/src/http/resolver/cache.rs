@@ -80,7 +80,7 @@ impl DnsCache {
     }
 
     /// Insert entry into cache with automatic eviction if needed
-    pub fn insert(&self, key: String, entry: DnsCacheEntry) {
+    pub fn insert(&self, key: &str, entry: DnsCacheEntry) {
         if !self.config.enabled {
             return;
         }
@@ -90,7 +90,7 @@ impl DnsCache {
             self.evict_entries();
         }
 
-        self.cache.insert(key.clone(), entry);
+        self.cache.insert(key.to_string(), entry);
         debug!(
             "Cached DNS result for {} with TTL {}s",
             key, self.config.ttl_secs

@@ -11,6 +11,14 @@ impl NormalizedPathProcessor {
     ///
     /// Validates that the input string conforms to normalized path syntax
     /// and converts it to internal representation.
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Path does not start with root identifier `$`
+    /// - Path contains invalid syntax or unsupported constructs
+    /// - Segment parsing fails due to malformed structure
+    /// - Memory allocation fails during parsing
     #[inline]
     pub fn parse_normalized_path(path: &str) -> JsonPathResult<NormalizedPath> {
         if path == "$" {

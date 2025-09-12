@@ -23,13 +23,13 @@ pub fn to_bytes<T: AsRef<[u8]>>(value: T) -> Bytes {
 ///
 /// Returns an error if the byte vector cannot be converted to the target type T
 #[inline]
-pub fn from_bytes<T: TryFrom<Vec<u8>>>(bytes: Bytes) -> Result<T, T::Error> {
+pub fn from_bytes<T: TryFrom<Vec<u8>>>(bytes: &Bytes) -> Result<T, T::Error> {
     T::try_from(bytes.to_vec())
 }
 
 /// Convert value to string representation
 #[inline]
-pub fn to_string<T: ToString>(value: T) -> String {
+pub fn to_string<T: ToString>(value: &T) -> String {
     value.to_string()
 }
 
@@ -46,7 +46,7 @@ pub fn string_to_bytes(s: String) -> Bytes {
 ///
 /// Returns an error if the byte sequence is not valid UTF-8
 #[inline]
-pub fn bytes_to_string(bytes: Bytes) -> Result<String, crate::error::HttpError> {
+pub fn bytes_to_string(bytes: &Bytes) -> Result<String, crate::error::HttpError> {
     String::from_utf8(bytes.to_vec()).map_err(|e| deserialization_error(e.to_string()))
 }
 
@@ -66,7 +66,7 @@ pub fn vec_to_bytes(vec: Vec<u8>) -> Bytes {
 
 /// Convert bytes to vector
 #[inline]
-pub fn bytes_to_vec(bytes: Bytes) -> Vec<u8> {
+pub fn bytes_to_vec(bytes: &Bytes) -> Vec<u8> {
     bytes.to_vec()
 }
 
@@ -108,30 +108,30 @@ pub enum SecurityMode {
 /// - Strict mode: UTF-8 validation fails, overlong encodings detected, or malicious patterns found
 /// - Paranoid mode: Any of the above, plus non-NFC Unicode normalization or bidirectional attacks detected
 pub fn bytes_to_string_secure(
-    bytes: Bytes, 
+    bytes: &Bytes, 
     mode: SecurityMode
 ) -> Result<String, crate::error::HttpError> {
     let context = SafeParsingContext::with_limits(10_000, true);
     
     match mode {
         SecurityMode::Basic => {
-            if let Err(e) = context.validate_utf8_basic(&bytes) {
+            if let Err(e) = context.validate_utf8_basic(bytes) {
                 return Err(deserialization_error(format!("UTF-8 validation failed: {e}")));
             }
             // Use high-performance SIMD validation
-            match simdutf8::basic::from_utf8(&bytes) {
+            match simdutf8::basic::from_utf8(bytes) {
                 Ok(s) => Ok(s.to_string()),
                 Err(_) => Err(deserialization_error("SIMD UTF-8 validation failed".to_string()))
             }
         }
         SecurityMode::Strict => {
-            if let Err(e) = context.validate_utf8_strict(&bytes) {
+            if let Err(e) = context.validate_utf8_strict(bytes) {
                 return Err(deserialization_error(format!("UTF-8 validation failed: {e}")));
             }
             // Detect overlong encodings and invalid code points
-            validate_strict_utf8(&bytes)?;
+            validate_strict_utf8(bytes)?;
             // Multi-pattern security scanning
-            scan_for_malicious_patterns(&bytes)?;
+            scan_for_malicious_patterns(bytes)?;
             // Safe conversion after comprehensive validation
             match String::from_utf8(bytes.to_vec()) {
                 Ok(s) => Ok(s),
@@ -139,11 +139,11 @@ pub fn bytes_to_string_secure(
             }
         }
         SecurityMode::Paranoid => {
-            if let Err(e) = context.validate_utf8_paranoid(&bytes) {
+            if let Err(e) = context.validate_utf8_paranoid(bytes) {
                 return Err(deserialization_error(format!("UTF-8 validation failed: {e}")));
             }
             // Convert to string for advanced checks (safe after strict validation)
-            let text = match std::str::from_utf8(&bytes) {
+            let text = match std::str::from_utf8(bytes) {
                 Ok(s) => s,
                 Err(e) => return Err(deserialization_error(format!("UTF-8 conversion failed: {e}")))
             };
@@ -154,7 +154,7 @@ pub fn bytes_to_string_secure(
             // Advanced bidirectional attack detection
             detect_bidirectional_attacks(text)?;
             // Multi-pattern security scanning
-            scan_for_malicious_patterns(&bytes)?;
+            scan_for_malicious_patterns(bytes)?;
             Ok(text.to_string())
         }
     }

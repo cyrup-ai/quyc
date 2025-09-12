@@ -19,6 +19,13 @@ pub enum PathEvaluationResult {
 }
 
 /// Evaluate current JSON path against `JSONPath` expression
+///
+/// # Errors
+/// Returns `JsonPathError` if:
+/// - Path evaluation fails due to invalid expression syntax
+/// - Property name matching encounters invalid patterns
+/// - Array index calculations fail or produce invalid results
+/// - Memory limits are exceeded during path processing
 pub fn evaluate_path_step(
     expression: &JsonPathExpression,
     current_path: &[String],

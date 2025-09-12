@@ -24,6 +24,13 @@ impl RegexCache {
     }
 
     /// Get compiled regex from cache or compile and cache if not present
+    ///
+    /// # Errors
+    ///
+    /// Returns `regex::Error` if:
+    /// - Regular expression pattern is invalid or malformed
+    /// - Pattern contains unsupported regex features
+    /// - Memory allocation fails during regex compilation
     pub fn get_or_compile(&self, pattern: &str) -> Result<regex::Regex, regex::Error> {
         // Try read lock first for fast path
         if let Ok(cache) = self.cache.read()
@@ -49,6 +56,12 @@ pub static REGEX_CACHE: std::sync::LazyLock<RegexCache> = std::sync::LazyLock::n
 
 /// Execute regex operation with timeout protection against `ReDoS` attacks
 /// Returns error if timeout is exceeded (500ms for aggressive protection)
+///
+/// # Errors
+/// Returns error string if:
+/// - Regex operation times out after 500ms (`ReDoS` protection)
+/// - Thread join operation fails unexpectedly
+/// - Channel receiver fails during timeout handling
 pub fn execute_regex_with_timeout<F>(regex_operation: F) -> Result<bool, String>
 where
     F: FnOnce() -> bool + Send + 'static,

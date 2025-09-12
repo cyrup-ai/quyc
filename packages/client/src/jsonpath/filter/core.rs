@@ -50,6 +50,12 @@ pub struct FilterEvaluator;
 
 impl FilterEvaluator {
     /// Evaluate filter predicate against JSON context
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Filter expression evaluation fails due to invalid syntax
+    /// - JSON context is incompatible with the filter operation
+    /// - Comparison operations encounter type mismatches or invalid values
     #[inline]
     pub fn evaluate_predicate(
         context: &serde_json::Value,
@@ -61,6 +67,12 @@ impl FilterEvaluator {
     }
 
     /// Evaluate filter predicate with property existence context
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Filter expression evaluation fails with the given context
+    /// - Property existence checks encounter invalid property references
+    /// - Complex filter operations exceed processing limits or fail validation
     #[inline]
     pub fn evaluate_predicate_with_context(
         context: &serde_json::Value,
@@ -132,6 +144,12 @@ impl FilterEvaluator {
     }
 
     /// Evaluate expression to get its value
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Expression evaluation fails due to invalid operations
+    /// - JSON context is incompatible with expression requirements
+    /// - Value conversion or extraction encounters errors
     #[inline]
     pub fn evaluate_expression(
         context: &serde_json::Value,
@@ -142,6 +160,12 @@ impl FilterEvaluator {
     }
 
     /// Evaluate expression with property context
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Expression evaluation fails with the provided context
+    /// - Property references in expression are invalid or missing
+    /// - Complex expression operations exceed limits or encounter errors
     #[inline]
     pub fn evaluate_expression_with_context(
         context: &serde_json::Value,

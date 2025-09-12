@@ -15,6 +15,14 @@ impl TypeSystem {
     /// Performs type conversion according to RFC 9535 specifications:
     /// - `ValueType` can be converted to `LogicalType` using test expression conversion
     /// - `NodesType` can be converted to `ValueType` if nodelist has exactly one node
+    /// Convert typed value to target function type
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Type conversion is not supported between source and target types
+    /// - Value cannot be converted to the requested type representation
+    /// - Type system constraints are violated during conversion
     #[inline]
     pub fn convert_type(
         value: TypedValue,
@@ -91,6 +99,14 @@ impl TypeSystem {
     /// 2. The function is applied to the correct number of arguments
     /// 3. All function arguments are well-typed
     /// 4. All function arguments can be converted to declared parameter types
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Function is not known or not registered in RFC 9535
+    /// - Function is applied to incorrect number of arguments
+    /// - Function arguments have invalid types or cannot be converted
+    /// - Type validation fails according to RFC rules
     #[inline]
     pub fn validate_function_expression(
         function_name: &str,

@@ -10,7 +10,9 @@ use super::types::{Extra, Proxy};
 impl fmt::Debug for Proxy {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Proxy")
+            .field("extra", &self.extra)
             .field("intercept", &self.intercept)
+            .field("no_proxy", &self.no_proxy)
             .finish()
     }
 }

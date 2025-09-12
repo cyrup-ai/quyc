@@ -51,10 +51,10 @@ pub fn establish_http_connection(
 #[cfg(feature = "__rustls")]
 pub fn establish_rustls_connection(
     stream: TcpStream,
-    host: String,
+    host: &str,
     config: std::sync::Arc<rustls::ClientConfig>,
 ) -> Result<rustls::StreamOwned<rustls::ClientConnection, TcpStream>, String> {
-    let server_name = match rustls::pki_types::DnsName::try_from(host.clone()) {
+    let server_name = match rustls::pki_types::DnsName::try_from(host.to_string()) {
         Ok(dns_name) => rustls::pki_types::ServerName::DnsName(dns_name),
         Err(e) => return Err(format!("Invalid server name {host}: {e}")),
     };

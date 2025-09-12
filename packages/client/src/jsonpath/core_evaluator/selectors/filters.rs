@@ -13,6 +13,13 @@ use crate::jsonpath::parser::FilterExpression;
 type JsonPathResult<T> = Result<T, JsonPathError>;
 
 /// Apply filter selector using `FilterEvaluator` with owned results
+///
+/// # Errors
+/// Returns `JsonPathError` if:
+/// - Filter expression evaluation fails on any array element
+/// - Invalid filter syntax or unsupported operations are encountered
+/// - Memory limits are exceeded while processing filter results
+/// - Property access fails during filter evaluation
 pub fn apply_filter_selector_owned(
     evaluator: &CoreJsonPathEvaluator,
     node: &Value,
@@ -76,6 +83,13 @@ impl CoreJsonPathEvaluator {
     }
 
     /// Apply filter selector using `FilterEvaluator`
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Filter expression evaluation fails on any array element
+    /// - Invalid filter syntax or unsupported operations are encountered
+    /// - Memory limits are exceeded while processing filter results
+    /// - Property access fails during filter evaluation
     pub fn apply_filter_selector<'a>(
         &self,
         node: &'a Value,

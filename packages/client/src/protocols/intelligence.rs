@@ -334,6 +334,13 @@ impl DomainCapabilities {
     }
     
     /// Update Alt-Svc endpoints from RFC 7838 header value
+    ///
+    /// # Errors
+    ///
+    /// Returns `String` error if:
+    /// - Alt-Svc header parsing fails due to invalid format
+    /// - `RwLock` is poisoned and cannot be acquired
+    /// - Endpoint validation fails during parsing
     pub fn update_alt_svc_endpoints(&self, alt_svc_header: &str) -> Result<(), String> {
         let endpoints = Self::parse_alt_svc_header(alt_svc_header)?;
         
@@ -806,10 +813,11 @@ impl ProtocolIntelligence {
 
 /// Get current timestamp in nanoseconds since `UNIX_EPOCH`
 fn current_timestamp_nanos() -> u64 {
-    SystemTime::now()
+    let timestamp_nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
-        .as_nanos() as u64
+        .as_nanos();
+    u64::try_from(timestamp_nanos).unwrap_or(u64::MAX) // Clamp to u64::MAX on overflow
 }
 
 impl Default for ProtocolIntelligence {

@@ -10,6 +10,12 @@ use super::core::PropertyOperations;
 /// Extension trait for `CoreJsonPathEvaluator` to add property operations
 impl CoreJsonPathEvaluator {
     /// Evaluate a property path on a JSON value (for nested property access)
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Property access fails on any intermediate value
+    /// - Invalid property path format is encountered
+    /// - JSON structure is incompatible with property access
     pub fn evaluate_property_path(&self, json: &Value, path: &str) -> JsonPathResult<Vec<Value>> {
         PropertyOperations::evaluate_property_path(json, path)
     }

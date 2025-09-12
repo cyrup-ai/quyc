@@ -112,27 +112,9 @@ impl Connection {
         ))
     }
 
-    /// Create new H2 connection (deprecated - use `new_h2_with_addr`)
-    #[inline]
-    #[deprecated(note = "Use new_h2_with_addr for real network connections")]
-    #[must_use] 
-    pub fn new_h2(_is_client: bool) -> Self {
-        match ("127.0.0.1:0".parse(), "127.0.0.1:0".parse()) {
-            (Ok(local_addr), Ok(remote_addr)) => Self::new_h2_with_addr(local_addr, remote_addr),
-            _ => Connection::Error("Failed to parse localhost address".to_string()),
-        }
-    }
 
-    /// Create new H3 connection (deprecated - use `new_h3_with_addr`)
-    #[inline]
-    #[deprecated(note = "Use new_h3_with_addr for real network connections")]
-    #[must_use] 
-    pub fn new_h3(_is_client: bool) -> Self {
-        match ("127.0.0.1:0".parse(), "127.0.0.1:0".parse()) {
-            (Ok(local_addr), Ok(remote_addr)) => Self::new_h3_with_addr(local_addr, remote_addr),
-            _ => Connection::Error("Failed to parse localhost address".to_string()),
-        }
-    }
+
+
 
     /// Check if connection is H2
     #[inline]

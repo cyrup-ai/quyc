@@ -25,9 +25,8 @@ impl ArrayOperations {
 
         let actual_index = if from_end && index < 0 {
             // Negative index - count from end (e.g., -1 means last element)
-            let abs_index = match usize::try_from(-index) {
-                Ok(idx) => idx,
-                Err(_) => return Ok(results), // Index too large for usize
+            let Ok(abs_index) = usize::try_from(-index) else {
+                return Ok(results); // Index too large for usize
             };
             if abs_index <= arr.len() && abs_index > 0 {
                 arr.len() - abs_index
@@ -36,9 +35,8 @@ impl ArrayOperations {
             }
         } else if from_end && index > 0 {
             // Positive from_end index
-            let index_usize = match usize::try_from(index) {
-                Ok(idx) => idx,
-                Err(_) => return Ok(results), // Index too large for usize
+            let Ok(index_usize) = usize::try_from(index) else {
+                return Ok(results); // Index too large for usize
             };
             if index_usize <= arr.len() {
                 arr.len() - index_usize
@@ -81,7 +79,7 @@ impl ArrayOperations {
             ));
         }
 
-        let len = arr.len() as i64;
+        let len = i64::try_from(arr.len()).unwrap_or(i64::MAX);
         let mut results = Vec::new();
 
         // Normalize start and end indices
@@ -195,13 +193,11 @@ impl ArrayOperations {
         let mut results = Vec::new();
 
         for &index in indices {
-            if index >= 0 {
-                if let Ok(index_usize) = usize::try_from(index) {
-                    if index_usize < arr.len() {
+            if index >= 0
+                && let Ok(index_usize) = usize::try_from(index)
+                    && index_usize < arr.len() {
                         results.push(arr[index_usize].clone());
                     }
-                }
-            }
         }
 
         Ok(results)

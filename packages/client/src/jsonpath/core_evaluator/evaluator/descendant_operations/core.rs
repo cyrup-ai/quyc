@@ -13,6 +13,12 @@ pub struct DescendantOperations;
 
 impl DescendantOperations {
     /// Apply descendant segment recursively for RFC 9535 compliance
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Selector application fails on any descendant node
+    /// - Memory limits are exceeded during recursive traversal
+    /// - Invalid selector operations are encountered
     pub fn apply_descendant_segment_recursive(
         node: &Value,
         remaining_selectors: &[JsonSelector],

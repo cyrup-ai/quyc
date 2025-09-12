@@ -11,7 +11,7 @@ use std::time::Duration;
 /// # Errors
 ///
 /// Returns an error if:
-/// - Failed to set TCP_NODELAY socket option
+/// - Failed to set `TCP_NODELAY` socket option
 /// - System socket configuration call fails
 pub fn configure_tcp_socket(
     stream: &mut TcpStream,
@@ -41,7 +41,7 @@ pub fn configure_tcp_socket(
 /// # Errors
 ///
 /// Returns an error if:
-/// - Failed to set TCP_NODELAY socket option
+/// - Failed to set `TCP_NODELAY` socket option
 /// - System socket configuration call fails
 #[inline]
 pub fn configure_tcp_socket_inline(stream: &TcpStream, nodelay: bool) -> Result<(), String> {

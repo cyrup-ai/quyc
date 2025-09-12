@@ -135,7 +135,7 @@ pub enum CheckResult {
     Skipped,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ValidationIssue {
     pub severity: IssueSeverity,
     pub category: IssueCategory,
@@ -143,14 +143,14 @@ pub struct ValidationIssue {
     pub suggestion: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum IssueSeverity {
     Error,
     Warning,
     Info,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum IssueCategory {
     Parsing,
     Expiry,

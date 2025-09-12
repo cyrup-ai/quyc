@@ -16,7 +16,7 @@ use crate::protocols::strategy::H2Config;
 /// Request execution context for H2 protocol
 ///
 /// Groups request parameters to reduce function parameter count
-/// for internal execute_with_runtime function.
+/// for internal `execute_with_runtime` function.
 #[derive(Debug)]
 struct RequestExecutionContext<'a> {
     url: &'a url::Url,
@@ -205,8 +205,7 @@ impl ProtocolStrategy for H2Strategy {
         let port = url.port().unwrap_or_else(|| {
             match url.scheme() {
                 "https" => 443,
-                "http" => 80,
-                _ => 80,
+                "http" | _ => 80,
             }
         });
         

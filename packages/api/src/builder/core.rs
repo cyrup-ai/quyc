@@ -52,13 +52,12 @@ impl ContentType {
 impl From<&str> for ContentType {
     fn from(s: &str) -> Self {
         match s {
-            "application/json" => ContentType::ApplicationJson,
             "application/x-www-form-urlencoded" => ContentType::ApplicationFormUrlEncoded,
             "application/octet-stream" => ContentType::ApplicationOctetStream,
             "text/plain" => ContentType::TextPlain,
             "text/html" => ContentType::TextHtml,
             "multipart/form-data" => ContentType::MultipartFormData,
-            _ => ContentType::ApplicationJson, // Default fallback
+            _ => ContentType::ApplicationJson, // Default fallback (includes application/json and unknown types)
         }
     }
 }
@@ -103,6 +102,12 @@ pub struct Http3Builder<S = BodyNotSet> {
 
 impl Http3Builder<BodyNotSet> {
     /// Start building a new request with a shared client instance
+    ///
+    /// # Panics
+    /// 
+    /// This function may panic in the extremely unlikely event that all URL parsing attempts fail,
+    /// including basic hardcoded URLs like `<http://127.0.0.1>`. This would only occur if the `url`
+    /// crate is corrupted or the system is in an invalid state.
     #[must_use]
     pub fn new(client: &HttpClient) -> Self {
         // Safe default URL - these are all valid hardcoded URLs
@@ -361,11 +366,15 @@ impl<S> ChunkHandler<HttpChunk, HttpError> for Http3Builder<S> {
     }
 }
 
-impl<S> fmt::Debug for Http3Builder<S> {
+impl<S> fmt::Debug for Http3Builder<S> 
+where
+    S: fmt::Debug,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Http3Builder")
             .field("client", &self.client)
             .field("request", &self.request)
+            .field("state", &self.state)
             .field("debug_enabled", &self.debug_enabled)
             .field("chunk_handler", &self.chunk_handler.is_some())
             .finish()

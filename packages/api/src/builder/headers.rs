@@ -109,14 +109,11 @@ impl<S> Http3Builder<S> {
     ) -> Self {
         let headers_config = headers_config.into();
         for (header_key, header_value) in headers_config {
-            match HeaderName::from_bytes(header_key.as_bytes()) {
-                Ok(header_name) => {
-                    self.request = self
-                        .request
-                        .header(header_name, HeaderValue::from_static(header_value));
-                }
-                Err(_) => continue, // Skip invalid header names
-            }
+            if let Ok(header_name) = HeaderName::from_bytes(header_key.as_bytes()) {
+                self.request = self
+                    .request
+                    .header(header_name, HeaderValue::from_static(header_value));
+            } // Skip invalid header names
         }
         self
     }

@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
+use std::net::UdpSocket;
 
 use ystream::prelude::*;
 use http::{HeaderMap, HeaderValue, Method, StatusCode};
@@ -122,222 +123,291 @@ impl Http3Connection {
         let peer_addr = self.peer_addr;
 
         AsyncStream::with_channel(move |sender| {
-            // Get next available stream ID
-            let stream_id = {
-                let _conn_guard = if let Ok(guard) = conn.lock() { guard } else {
-                    emit!(
-                        sender,
-                        Http3Chunk::bad_chunk("Failed to lock connection".to_string())
-                    );
+            // Get stream ID for this request
+            let stream_id = match Self::get_stream_id(&conn) {
+                Ok(id) => id,
+                Err(e) => {
+                    emit!(sender, Http3Chunk::bad_chunk(e));
                     return;
-                };
-
-                // Use stream ID 0 for client-initiated bidirectional stream
-                0u64
+                }
             };
 
-            // Send HTTP/3 headers
-            let mut http3_headers = Vec::new();
-            http3_headers.push((b":method".to_vec(), method.as_str().as_bytes().to_vec()));
-            http3_headers.push((b":path".to_vec(), path.as_bytes().to_vec()));
-            http3_headers.push((b":scheme".to_vec(), b"https".to_vec()));
-            http3_headers.push((b":authority".to_vec(), b"localhost".to_vec()));
-
-            // Add custom headers
-            for (name, value) in &headers {
-                http3_headers.push((name.as_str().as_bytes().to_vec(), value.as_bytes().to_vec()));
+            // Send HTTP/3 request (headers + body)
+            if let Err(e) = Self::send_http3_request(&conn, stream_id, &method, &path, &headers, &body) {
+                emit!(sender, Http3Chunk::bad_chunk(e));
+                return;
             }
 
-            // Encode headers (simplified QPACK encoding)
-            let encoded_headers = encode_headers(&http3_headers);
+            // Process response
+            Self::process_http3_response(&conn, &socket, peer_addr, &sender);
+        })
+    }
 
-            // Send headers frame
-            {
-                let mut conn_guard = if let Ok(guard) = conn.lock() { guard } else {
-                    emit!(
-                        sender,
-                        Http3Chunk::bad_chunk("Failed to lock connection".to_string())
-                    );
-                    return;
-                };
+    /// Get stream ID for the request
+    fn get_stream_id(conn: &Arc<Mutex<quiche::Connection>>) -> Result<u64, String> {
+        let _conn_guard = conn.lock().map_err(|_| "Failed to lock connection".to_string())?;
+        
+        // Use stream ID 0 for client-initiated bidirectional stream
+        Ok(0u64)
+    }
 
-                if let Err(e) = conn_guard.stream_send(stream_id, &encoded_headers, body.is_none())
-                {
-                    emit!(
-                        sender,
-                        Http3Chunk::bad_chunk(format!("Failed to send headers: {e}"))
-                    );
-                    return;
-                }
-            }
+    /// Send HTTP/3 headers and body
+    fn send_http3_request(
+        conn: &Arc<Mutex<quiche::Connection>>,
+        stream_id: u64,
+        method: &Method,
+        path: &str,
+        headers: &HeaderMap,
+        body: &Option<Vec<u8>>,
+    ) -> Result<(), String> {
+        // Build and send headers
+        Self::send_headers(conn, stream_id, method, path, headers, body.is_none())?;
 
-            // Send body if present
-            if let Some(body_data) = body {
-                let mut conn_guard = if let Ok(guard) = conn.lock() { guard } else {
-                    emit!(
-                        sender,
-                        Http3Chunk::bad_chunk("Failed to lock connection".to_string())
-                    );
-                    return;
-                };
+        // Send body if present
+        if let Some(body_data) = body {
+            Self::send_body(conn, stream_id, body_data)?;
+        }
 
-                if let Err(e) = conn_guard.stream_send(stream_id, &body_data, true) {
-                    emit!(
-                        sender,
-                        Http3Chunk::bad_chunk(format!("Failed to send body: {e}"))
-                    );
-                    return;
-                }
-            }
+        Ok(())
+    }
 
-            // Process QUIC packets and read response
-            let mut buf = [0; 65535];
-            let mut response_buf = [0; 65535];
+    /// Send HTTP/3 headers
+    fn send_headers(
+        conn: &Arc<Mutex<quiche::Connection>>,
+        stream_id: u64,
+        method: &Method,
+        path: &str,
+        headers: &HeaderMap,
+        is_headers_only: bool,
+    ) -> Result<(), String> {
+        // Build HTTP/3 headers
+        let mut http3_headers = Vec::new();
+        http3_headers.push((b":method".to_vec(), method.as_str().as_bytes().to_vec()));
+        http3_headers.push((b":path".to_vec(), path.as_bytes().to_vec()));
+        http3_headers.push((b":scheme".to_vec(), b"https".to_vec()));
+        http3_headers.push((b":authority".to_vec(), b"localhost".to_vec()));
 
-            loop {
-                // Send any pending QUIC packets
-                loop {
-                    let (write, send_info) = {
-                        let mut conn_guard = if let Ok(guard) = conn.lock() { guard } else {
-                            emit!(
-                                sender,
-                                Http3Chunk::bad_chunk("Failed to lock connection".to_string())
-                            );
-                            return;
-                        };
+        // Add custom headers
+        for (name, value) in headers {
+            http3_headers.push((name.as_str().as_bytes().to_vec(), value.as_bytes().to_vec()));
+        }
 
-                        match conn_guard.send(&mut buf) {
-                            Ok(v) => v,
-                            Err(quiche::Error::Done) => break,
-                            Err(e) => {
-                                emit!(
-                                    sender,
-                                    Http3Chunk::bad_chunk(format!("QUIC send error: {e}"))
-                                );
-                                return;
-                            }
-                        }
-                    };
+        // Encode headers (simplified QPACK encoding)
+        let encoded_headers = encode_headers(&http3_headers);
 
-                    if let Err(e) = socket.send_to(&buf[..write], send_info.to)
-                        && e.kind() != std::io::ErrorKind::WouldBlock {
-                            emit!(
-                                sender,
-                                Http3Chunk::bad_chunk(format!("Socket send error: {e}"))
-                            );
-                            return;
-                        }
-                }
+        // Send headers frame
+        let mut conn_guard = conn.lock().map_err(|_| "Failed to lock connection".to_string())?;
 
-                // Receive QUIC packets
-                match socket.recv_from(&mut buf) {
-                    Ok((read, from)) => {
-                        let recv_info = quiche::RecvInfo {
-                            to: socket.local_addr().unwrap_or(peer_addr),
-                            from,
-                        };
+        conn_guard.stream_send(stream_id, &encoded_headers, is_headers_only)
+            .map_err(|e| format!("Failed to send headers: {e}"))?;
 
-                        let mut conn_guard = if let Ok(guard) = conn.lock() { guard } else {
-                            emit!(
-                                sender,
-                                Http3Chunk::bad_chunk("Failed to lock connection".to_string())
-                            );
-                            return;
-                        };
+        Ok(())
+    }
 
-                        if let Err(e) = conn_guard.recv(&mut buf[..read], recv_info)
-                            && e != quiche::Error::Done {
-                                emit!(
-                                    sender,
-                                    Http3Chunk::bad_chunk(format!("QUIC recv error: {e}"))
-                                );
-                                return;
-                            }
-                    }
-                    Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                        // No more packets to read
-                        std::thread::sleep(std::time::Duration::from_millis(1));
+    /// Send HTTP/3 body data
+    fn send_body(
+        conn: &Arc<Mutex<quiche::Connection>>,
+        stream_id: u64,
+        body_data: &[u8],
+    ) -> Result<(), String> {
+        let mut conn_guard = conn.lock().map_err(|_| "Failed to lock connection".to_string())?;
+
+        conn_guard.stream_send(stream_id, body_data, true)
+            .map_err(|e| format!("Failed to send body: {e}"))?;
+
+        Ok(())
+    }
+
+    /// Process HTTP/3 response
+    fn process_http3_response(
+        conn: &Arc<Mutex<quiche::Connection>>,
+        socket: &Arc<UdpSocket>,
+        peer_addr: std::net::SocketAddr,
+        sender: &ystream::AsyncStreamSender<Http3Chunk>,
+    ) {
+        let mut buf = [0; 65535];
+        let mut response_buf = [0; 65535];
+
+        loop {
+            // Send pending QUIC packets
+            Self::send_pending_packets(conn, socket, sender, &mut buf);
+
+            // Receive QUIC packets  
+            match Self::receive_packets(conn, socket, peer_addr, &mut buf) {
+                Ok(should_continue) => {
+                    if !should_continue {
                         continue;
                     }
+                },
+                Err(e) => {
+                    emit!(sender, Http3Chunk::bad_chunk(e));
+                    return;
+                }
+            }
+
+            // Read from streams
+            match Self::read_response_streams(conn, &mut response_buf) {
+                Ok((true, chunks)) => {
+                    // Emit all chunks and return
+                    for chunk in chunks {
+                        emit!(sender, chunk);
+                    }
+                    return; // Response complete
+                },
+                Ok((false, chunks)) => {
+                    // Emit chunks and continue processing
+                    for chunk in chunks {
+                        emit!(sender, chunk);
+                    }
+                },
+                Err(e) => {
+                    emit!(sender, Http3Chunk::bad_chunk(e));
+                    return;
+                }
+            }
+
+            // Check if connection is closed
+            match Self::is_connection_closed(conn) {
+                Ok(true) => return,
+                Ok(false) => {}, // Continue processing
+                Err(e) => {
+                    emit!(sender, Http3Chunk::bad_chunk(e));
+                    return;
+                }
+            }
+        }
+    }
+
+    /// Send any pending QUIC packets
+    fn send_pending_packets(
+        conn: &Arc<Mutex<quiche::Connection>>,
+        socket: &Arc<UdpSocket>,
+        sender: &ystream::AsyncStreamSender<Http3Chunk>,
+        buf: &mut [u8],
+    ) {
+        loop {
+            let (write, send_info) = {
+                let mut conn_guard = if let Ok(guard) = conn.lock() { 
+                    guard 
+                } else {
+                    emit!(
+                        sender,
+                        Http3Chunk::bad_chunk("Failed to lock connection".to_string())
+                    );
+                    return;
+                };
+
+                match conn_guard.send(buf) {
+                    Ok(v) => v,
+                    Err(quiche::Error::Done) => break,
                     Err(e) => {
                         emit!(
                             sender,
-                            Http3Chunk::bad_chunk(format!("Socket recv error: {e}"))
+                            Http3Chunk::bad_chunk(format!("QUIC send error: {e}"))
                         );
                         return;
                     }
                 }
+            };
 
-                // Read from streams
-                let readable_streams = {
-                    let conn_guard = if let Ok(guard) = conn.lock() { guard } else {
-                        emit!(
-                            sender,
-                            Http3Chunk::bad_chunk("Failed to lock connection".to_string())
-                        );
-                        return;
-                    };
-                    conn_guard.readable().collect::<Vec<_>>()
+            if let Err(e) = socket.send_to(&buf[..write], send_info.to)
+                && e.kind() != std::io::ErrorKind::WouldBlock
+            {
+                emit!(
+                    sender,
+                    Http3Chunk::bad_chunk(format!("Socket send error: {e}"))
+                );
+                return;
+            }
+        }
+    }
+
+    /// Receive QUIC packets from the socket
+    fn receive_packets(
+        conn: &Arc<Mutex<quiche::Connection>>,
+        socket: &Arc<UdpSocket>,
+        peer_addr: std::net::SocketAddr,
+        buf: &mut [u8],
+    ) -> Result<bool, String> {
+        match socket.recv_from(buf) {
+            Ok((read, from)) => {
+                let recv_info = quiche::RecvInfo {
+                    to: socket.local_addr().unwrap_or(peer_addr),
+                    from,
                 };
 
-                for stream_id in readable_streams {
-                    loop {
-                        let (len, fin) = {
-                            let mut conn_guard = if let Ok(guard) = conn.lock() { guard } else {
-                                emit!(
-                                    sender,
-                                    Http3Chunk::bad_chunk(
-                                        "Failed to lock connection".to_string()
-                                    )
-                                );
-                                return;
-                            };
+                let mut conn_guard = conn.lock().map_err(|_| "Failed to lock connection".to_string())?;
 
-                            match conn_guard.stream_recv(stream_id, &mut response_buf) {
-                                Ok((len, fin)) => (len, fin),
-                                Err(quiche::Error::Done) => break,
-                                Err(e) => {
-                                    emit!(
-                                        sender,
-                                        Http3Chunk::bad_chunk(format!("Stream recv error: {e}"))
-                                    );
-                                    return;
-                                }
-                            }
-                        };
+                if let Err(e) = conn_guard.recv(&mut buf[..read], recv_info)
+                    && e != quiche::Error::Done
+                {
+                    return Err(format!("QUIC recv error: {e}"));
+                }
+                Ok(true)
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                // No more packets to read
+                std::thread::sleep(std::time::Duration::from_millis(1));
+                Ok(false)
+            }
+            Err(e) => {
+                Err(format!("Socket recv error: {e}"))
+            }
+        }
+    }
 
-                        if len > 0 {
-                            // Parse HTTP/3 frames
-                            if let Some(chunk) = parse_http3_frame(stream_id, &response_buf[..len])
-                            {
-                                emit!(sender, chunk);
-                            }
+    /// Read response data from streams
+    fn read_response_streams(
+        conn: &Arc<Mutex<quiche::Connection>>,
+        response_buf: &mut [u8],
+    ) -> Result<(bool, Vec<Http3Chunk>), String> {
+        // Get readable streams
+        let readable_streams = {
+            let conn_guard = conn.lock().map_err(|_| "Failed to lock connection".to_string())?;
+            conn_guard.readable().collect::<Vec<_>>()
+        };
+
+        let mut chunks = Vec::new();
+        let mut response_complete = false;
+
+        for stream_id in readable_streams {
+            loop {
+                let (len, fin) = {
+                    let mut conn_guard = conn.lock().map_err(|_| "Failed to lock connection".to_string())?;
+
+                    match conn_guard.stream_recv(stream_id, response_buf) {
+                        Ok((len, fin)) => (len, fin),
+                        Err(quiche::Error::Done) => break,
+                        Err(e) => {
+                            return Err(format!("Stream recv error: {e}"));
                         }
+                    }
+                };
 
-                        if fin {
-                            emit!(sender, Http3Chunk::finished(stream_id));
-                            return;
-                        }
+                if len > 0 {
+                    // Parse HTTP/3 frames
+                    if let Some(chunk) = parse_http3_frame(stream_id, &response_buf[..len]) {
+                        chunks.push(chunk);
                     }
                 }
 
-                // Check if connection is closed
-                let is_closed = {
-                    let conn_guard = if let Ok(guard) = conn.lock() { guard } else {
-                        emit!(
-                            sender,
-                            Http3Chunk::bad_chunk("Failed to lock connection".to_string())
-                        );
-                        return;
-                    };
-                    conn_guard.is_closed()
-                };
-
-                if is_closed {
-                    return;
+                if fin {
+                    chunks.push(Http3Chunk::finished(stream_id));
+                    response_complete = true;
+                    break;
                 }
             }
-        })
+        }
+        
+        Ok((response_complete, chunks))
+    }
+
+    /// Check if connection is closed
+    fn is_connection_closed(
+        conn: &Arc<Mutex<quiche::Connection>>,
+    ) -> Result<bool, String> {
+        let conn_guard = conn.lock().map_err(|_| "Failed to lock connection".to_string())?;
+        Ok(conn_guard.is_closed())
     }
 }
 
@@ -362,6 +432,8 @@ fn encode_headers(headers: &[(Vec<u8>, Vec<u8>)]) -> Vec<u8> {
             );
             continue;
         }
+        // Safe cast: validated name.len() <= 255 above
+        #[allow(clippy::cast_possible_truncation)]
         headers_data.push(name.len() as u8);
         headers_data.extend_from_slice(name);
         if value.len() > 255 {
@@ -373,6 +445,8 @@ fn encode_headers(headers: &[(Vec<u8>, Vec<u8>)]) -> Vec<u8> {
             );
             continue;
         }
+        // Safe cast: validated value.len() <= 255 above
+        #[allow(clippy::cast_possible_truncation)]
         headers_data.push(value.len() as u8);
         headers_data.extend_from_slice(value);
     }
@@ -380,6 +454,7 @@ fn encode_headers(headers: &[(Vec<u8>, Vec<u8>)]) -> Vec<u8> {
     // Encode length as varint (simplified for small lengths)
     if headers_data.len() < 64 {
         // Safe cast: already checked length < 64
+        #[allow(clippy::cast_possible_truncation)]
         encoded.push(headers_data.len() as u8);
     } else {
         // For larger lengths, use proper varint encoding

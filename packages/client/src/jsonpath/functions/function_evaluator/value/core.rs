@@ -9,6 +9,14 @@ use crate::jsonpath::parser::{FilterExpression, FilterValue};
 
 /// RFC 9535 Section 2.4.8: `value()` function
 /// Converts single-node nodelist to value (errors on multi-node or empty)
+///
+/// # Errors
+/// Returns `JsonPathError` if:
+/// - Incorrect number of arguments provided (requires exactly 1)
+/// - `JSONPath` evaluation fails
+/// - Nodelist is empty (requires non-empty nodelist)
+/// - Nodelist contains more than one node (requires single-node nodelist)
+/// - Expression evaluation fails for other expression types
 #[inline]
 pub fn evaluate_value_function(
     context: &serde_json::Value,

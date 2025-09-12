@@ -14,6 +14,13 @@ pub struct EvaluationEngine;
 
 impl EvaluationEngine {
     /// Evaluate `JSONPath` expression against JSON value using AST-based evaluation
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Expression compilation fails during evaluation
+    /// - Selector operations fail on any node during traversal
+    /// - Memory limits are exceeded during evaluation
+    /// - Recursive descent operations encounter invalid structures
     pub fn evaluate_expression(
         evaluator: &CoreJsonPathEvaluator,
         json: &Value,
@@ -96,6 +103,12 @@ impl EvaluationEngine {
     }
 
     /// Apply a single selector to a JSON value
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Selector application fails on the value
+    /// - Invalid selector type is encountered
+    /// - Memory limits are exceeded during processing
     pub fn apply_selector_to_value(
         value: &Value,
         selector: &JsonSelector,
@@ -105,6 +118,12 @@ impl EvaluationEngine {
     }
 
     /// Evaluate multiple expressions in sequence
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Any expression fails to compile or evaluate
+    /// - JSON value causes evaluation failures
+    /// - Memory limits are exceeded during processing
     pub fn evaluate_multiple(
         expressions: &[&str],
         json: &Value,

@@ -17,11 +17,26 @@ pub struct TimeoutProtectedEvaluator;
 
 impl TimeoutProtectedEvaluator {
     /// Evaluate with default timeout protection (1.5 seconds)
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Expression compilation fails due to invalid `JSONPath` syntax
+    /// - Evaluation times out after 1.5 seconds
+    /// - Evaluation thread disconnects unexpectedly
+    /// - Selector application fails during evaluation
     pub fn evaluate_with_timeout(expression: &str, json: &Value) -> JsonPathResult<Vec<Value>> {
         Self::evaluate_with_custom_timeout(expression, json, 1500)
     }
 
     /// Evaluate with custom timeout protection
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Expression compilation fails due to invalid `JSONPath` syntax
+    /// - Evaluation times out after the specified duration
+    /// - Evaluation thread disconnects unexpectedly during processing
+    /// - Selector application fails during evaluation
+    /// - Result set exceeds memory limits (>10000 items)
     pub fn evaluate_with_custom_timeout(
         expression: &str,
         json: &Value,

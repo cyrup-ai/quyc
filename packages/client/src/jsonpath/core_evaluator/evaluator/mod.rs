@@ -19,12 +19,25 @@ pub use timeout_handler::{TimeoutConfig, TimeoutHandler};
 // Main evaluator implementation combining all components
 impl CoreJsonPathEvaluator {
     /// Evaluate `JSONPath` expression against JSON value using AST-based evaluation
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Evaluation times out due to complex expression patterns
+    /// - Expression compilation or evaluation fails
+    /// - Memory limits are exceeded during processing
     pub fn evaluate(&self, json: &serde_json::Value) -> JsonPathResult<Vec<serde_json::Value>> {
         // Add timeout protection for deep nesting patterns
         TimeoutHandler::evaluate_with_timeout(self, json, None)
     }
 
     /// Evaluate with custom timeout configuration
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Evaluation times out after the configured duration
+    /// - Expression compilation or evaluation fails
+    /// - Memory limits are exceeded during processing
+    /// - Invalid timeout configuration is provided
     pub fn evaluate_with_config(
         &self,
         json: &serde_json::Value,

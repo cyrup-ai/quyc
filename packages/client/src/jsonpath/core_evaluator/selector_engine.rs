@@ -18,6 +18,13 @@ pub struct SelectorEngine;
 
 impl SelectorEngine {
     /// Apply a single selector to a JSON value, returning owned values
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Selector type is not supported or implementation is missing
+    /// - Array index operations fail due to invalid indices or bounds
+    /// - Property access operations encounter invalid names
+    /// - Filter evaluation fails during processing
     pub fn apply_selector(value: &Value, selector: &JsonSelector) -> JsonPathResult<Vec<Value>> {
         let mut results = Vec::new();
 
@@ -143,6 +150,13 @@ impl SelectorEngine {
     }
 
     /// Apply multiple selectors in sequence
+    ///
+    /// # Errors
+    /// Returns `JsonPathError` if:
+    /// - Any selector in the sequence fails to apply
+    /// - Memory limits are exceeded while processing selector chain
+    /// - Invalid selector sequences are encountered
+    /// - Intermediate results cannot be processed by subsequent selectors
     pub fn apply_selectors(
         initial_value: &Value,
         selectors: &[JsonSelector],
@@ -180,14 +194,7 @@ impl SelectorEngine {
     /// Check if a selector is potentially expensive
     #[must_use] 
     pub fn is_expensive_selector(selector: &JsonSelector) -> bool {
-        match selector {
-            JsonSelector::RecursiveDescent => true,
-            JsonSelector::Wildcard => true,
-            JsonSelector::Filter { .. } => true,
-            JsonSelector::Slice { .. } => true,
-            JsonSelector::Union { .. } => true,
-            _ => false,
-        }
+        matches!(selector, JsonSelector::RecursiveDescent | JsonSelector::Wildcard | JsonSelector::Filter { .. } | JsonSelector::Slice { .. } | JsonSelector::Union { .. })
     }
 
     /// Estimate the complexity of a selector

@@ -216,7 +216,7 @@ fn validate_http_config(config: &HttpConfig) -> std::result::Result<(), String> 
 /// # Errors
 ///
 /// Returns an error if:
-/// - Global client has already been initialized (OnceLock constraint)
+/// - Global client has already been initialized (`OnceLock` constraint)
 /// - Client creation fails during initialization
 fn initialize_global_client_internal(
     config: HttpConfig,

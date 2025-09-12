@@ -351,7 +351,9 @@ impl WasmRequest {
         if let Some(body) = self.inner.body() {
             match body {
                 RequestBody::Bytes(bytes) => {
-                    let array = js_sys::Uint8Array::new_with_length(bytes.len() as u32);
+                    let array = js_sys::Uint8Array::new_with_length(
+                        u32::try_from(bytes.len()).unwrap_or(u32::MAX)
+                    );
                     array.copy_from(bytes);
                     init.body(Some(&array));
                 }

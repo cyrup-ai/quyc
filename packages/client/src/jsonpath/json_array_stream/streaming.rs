@@ -38,7 +38,7 @@ where
         T: MessageChunk + MessageChunk + Default + Send + 'static,
     {
         // Append chunk to internal buffer
-        self.buffer.append_chunk(chunk);
+        self.buffer.append_chunk(&chunk);
 
         // Try to parse as complete JSON first using simple evaluator
         let all_data = self.buffer.as_bytes();

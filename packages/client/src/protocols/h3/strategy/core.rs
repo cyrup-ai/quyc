@@ -17,7 +17,7 @@ use crate::protocols::h3::connection::H3Connection;
 /// Request execution context for H3 protocol
 ///
 /// Groups request parameters to reduce function parameter count
-/// for internal execute_with_runtime function.
+/// for internal `execute_with_runtime` function.
 #[derive(Debug)]
 struct RequestExecutionContext<'a> {
     _url: &'a url::Url, // Currently unused but kept for API consistency
@@ -151,11 +151,11 @@ impl H3Strategy {
     /// Resolve local address for UDP socket binding
     /// 
     /// Dynamically determines the appropriate local address based on:
-    /// - Configured local_bind_address (if specified)
+    /// - Configured `local_bind_address` (if specified)
     /// - Remote address IP family
     /// - Preferred IP version setting
     /// 
-    /// Returns a SocketAddr suitable for binding the UDP socket.
+    /// Returns a `SocketAddr` suitable for binding the UDP socket.
     fn resolve_local_address(config: &crate::protocols::strategy::H3Config, remote_addr: &SocketAddr) -> Result<SocketAddr, String> {
         use crate::protocols::strategy::IpVersion;
         
@@ -316,7 +316,7 @@ impl H3Strategy {
             let scid = generate_connection_id();
             let peer_addr = format!("{}:{}", context.host, context.port).parse()
                 .map_err(|e| format!("Peer address parse error: {e}"))?;
-            let local_addr = Self::resolve_local_address(&h3_config, &peer_addr)?;
+            let local_addr = Self::resolve_local_address(h3_config, &peer_addr)?;
 
             let quic_conn = quiche::connect(None, &scid, local_addr, peer_addr, &mut quic_config)
                 .map_err(|e| format!("QUIC connection failed: {e}"))?;
@@ -365,10 +365,11 @@ impl H3Strategy {
 /// Generate proper connection ID using timestamp
 fn generate_connection_id() -> quiche::ConnectionId<'static> {
     use std::time::SystemTime;
-    let timestamp = SystemTime::now()
+    let timestamp_nanos = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap_or_default()
-        .as_nanos() as u64;
+        .as_nanos();
+    let timestamp = u64::try_from(timestamp_nanos).unwrap_or(u64::MAX); // Clamp to u64::MAX on overflow
     let id_bytes = timestamp.to_be_bytes();
     quiche::ConnectionId::from_vec(id_bytes.to_vec())
 }

@@ -77,12 +77,9 @@ pub fn compare_with_null_semantics(
         // Value vs null (different unless value is explicitly null)
         (PropertyAccessResult::Value(JsonValue::Null), PropertyAccessResult::NullValue) | 
         (PropertyAccessResult::NullValue, PropertyAccessResult::Value(JsonValue::Null)) => Ok(true),
-        (PropertyAccessResult::Value(_), PropertyAccessResult::NullValue) | 
-        (PropertyAccessResult::NullValue, PropertyAccessResult::Value(_)) => Ok(false),
-
-        // Value vs missing (different)
-        (PropertyAccessResult::Value(_), PropertyAccessResult::Missing) | 
-        (PropertyAccessResult::Missing, PropertyAccessResult::Value(_)) => Ok(false),
+        
+        // All other combinations are different
+        _ => Ok(false),
     }
 }
 

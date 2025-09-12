@@ -8,6 +8,13 @@ pub struct PropertyAccessEvaluator;
 
 impl PropertyAccessEvaluator {
     /// Evaluate property path access
+    ///
+    /// # Errors
+    ///
+    /// Returns `JsonPathError` if:
+    /// - Property path traversal encounters invalid structure
+    /// - Memory allocation fails during property access
+    /// - JSON value conversion fails during evaluation
     pub fn evaluate_property_path(
         context: &serde_json::Value,
         path: &[String],

@@ -65,10 +65,11 @@ impl NormalizedPathProcessor {
                         ));
                     }
                     if *index < 0 {
+                        let abs_index = usize::try_from((*index).wrapping_abs()).unwrap_or(0);
                         return Err(invalid_expression_error(
                             "",
                             "normalized paths require non-negative array indices",
-                            Some((*index).wrapping_abs() as usize),
+                            Some(abs_index),
                         ));
                     }
                     segments.push(PathSegment::Index(*index));

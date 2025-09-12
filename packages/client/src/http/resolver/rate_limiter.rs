@@ -50,7 +50,7 @@ impl RateLimiter {
     /// # Errors
     /// 
     /// Returns `String` error if:
-    /// - Query rate exceeds configured limits for the hostname/query_type combination
+    /// - Query rate exceeds configured limits for the `hostname/query_type` combination
     /// - Rate limiter window calculation fails due to time arithmetic errors
     /// - Internal rate tracking data structures encounter consistency issues
     pub fn check_rate_limit(&self, hostname: &str, query_type: &str) -> Result<(), String> {
