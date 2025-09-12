@@ -63,10 +63,8 @@ pub fn compare_with_null_semantics(
     right: &PropertyAccessResult,
 ) -> JsonPathResult<bool> {
     match (left, right) {
-        // Both null values
-        (PropertyAccessResult::NullValue, PropertyAccessResult::NullValue) => Ok(true),
-
-        // Both missing
+        // Both null values or both missing - considered equal
+        (PropertyAccessResult::NullValue, PropertyAccessResult::NullValue) |
         (PropertyAccessResult::Missing, PropertyAccessResult::Missing) => Ok(true),
 
         // Null vs missing (different)
